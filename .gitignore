@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Next.js / Build outputs
+.next/
+**/dist/
+**/build/
+**/out/
+
+# Embedded Flutter SDK / Flutter binaries
+flutter/
+
+# Environment files
+.env
+*.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
