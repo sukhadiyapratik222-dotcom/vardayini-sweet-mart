@@ -2,6 +2,8 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { AuthProvider } from "./context/AuthContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import { CartProvider } from "./context/CartContext";
+import CartDrawer from "./components/CartDrawer";
 import AdvertisementPopup from "./components/AdvertisementPopup";
 
 export const metadata: Metadata = {
@@ -15,13 +17,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <LanguageProvider>
           <AuthProvider>
-            {children}
-            <AdvertisementPopup />
+            <CartProvider>
+              {children}
+              <CartDrawer />
+              <AdvertisementPopup />
+            </CartProvider>
           </AuthProvider>
         </LanguageProvider>
       </body>
     </html>
   );
 }
+
 
 

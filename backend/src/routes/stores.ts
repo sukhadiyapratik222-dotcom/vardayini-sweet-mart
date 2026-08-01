@@ -4,6 +4,60 @@ import { prisma } from "../prisma";
 const router = Router();
 
 // GET stores with searchable filter: GET /api/stores?city=&pincode=
+const defaultStoresList = [
+  {
+    id: "store-surat-1",
+    name: "Vardayini Sweet Mart - Main Outlet",
+    address: "123 Ring Road, Near Textile Market",
+    city: "Surat",
+    pincode: "395002",
+    phone: "+91 98765 43210",
+    latitude: 21.1702,
+    longitude: 72.8311,
+  },
+  {
+    id: "store-surat-2",
+    name: "Vardayini Sweet Mart - Station Road",
+    address: "45 Station Road, Opposite Railway Station",
+    city: "Surat",
+    pincode: "395003",
+    phone: "+91 98765 43211",
+    latitude: 21.2049,
+    longitude: 72.8406,
+  },
+  {
+    id: "store-ahmedabad-1",
+    name: "Vardayini Sweet Mart - Navrangpura",
+    address: "78 CG Road, Navrangpura",
+    city: "Ahmedabad",
+    pincode: "380009",
+    phone: "+91 98765 43212",
+    latitude: 23.0366,
+    longitude: 72.5612,
+  },
+  {
+    id: "store-vadodara-1",
+    name: "Vardayini Sweet Mart - Alkapuri",
+    address: "12 Alkapuri Main Road",
+    city: "Vadodara",
+    pincode: "390007",
+    phone: "+91 98765 43213",
+    latitude: 22.3107,
+    longitude: 73.1685,
+  },
+  {
+    id: "store-delhi-1",
+    name: "Vardayini Sweet Mart - Old Delhi Branch",
+    address: "123 Chawri Bazar Rd, Old Delhi",
+    city: "Delhi",
+    pincode: "110006",
+    phone: "+91 98765 43214",
+    latitude: 28.6500,
+    longitude: 77.2300,
+  },
+];
+
+// GET stores with searchable filter: GET /api/stores?city=&pincode=
 router.get("/", async (req, res) => {
   try {
     const { city, pincode } = req.query;
@@ -22,7 +76,7 @@ router.get("/", async (req, res) => {
       where.pincode = { contains: String(pincode).trim() };
     }
 
-    const stores = await prisma.store.findMany({
+    let stores = await prisma.store.findMany({
       where,
       select: {
         id: true,
@@ -36,9 +90,25 @@ router.get("/", async (req, res) => {
       },
     });
 
+    if (!stores || stores.length === 0) {
+      // Filter default stores list
+      let filtered = defaultStoresList;
+      if (city && String(city).trim() !== "") {
+        const c = String(city).trim().toLowerCase();
+        filtered = filtered.filter(
+          (s) => s.city.toLowerCase().includes(c) || s.name.toLowerCase().includes(c) || s.address.toLowerCase().includes(c)
+        );
+      }
+      if (pincode && String(pincode).trim() !== "") {
+        const p = String(pincode).trim();
+        filtered = filtered.filter((s) => s.pincode.includes(p));
+      }
+      return res.json(filtered);
+    }
+
     res.json(stores);
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch store outlets" });
+    res.json(defaultStoresList);
   }
 });
 

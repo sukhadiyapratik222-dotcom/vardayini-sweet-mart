@@ -2,20 +2,26 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
-import { Minus, Plus, ShoppingCart, Star } from 'lucide-react';
+import { Minus, Plus, ShoppingCart, Star, Check, ShieldCheck, Truck, Clock, Sparkles, Send } from 'lucide-react';
+import Header from './Header';
+import Footer from './Footer';
 import { ApiProduct, ApiReview } from '../lib/api';
+import { useCart } from '../context/CartContext';
 
 type ProductDetailClientProps = {
-  product: ApiProduct;
+  product: any;
   initialReviews: ApiReview[];
 };
 
 const nutritionRows = [
-  ['Energy', '412 kcal'],
+  ['Energy (per 100g)', '412 kcal'],
   ['Carbohydrates', '52 g'],
-  ['Protein', '6 g'],
-  ['Fat', '19 g'],
+  ['Protein', '6.8 g'],
+  ['Total Fat (Pure A2 Ghee)', '19.5 g'],
+  ['Saturated Fat', '11 g'],
+  ['Natural Sugar', '34 g'],
 ];
 
 function formatPrice(value: number) {
@@ -23,241 +29,445 @@ function formatPrice(value: number) {
 }
 
 export default function ProductDetailClient({ product, initialReviews }: ProductDetailClientProps) {
-  const [selectedVariantId, setSelectedVariantId] = useState<string>(product.variants[0]?.id ?? '');
+  const router = useRouter();
+  const { addToCart, setIsOpen } = useCart();
+
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(product.variants?.[0]?.id ?? '');
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [activeTab, setActiveTab] = useState<'description' | 'nutrition' | 'reviews'>('description');
-  const [reviews] = useState(initialReviews);
+  
+  // Interactive reviews state
+  const [reviews, setReviews] = useState<ApiReview[]>(initialReviews || []);
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState('');
+  const [userName, setUserName] = useState('');
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [isAdded, setIsAdded] = useState(false);
+
+  // Zoom preview state
+  const [zoomPos, setZoomPos] = useState({ x: 0, y: 0, isZoomed: false });
 
   const selectedVariant = useMemo(
-    () => product.variants.find((variant) => variant.id === selectedVariantId) ?? product.variants[0],
+    () => product.variants?.find((variant: any) => variant.id === selectedVariantId) ?? product.variants?.[0],
     [product.variants, selectedVariantId]
   );
 
-  const displayPrice = Number(selectedVariant?.discountedPrice ?? selectedVariant?.price ?? 0);
+  const displayPrice = Number(selectedVariant?.discountedPrice ?? selectedVariant?.price ?? product.price ?? 0);
   const originalPrice = Number(selectedVariant?.price ?? displayPrice);
-  const imageUrls = product.images.length > 0 ? product.images.map((image) => image.imageUrl) : [product.primaryImage ?? '/images/sweet-1.jpg'];
-  const selectedRating = product.ratingAvg || (reviews.length ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length : 0);
+  const imageUrls = product.images && product.images.length > 0
+    ? product.images.map((image: any) => image.imageUrl)
+    : [product.primaryImage || product.image || '/images/sweet-1.jpg'];
+
+  const avgRating = product.ratingAvg || (reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 4.8);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    setZoomPos({ x, y, isZoomed: true });
+  };
+
+  const handleAddToCart = async () => {
+    const targetVariantId = selectedVariant?.id || `${product.id}-${selectedVariant?.weightLabel || 'default'}`;
+    await addToCart(targetVariantId, quantity);
+    setIsAdded(true);
+    setTimeout(() => setIsAdded(false), 2000);
+    if (setIsOpen) setIsOpen(true);
+  };
+
+  const handleBuyNow = async () => {
+    const targetVariantId = selectedVariant?.id || `${product.id}-${selectedVariant?.weightLabel || 'default'}`;
+    await addToCart(targetVariantId, quantity);
+    router.push('/cart');
+  };
+
+  const handleAddReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    const newRev: ApiReview = {
+      id: `rev-${Date.now()}`,
+      productId: String(product.id || '1'),
+      userId: `user-${Date.now()}`,
+      rating: newRating,
+      comment: newComment,
+      createdAt: new Date().toISOString(),
+      user: { id: `u-${Date.now()}`, name: userName.trim() || 'Valued Customer' }
+    };
+
+    setReviews([newRev, ...reviews]);
+    setNewComment('');
+    setUserName('');
+    setReviewSubmitted(true);
+    setTimeout(() => setReviewSubmitted(false), 3000);
+  };
 
   return (
-    <main className="min-h-screen bg-[#fbf7f2] px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-gray-500">
-          <Link href="/products" className="hover:text-maroon">
-            Products
-          </Link>
-          <span>/</span>
-          <span>{product.category?.name ?? 'Catalog'}</span>
-        </div>
+    <div className="min-h-screen bg-[#FAF7F0] flex flex-col justify-between">
+      <div>
+        <Header />
 
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-          <section className="space-y-4">
-            <div className="group relative overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <Image
-                  src={imageUrls[selectedImage]}
-                  alt={product.name}
-                  fill
-                  className="object-cover transition duration-500 group-hover:scale-110"
-                  sizes="(max-width: 1024px) 100vw, 55vw"
-                  priority
-                />
-              </div>
-              {selectedVariant?.discountedPrice && (
-                <div className="absolute right-4 top-4 rounded-full bg-maroon px-4 py-2 text-sm font-semibold text-cream">
-                  Save {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}%
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          {/* Breadcrumb */}
+          <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-bold text-gray-500">
+            <Link href="/" className="hover:text-gold-dark">Home</Link>
+            <span>/</span>
+            <Link href="/categories" className="hover:text-gold-dark">Products</Link>
+            <span>/</span>
+            <span className="text-gold-dark font-extrabold">{product.category?.name || product.category || 'Special Sweets'}</span>
+            <span>/</span>
+            <span className="text-[#0B1B3D] truncate">{product.name}</span>
+          </div>
+
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-start">
+            
+            {/* Left Column: Interactive Image Gallery with Hover Zoom */}
+            <section className="space-y-4">
+              <div 
+                className="group relative overflow-hidden rounded-3xl border-2 border-gold/30 bg-white shadow-lg cursor-crosshair"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={() => setZoomPos({ x: 0, y: 0, isZoomed: false })}
+              >
+                <div className="relative aspect-[4/3] overflow-hidden">
+                  <img
+                    src={imageUrls[selectedImage]}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-200"
+                    style={{
+                      transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
+                      transform: zoomPos.isZoomed ? 'scale(2)' : 'scale(1)'
+                    }}
+                  />
                 </div>
-              )}
-            </div>
 
-            <div className="flex gap-3 overflow-x-auto pb-1">
-              {imageUrls.map((imageUrl, index) => (
-                <button
-                  key={imageUrl}
-                  type="button"
-                  onClick={() => setSelectedImage(index)}
-                  className={`relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-2xl border-2 transition ${
-                    selectedImage === index ? 'border-maroon' : 'border-transparent'
-                  }`}
-                >
-                  <Image src={imageUrl} alt={`${product.name} ${index + 1}`} fill className="object-cover" sizes="96px" />
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-gray-400">{product.category?.name ?? 'Product'}</p>
-                <h1 className="mt-2 text-3xl font-semibold text-maroon">{product.name}</h1>
-                <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: 5 }).map((_, index) => (
-                      <Star
-                        key={index}
-                        size={16}
-                        className={index < Math.round(selectedRating) ? 'fill-gold text-gold' : 'text-gray-300'}
-                      />
-                    ))}
+                {selectedVariant?.discountedPrice && (
+                  <div className="absolute right-4 top-4 rounded-full bg-gold text-[#0B1B3D] px-4 py-1.5 text-xs font-black shadow-md border border-gold">
+                    SAVE {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}% OFF
                   </div>
-                  <span>{selectedRating.toFixed(1)}</span>
-                  <span>({product.ratingCount || reviews.length} reviews)</span>
+                )}
+
+                <div className="absolute bottom-3 left-3 bg-black/50 text-white text-[10px] font-bold px-3 py-1 rounded-full backdrop-blur-sm pointer-events-none">
+                  🔍 Hover photo to zoom
                 </div>
               </div>
-              <div className="rounded-full bg-gold/15 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-maroon">
-                featured
-              </div>
-            </div>
 
-            <div className="mt-6 border-y border-gray-200 py-5">
-              <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-semibold text-maroon">{formatPrice(displayPrice)}</span>
-                {originalPrice > displayPrice && (
-                  <span className="text-lg text-gray-400 line-through">{formatPrice(originalPrice)}</span>
-                )}
-              </div>
-              <p className="mt-2 text-sm text-gray-500">
-                Inclusive of packaging and GST. Quantity pricing updates as you switch the weight.
-              </p>
-            </div>
-
-            <div className="mt-6 space-y-6">
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Select weight</p>
-                <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                  {product.variants.map((variant) => (
+              {/* Thumbnails */}
+              {imageUrls.length > 1 && (
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {imageUrls.map((imageUrl: string, index: number) => (
                     <button
-                      key={variant.id}
+                      key={index}
                       type="button"
-                      onClick={() => setSelectedVariantId(variant.id)}
-                      className={`rounded-2xl border px-4 py-3 text-left transition ${
-                        selectedVariant?.id === variant.id
-                          ? 'border-maroon bg-maroon text-cream'
-                          : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-maroon'
+                      onClick={() => setSelectedImage(index)}
+                      className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border-2 transition-all ${
+                        selectedImage === index ? 'border-gold ring-2 ring-gold/40 scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <span className="block text-sm font-semibold">{variant.weightLabel}</span>
-                      <span className="mt-1 block text-xs opacity-80">{formatPrice(Number(variant.discountedPrice ?? variant.price))}</span>
+                      <img src={imageUrl} alt={`${product.name} thumbnail`} className="h-full w-full object-cover" />
                     </button>
                   ))}
                 </div>
-              </div>
+              )}
 
+              {/* Purity & Guarantee Badges */}
+              <div className="grid grid-cols-3 gap-3 pt-4 border-t border-gold/20">
+                <div className="bg-amber-50 p-3 rounded-2xl border border-gold/30 text-center space-y-1">
+                  <ShieldCheck size={20} className="text-gold-dark mx-auto" />
+                  <p className="text-xs font-black text-[#0B1B3D]">100% Pure A2 Ghee</p>
+                  <p className="text-[10px] text-gray-500 font-medium">No Palm Oil</p>
+                </div>
+                <div className="bg-amber-50 p-3 rounded-2xl border border-gold/30 text-center space-y-1">
+                  <Truck size={20} className="text-gold-dark mx-auto" />
+                  <p className="text-xs font-black text-[#0B1B3D]">Express Delivery</p>
+                  <p className="text-[10px] text-gray-500 font-medium">Pan-India Fresh</p>
+                </div>
+                <div className="bg-amber-50 p-3 rounded-2xl border border-gold/30 text-center space-y-1">
+                  <Clock size={20} className="text-gold-dark mx-auto" />
+                  <p className="text-xs font-black text-[#0B1B3D]">Fresh Batch</p>
+                  <p className="text-[10px] text-gray-500 font-medium">Daily Prepared</p>
+                </div>
+              </div>
+            </section>
+
+            {/* Right Column: Product Details, Variant Picker, Stepper & CTA */}
+            <section className="rounded-3xl border-2 border-gold/30 bg-white p-6 sm:p-8 shadow-xl space-y-6">
               <div>
-                <p className="text-sm font-semibold text-gray-800">Quantity</p>
-                <div className="mt-3 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((current) => Math.max(1, current - 1))}
-                    className="rounded-2xl border border-gray-200 p-3 text-gray-700 transition hover:border-maroon"
-                  >
-                    <Minus size={18} />
-                  </button>
-                  <div className="min-w-16 rounded-2xl border border-gray-200 px-4 py-3 text-center text-sm font-semibold text-gray-800">
-                    {quantity}
+                <span className="text-xs font-extrabold uppercase tracking-widest text-gold-dark bg-gold/15 px-3 py-1 rounded-full border border-gold/30">
+                  {product.category?.name || product.category || 'Vardayini Special'}
+                </span>
+
+                <h1 className="mt-3 text-2xl sm:text-4xl font-black text-[#0B1B3D] leading-tight">
+                  {product.name}
+                </h1>
+
+                {/* Rating & Reviews Summary */}
+                <div className="mt-3 flex items-center gap-2 text-sm text-gray-700">
+                  <div className="flex items-center gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        size={16}
+                        className={`${i < Math.floor(avgRating) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+                      />
+                    ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((current) => current + 1)}
-                    className="rounded-2xl border border-gray-200 p-3 text-gray-700 transition hover:border-maroon"
-                  >
-                    <Plus size={18} />
-                  </button>
+                  <span className="font-extrabold text-xs text-[#0B1B3D]">★ {Number(avgRating).toFixed(1)}</span>
+                  <span className="text-xs text-gray-500 font-semibold">({product.ratingCount || reviews.length} customer reviews)</span>
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  className="flex items-center justify-center gap-2 rounded-full bg-maroon px-5 py-4 text-sm font-semibold text-cream transition hover:bg-[#5f1313]"
-                >
-                  <ShoppingCart size={18} />
-                  Add to Cart
-                </button>
-                <button
-                  type="button"
-                  className="rounded-full border border-maroon px-5 py-4 text-sm font-semibold text-maroon transition hover:bg-maroon hover:text-cream"
-                >
-                  Buy Now
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-8 border-t border-gray-200 pt-6">
-              <div className="flex flex-wrap gap-2">
-                {(['description', 'nutrition', 'reviews'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`rounded-full px-4 py-2 text-sm font-semibold capitalize transition ${
-                      activeTab === tab ? 'bg-maroon text-cream' : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {tab === 'nutrition' ? 'Ingredients & Nutrition' : tab}
-                  </button>
-                ))}
+              {/* Price Display */}
+              <div className="border-y border-gold/20 py-4 bg-amber-50/40 -mx-6 px-6 sm:-mx-8 sm:px-8 space-y-1">
+                <div className="flex items-baseline gap-3">
+                  <span className="text-3xl sm:text-4xl font-black text-[#0B1B3D]">{formatPrice(displayPrice)}</span>
+                  {originalPrice > displayPrice && (
+                    <span className="text-base text-gray-400 line-through font-semibold">{formatPrice(originalPrice)}</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 font-medium">
+                  Inclusive of all taxes & protective tin box packaging. Select weight variant below to auto-update pricing.
+                </p>
               </div>
 
-              <div className="mt-5 rounded-2xl bg-[#fcfaf6] p-5">
-                {activeTab === 'description' && (
-                  <p className="text-sm leading-7 text-gray-700">
-                    {product.description || 'Freshly prepared in small batches with premium ingredients and careful packaging for gifting and daily indulgence.'}
-                  </p>
-                )}
+              {/* Weight Variant Selector */}
+              {product.variants && product.variants.length > 0 && (
+                <div>
+                  <label className="block text-xs font-black text-[#0B1B3D] uppercase tracking-wider mb-2">
+                    Select Weight Pack Variant:
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {product.variants.map((v: any) => {
+                      const isSelected = selectedVariant?.id === v.id || selectedVariant?.weightLabel === v.weightLabel;
+                      const vPrice = Number(v.discountedPrice || v.price);
+                      return (
+                        <button
+                          key={v.id || v.weightLabel}
+                          type="button"
+                          onClick={() => setSelectedVariantId(v.id)}
+                          className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                            isSelected
+                              ? 'border-[#0B1B3D] bg-[#0B1B3D] text-gold shadow-md scale-105'
+                              : 'border-gray-200 bg-gray-50 text-gray-800 hover:border-gold'
+                          }`}
+                        >
+                          <span className="block text-xs font-black">{v.weightLabel || v.weight}</span>
+                          <span className={`block text-xs mt-0.5 ${isSelected ? 'text-gold-light font-bold' : 'text-green-700 font-bold'}`}>
+                            {formatPrice(vPrice)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
-                {activeTab === 'nutrition' && (
-                  <div className="space-y-4 text-sm text-gray-700">
-                    <p>
-                      Ingredients vary by flavor and preparation. This batch is made with premium milk solids, ghee, nuts, and natural flavoring.
-                    </p>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {nutritionRows.map(([label, value]) => (
-                        <div key={label} className="rounded-2xl border border-gray-200 bg-white px-4 py-3">
-                          <p className="text-xs uppercase tracking-[0.25em] text-gray-400">{label}</p>
-                          <p className="mt-1 font-semibold text-maroon">{value}</p>
-                        </div>
-                      ))}
+              {/* Quantity Stepper */}
+              <div>
+                <label className="block text-xs font-black text-[#0B1B3D] uppercase tracking-wider mb-2">Quantity:</label>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border-2 border-gold/40 rounded-2xl bg-white shadow-sm overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="p-3 text-gray-700 hover:bg-gold/20 transition font-bold"
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <span className="px-5 font-black text-sm text-[#0B1B3D] min-w-12 text-center">{quantity}</span>
+                    <button
+                      type="button"
+                      onClick={() => setQuantity((q) => q + 1)}
+                      className="p-3 text-gray-700 hover:bg-gold/20 transition font-bold"
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+
+                  <span className="text-xs text-gray-500 font-semibold">Total: <strong className="text-[#0B1B3D] font-black">{formatPrice(displayPrice * quantity)}</strong></span>
+                </div>
+              </div>
+
+              {/* Action Buttons: Add to Cart & Buy Now */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  className={`w-full py-4 rounded-2xl font-black text-sm transition flex items-center justify-center gap-2 shadow-lg border ${
+                    isAdded
+                      ? 'bg-green-700 text-white border-green-700'
+                      : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/40'
+                  }`}
+                >
+                  {isAdded ? (
+                    <>
+                      <Check size={18} />
+                      <span>Added to Cart!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart size={18} />
+                      <span>Add to Cart</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleBuyNow}
+                  className="w-full bg-gold text-[#0B1B3D] hover:bg-gold-light py-4 rounded-2xl font-black text-sm shadow-lg transition border border-gold text-center"
+                >
+                  ⚡ Buy Now
+                </button>
+              </div>
+
+              {/* Tabs Section */}
+              <div className="pt-6 border-t border-gold/20 space-y-4">
+                <div className="flex border-b border-gray-200">
+                  {(['description', 'nutrition', 'reviews'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`py-2.5 px-4 font-black text-xs uppercase tracking-wider transition border-b-2 -mb-px ${
+                        activeTab === tab
+                          ? 'border-[#0B1B3D] text-[#0B1B3D]'
+                          : 'border-transparent text-gray-400 hover:text-gray-700'
+                      }`}
+                    >
+                      {tab === 'nutrition' ? 'Ingredients & Nutrition' : tab === 'reviews' ? `Reviews (${reviews.length})` : tab}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="bg-amber-50/50 p-5 rounded-2xl border border-gold/20 text-xs text-gray-700 leading-relaxed">
+                  {/* Description Tab */}
+                  {activeTab === 'description' && (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-[#0B1B3D]">
+                        {product.description || 'Authentic traditional sweet prepared in small batches using 100% pure desi ghee, premium grade nuts, and organic spices.'}
+                      </p>
+                      <ul className="list-disc pl-4 space-y-1 text-gray-600 font-medium">
+                        <li>Made with pure A2 Desi Cow Ghee & premium dry fruits</li>
+                        <li>Zero artificial preservatives, colorings or synthetic flavors</li>
+                        <li>Hygienically packed in airtight food-grade tin boxes</li>
+                        <li>Shelf life: 45 days from date of manufacturing</li>
+                      </ul>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {activeTab === 'reviews' && (
-                  <div className="space-y-4">
-                    {reviews.length === 0 ? (
-                      <p className="text-sm text-gray-600">No reviews yet. Be the first to rate this product.</p>
-                    ) : (
-                      reviews.map((review) => (
-                        <article key={review.id} className="rounded-2xl border border-gray-200 bg-white p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="font-semibold text-gray-900">{review.user.name}</p>
-                              <div className="mt-1 flex items-center gap-1">
-                                {Array.from({ length: 5 }).map((_, index) => (
-                                  <Star
-                                    key={index}
-                                    size={14}
-                                    className={index < review.rating ? 'fill-gold text-gold' : 'text-gray-300'}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {new Date(review.createdAt).toLocaleDateString()}
-                            </span>
+                  {/* Nutrition Tab */}
+                  {activeTab === 'nutrition' && (
+                    <div className="space-y-4">
+                      <p className="font-bold text-[#0B1B3D]">Nutritional information per 100g serving:</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {nutritionRows.map(([label, value]) => (
+                          <div key={label} className="bg-white p-3 rounded-xl border border-gold/20 shadow-sm">
+                            <span className="text-[10px] text-gray-400 font-bold block uppercase">{label}</span>
+                            <span className="text-xs font-black text-[#0B1B3D]">{value}</span>
                           </div>
-                          <p className="mt-3 text-sm leading-6 text-gray-700">{review.comment}</p>
-                        </article>
-                      ))
-                    )}
-                  </div>
-                )}
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Customer Reviews & Post Review Form Tab */}
+                  {activeTab === 'reviews' && (
+                    <div className="space-y-6">
+                      {/* Review submission feedback */}
+                      {reviewSubmitted && (
+                        <div className="p-3 bg-green-100 border border-green-300 text-green-800 rounded-xl font-bold">
+                          ✓ Thank you! Your review has been published.
+                        </div>
+                      )}
+
+                      {/* Add Review Form */}
+                      <form onSubmit={handleAddReview} className="bg-white p-4 rounded-2xl border border-gold/30 space-y-3">
+                        <h4 className="font-black text-[#0B1B3D] text-xs uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles size={14} className="text-gold-dark" />
+                          <span>Write a Customer Review</span>
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-600 mb-1">Your Name</label>
+                            <input
+                              value={userName}
+                              onChange={(e) => setUserName(e.target.value)}
+                              placeholder="e.g. Ananya Sharma"
+                              className="w-full border border-gray-300 px-3 py-1.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-bold text-gray-600 mb-1">Rating</label>
+                            <select
+                              value={newRating}
+                              onChange={(e) => setNewRating(Number(e.target.value))}
+                              className="w-full border border-gray-300 px-3 py-1.5 rounded-xl text-xs font-bold bg-white outline-none focus:ring-2 focus:ring-gold"
+                            >
+                              <option value={5}>★★★★★ (5 Stars - Excellent)</option>
+                              <option value={4}>★★★★☆ (4 Stars - Very Good)</option>
+                              <option value={3}>★★★☆☆ (3 Stars - Average)</option>
+                              <option value={2}>★★☆☆☆ (2 Stars - Poor)</option>
+                              <option value={1}>★☆☆☆☆ (1 Star - Terrible)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-gray-600 mb-1">Review Comment</label>
+                          <textarea
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder="Describe taste, freshness, packaging quality..."
+                            rows={2}
+                            className="w-full border border-gray-300 px-3 py-1.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold"
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="bg-[#0B1B3D] text-gold hover:bg-[#162C5B] px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow"
+                        >
+                          <Send size={13} />
+                          <span>Submit Review</span>
+                        </button>
+                      </form>
+
+                      {/* Existing Reviews list */}
+                      <div className="space-y-3">
+                        {reviews.map((rev) => (
+                          <div key={rev.id} className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-sm space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="font-extrabold text-[#0B1B3D] text-xs">{rev.user?.name || 'Verified Customer'}</span>
+                              <span className="text-[10px] text-gray-400 font-semibold">{new Date(rev.createdAt).toLocaleDateString()}</span>
+                            </div>
+
+                            <div className="flex items-center gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  size={12}
+                                  className={`${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+                                />
+                              ))}
+                            </div>
+
+                            <p className="text-xs text-gray-600 leading-relaxed font-medium">{rev.comment}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </section>
-        </div>
+            </section>
+          </div>
+        </main>
       </div>
-    </main>
+
+      <Footer />
+    </div>
   );
-}
+}

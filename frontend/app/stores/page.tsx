@@ -90,6 +90,8 @@ export default function StoresPage() {
 
   async function fetchOutlets(cityParam: string, pincodeParam: string) {
     setLoading(true);
+    let storeData: PhysicalOutlet[] = [];
+
     try {
       const query = new URLSearchParams();
       if (cityParam) query.set("city", cityParam);
@@ -99,18 +101,32 @@ export default function StoresPage() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          setOutlets(data);
-          setSelectedOutlet(data[0]);
-          setLoading(false);
-          return;
+          storeData = data;
         }
       }
     } catch (err) {
       console.warn("Backend stores API offline, using local store data.");
     }
 
-    // Fallback search over local outlets
-    let filtered = defaultOutlets;
+    // Check Admin added stores in localStorage
+    if (storeData.length === 0) {
+      const cached = typeof window !== "undefined" ? localStorage.getItem("admin_stores_list") : null;
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            storeData = parsed;
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (storeData.length === 0) {
+      storeData = defaultOutlets;
+    }
+
+    // Filter search over store outlets
+    let filtered = storeData;
     if (cityParam.trim()) {
       const q = cityParam.toLowerCase().trim();
       filtered = filtered.filter(
@@ -328,24 +344,16 @@ export default function StoresPage() {
 
             {/* Visual Map Graphic Box */}
             <div className="relative w-full h-80 rounded-2xl bg-gradient-to-br from-[#0B1B3D] to-[#162C5B] overflow-hidden flex items-center justify-center text-white border border-gold/20 shadow-inner">
-              {/* Decorative map grid lines */}
-              <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#D4AF37_1px,transparent_1px)] [background-size:16px_16px]"></div>
-
               {selectedOutlet ? (
-                <div className="relative z-10 text-center p-6 space-y-3">
-                  <div className="w-16 h-16 rounded-full bg-gold/20 border-2 border-gold text-gold flex items-center justify-center mx-auto shadow-2xl animate-bounce">
-                    <MapPin size={32} />
-                  </div>
-                  <div>
-                    <h4 className="text-lg font-black text-white">{selectedOutlet.name}</h4>
-                    <p className="text-xs text-gray-300 mt-1 max-w-sm mx-auto">{selectedOutlet.address}, {selectedOutlet.city} - {selectedOutlet.pincode}</p>
-                  </div>
-
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/40 text-gold text-xs font-bold border border-gold/30">
-                    <Compass size={13} />
-                    <span>Coordinates: {selectedOutlet.latitude || 21.1702}° N, {selectedOutlet.longitude || 72.8311}° E</span>
-                  </div>
-                </div>
+                <iframe
+                  title={`Map location of ${selectedOutlet.name}`}
+                  width="100%"
+                  height="100%"
+                  className="w-full h-full rounded-2xl border-0"
+                  loading="lazy"
+                  allowFullScreen
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(selectedOutlet.address + ', ' + selectedOutlet.city + ' ' + selectedOutlet.pincode)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                />
               ) : (
                 <div className="text-center p-6 space-y-2">
                   <MapPin size={36} className="mx-auto text-gold opacity-60" />

@@ -1,20 +1,31 @@
 'use client';
 
-import { useLanguage } from '../context/LanguageContext';
+import { Sparkles } from 'lucide-react';
+
+const offers = [
+  "⚡ SPECIAL OFFER: Get 10% OFF on Orders Above ₹999 | Use Code: SWEET10",
+  "🚚 FREE EXPRESS SHIPPING across India on orders over ₹599!",
+  "🌟 AUTHENTIC SWEETS & NAMKEEN: Handcrafted with 100% Pure Desi Ghee Since 1976",
+  "🎁 FESTIVE GIFT BOXES: Corporate & Bulk Customization Available with Express Delivery",
+  "🏪 FRESH STORE PICKUP: Available at Surat, Ahmedabad & Vadodara Outlets"
+];
 
 export default function PromoTicker() {
-  const { t } = useLanguage();
-
   return (
-    <div className="bg-[#0B1B3D] text-gold-light border-y border-gold/30 px-4 py-2.5 shadow-inner">
-      <div className="flex items-center justify-center gap-3 text-xs sm:text-sm font-medium tracking-wide">
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-gold text-[#0B1B3D] font-bold text-xs shadow-md">★</span>
-        <p className="text-center font-medium">
-          {t.tickerText}
-        </p>
+    <div className="bg-[#0B1B3D] text-gold py-2 overflow-hidden border-y border-gold/30 shadow-md relative z-40">
+      <div className="flex whitespace-nowrap animate-marquee">
+        {/* Double the list for seamless continuous infinite looping */}
+        {[...offers, ...offers].map((offer, index) => (
+          <div key={index} className="flex items-center gap-3 px-6 text-xs sm:text-sm font-semibold tracking-wide">
+            <Sparkles size={14} className="text-amber-400 shrink-0" />
+            <span>{offer}</span>
+            <span className="text-gold-light/40 ml-4 font-normal">•</span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
+
 
 

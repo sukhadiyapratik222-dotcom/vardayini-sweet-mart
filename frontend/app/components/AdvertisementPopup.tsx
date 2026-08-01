@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Tag, X, Sparkles, Gift, ArrowRight } from "lucide-react";
 
@@ -17,55 +18,38 @@ interface Ad {
 const adList: Ad[] = [
   {
     id: "ad-1",
-    badge: "FESTIVE DISCOUNT",
-    title: "10% OFF Gift Boxes! 🎁",
-    description: "Use coupon code FESTIVE10 at checkout on all Corporate & Dry Fruit boxes.",
+    badge: "10% OFF SPECIAL OFFER",
+    title: "Flat 10% OFF On All Sweets & Gift Boxes! 🎁",
+    description: "Use coupon code FESTIVE10 at checkout to get an instant 10% discount.",
     code: "FESTIVE10",
-    link: "/categories/corporate-gift-boxes",
-    btnText: "Claim Offer",
-  },
-  {
-    id: "ad-2",
-    badge: "FREE EXPRESS DELIVERY",
-    title: "Free Ghee Sweets Shipping! 🚚",
-    description: "Enjoy Free Doorstep Delivery across India on all orders above ₹599.",
     link: "/products",
-    btnText: "Shop Sweets",
-  },
-  {
-    id: "ad-3",
-    badge: "NEW ARRIVAL",
-    title: "Fresh Pure Ghee Kaju Katli ✨",
-    description: "Traditional 1976 recipe handcrafted daily. Order fresh for family & celebrations.",
-    link: "/categories/sweets",
-    btnText: "Order Now",
+    btnText: "Claim 10% OFF",
   },
 ];
 
 export default function AdvertisementPopup() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
-  const [currentAdIndex, setCurrentAdIndex] = useState(0);
 
   useEffect(() => {
-    // Show popup after 1.8 seconds
+    // Show popup after 1.5 seconds
     const showTimer = setTimeout(() => {
       setIsVisible(true);
-    }, 1800);
-
-    // Rotate ads every 8 seconds
-    const rotateTimer = setInterval(() => {
-      setCurrentAdIndex((prev) => (prev + 1) % adList.length);
-    }, 8000);
+    }, 1500);
 
     return () => {
       clearTimeout(showTimer);
-      clearInterval(rotateTimer);
     };
   }, []);
 
+  // Do NOT show popup on admin pages
+  if (pathname?.startsWith("/admin")) {
+    return null;
+  }
+
   if (!isVisible) return null;
 
-  const currentAd = adList[currentAdIndex];
+  const currentAd = adList[0];
 
   return (
     <div className="fixed bottom-6 right-6 z-50 max-w-sm w-full transition-all duration-500">
@@ -90,6 +74,15 @@ export default function AdvertisementPopup() {
             {currentAd.badge}
           </span>
           <span className="text-[10px] text-gold/80 font-semibold">Special Offer</span>
+        </div>
+
+        {/* Customer-only Animated GIF Banner */}
+        <div className="my-2.5 overflow-hidden rounded-2xl border-2 border-gold/40 shadow-lg bg-black/40 relative">
+          <img
+            src="https://uploads-ssl.webflow.com/5ffcd643561bc26ed27a87a1/6005c64f2dff8a196637b467_ezgif.com-gif-maker.gif"
+            alt="Customer Offer Animation"
+            className="w-full h-28 object-cover rounded-xl transition-transform hover:scale-105 duration-300"
+          />
         </div>
 
         {/* Ad Body */}
