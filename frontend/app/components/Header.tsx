@@ -33,7 +33,7 @@ export default function Header() {
             🌟 <span className="text-gold font-bold">Vardayini Sweet Mart</span> — Pure Desi Ghee Sweets Since 1976
           </div>
 
-          <div className="flex items-center gap-4 text-xs ml-auto">
+          <div className="flex items-center gap-3 text-xs ml-auto">
             {/* Language Selector Dropdown */}
             <div className="flex items-center gap-1 bg-gold/15 px-2 py-0.5 rounded border border-gold/30">
               <Globe size={13} className="text-gold" />
@@ -51,21 +51,21 @@ export default function Header() {
 
             {user ? (
               <>
-                <span className="text-gold font-medium">{t.hello}, {user.name}</span>
+                <span className="text-gold font-medium hidden sm:inline truncate max-w-[80px]">{t.hello}, {user.name}</span>
                 {user.isAdmin ? (
-                  <Link href="/admin/products" className="hover:text-gold transition font-semibold text-amber-300">{t.adminPortal}</Link>
+                  <Link href="/admin/products" className="hover:text-gold transition font-semibold text-amber-300 hidden sm:inline">{t.adminPortal}</Link>
                 ) : (
-                  <Link href="/account/profile" className="hover:text-gold transition">{t.dashboard}</Link>
+                  <Link href="/account/profile" className="hover:text-gold transition hidden sm:inline">{t.dashboard}</Link>
                 )}
-                <button onClick={logout} className="hover:text-gold transition flex items-center gap-1">
+                <button onClick={logout} className="hover:text-gold transition flex items-center gap-1 hidden sm:flex">
                   <LogOut size={13} /> {t.logout}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="hover:text-gold transition">{t.signIn}</Link>
-                <Link href="/signup" className="hover:text-gold transition">{t.signUp}</Link>
-                <Link href="/admin/login" className="hover:text-gold transition text-amber-300 font-semibold">{t.admin}</Link>
+                <Link href="/login" className="hover:text-gold transition hidden sm:inline">{t.signIn}</Link>
+                <Link href="/signup" className="hover:text-gold transition hidden sm:inline">{t.signUp}</Link>
+                <Link href="/admin/login" className="hover:text-gold transition text-amber-300 font-semibold hidden sm:inline">{t.admin}</Link>
               </>
             )}
           </div>

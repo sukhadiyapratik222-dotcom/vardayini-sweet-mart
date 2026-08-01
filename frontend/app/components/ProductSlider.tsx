@@ -70,22 +70,24 @@ export default function ProductSlider({
   return (
     <section className="py-8 sm:py-10">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div>
-          <h2 className="text-xl sm:text-3xl font-black text-[#0B1B3D] flex items-center gap-2.5">
-            <span className="h-6 w-1.5 bg-gold rounded-full inline-block"></span>
-            {title}
-          </h2>
-          {subtitle && <p className="mt-1 text-gray-600 text-xs sm:text-sm font-medium">{subtitle}</p>}
+      <div className="mb-6 px-4 sm:px-6 lg:px-8">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl sm:text-3xl font-black text-[#0B1B3D] flex items-center gap-2.5">
+              <span className="h-6 w-1.5 bg-gold rounded-full inline-block flex-shrink-0"></span>
+              <span className="leading-tight">{title}</span>
+            </h2>
+            {subtitle && <p className="mt-1 text-gray-600 text-xs sm:text-sm font-medium line-clamp-2">{subtitle}</p>}
+          </div>
+          {categoryLink && (
+            <Link
+              href={categoryLink}
+              className="flex-shrink-0 text-xs sm:text-sm font-bold text-[#0B1B3D] hover:text-gold-dark transition border-b-2 border-gold/40 pb-0.5 whitespace-nowrap mt-1"
+            >
+              {t.viewAll} →
+            </Link>
+          )}
         </div>
-        {categoryLink && (
-          <Link
-            href={categoryLink}
-            className="text-xs sm:text-sm font-bold text-[#0B1B3D] hover:text-gold-dark transition border-b-2 border-gold/40 pb-0.5"
-          >
-            {t.viewAll} →
-          </Link>
-        )}
       </div>
 
       {/* Slider Container */}
@@ -93,10 +95,25 @@ export default function ProductSlider({
         {/* Slider */}
         <div
           id={`slider-${title.replace(/\s+/g, '-')}`}
-          className="flex gap-5 overflow-x-auto scroll-smooth pb-4 pt-1"
-          style={{ scrollBehavior: 'smooth' }}
+          className="flex gap-4 overflow-x-auto scroll-smooth pb-4 pt-1"
+          style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
         >
-          {products.map((product) => {
+          {products.length === 0 && (
+            // Skeleton loader for empty state
+            [...Array(4)].map((_, i) => (
+              <div key={i} className="flex-shrink-0 w-52 sm:w-64 md:w-72">
+                <div className="rounded-2xl border-2 border-gold/10 bg-white overflow-hidden animate-pulse">
+                  <div className="h-44 bg-gray-200" />
+                  <div className="p-4 space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                    <div className="h-8 bg-gray-200 rounded-xl mt-4" />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+          {products.length > 0 && products.map((product) => {
             const selectedWeight = selectedVariants[product.id];
             const variant = selectedWeight ? product.variants.find((v) => v.weight === selectedWeight) : undefined;
             const totalStock = product.variants.reduce((sum, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
@@ -112,7 +129,7 @@ export default function ProductSlider({
             return (
               <div
                 key={product.id}
-                className="flex-shrink-0 w-72 group"
+                className="flex-shrink-0 w-52 sm:w-64 md:w-72 group"
               >
                 <article className="overflow-hidden rounded-2xl border-2 border-gold/20 bg-white shadow-sm transition-all duration-300 hover:shadow-xl hover:border-gold/60 h-full flex flex-col">
                   {/* Image Container */}
