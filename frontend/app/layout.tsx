@@ -5,6 +5,7 @@ import { LanguageProvider } from "./context/LanguageContext";
 import { CartProvider } from "./context/CartContext";
 import CartDrawer from "./components/CartDrawer";
 import AdvertisementPopup from "./components/AdvertisementPopup";
+import SpinWheelPopup from "./components/SpinWheelPopup";
 
 export const metadata: Metadata = {
   title: "Vardayini Sweet Mart - Authentic Sweets & Namkeen Since 1976",
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
               <CartDrawer />
               <AdvertisementPopup />
+              <SpinWheelPopup />
             </CartProvider>
           </AuthProvider>
         </LanguageProvider>

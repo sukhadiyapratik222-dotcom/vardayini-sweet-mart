@@ -3,12 +3,13 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Minus, Plus, ShoppingCart, Star, Check, ShieldCheck, Truck, Clock, Sparkles, Send } from 'lucide-react';
 import Header from './Header';
 import Footer from './Footer';
 import { ApiProduct, ApiReview } from '../lib/api';
 import { useCart } from '../context/CartContext';
+import { trackViewItem, trackAddToCart } from '../lib/analytics';
 
 type ProductDetailClientProps = {
   product: any;
@@ -33,6 +34,16 @@ export default function ProductDetailClient({ product, initialReviews }: Product
   const { addToCart, setIsOpen } = useCart();
 
   const [selectedVariantId, setSelectedVariantId] = useState<string>(product.variants?.[0]?.id ?? '');
+
+  // Fire view_item analytics hook
+  useEffect(() => {
+    trackViewItem({
+      id: product.id || product.slug,
+      name: product.name,
+      category: product.category?.name || product.category,
+      price: product.variants?.[0]?.price || 350,
+    });
+  }, [product]);
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [activeTab, setActiveTab] = useState<'description' | 'nutrition' | 'reviews'>('description');
@@ -133,6 +144,9 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                   <img
                     src={imageUrls[selectedImage]}
                     alt={product.name}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
+                    }}
                     className="w-full h-full object-cover transition-transform duration-200"
                     style={{
                       transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
@@ -164,7 +178,14 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                         selectedImage === index ? 'border-gold ring-2 ring-gold/40 scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <img src={imageUrl} alt={`${product.name} thumbnail`} className="h-full w-full object-cover" />
+                      <img
+                        src={imageUrl}
+                        alt={`${product.name} thumbnail`}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
+                        }}
+                        className="h-full w-full object-cover"
+                      />
                     </button>
                   ))}
                 </div>
@@ -264,21 +285,35 @@ export default function ProductDetailClient({ product, initialReviews }: Product
 
               {/* Quantity Stepper */}
               <div>
-                <label className="block text-xs font-black text-[#0B1B3D] uppercase tracking-wider mb-2">Quantity:</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-black text-[#0B1B3D] uppercase tracking-wider">Quantity:</label>
+                  {((selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0) ? (
+                    <span className="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-md text-xs font-black uppercase">
+                      Out of Stock
+                    </span>
+                  ) : (
+                    <span className="text-[11px] font-bold text-green-700">
+                      In Stock (Qty: {selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50})
+                    </span>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-3">
                   <div className="flex items-center border-2 border-gold/40 rounded-2xl bg-white shadow-sm overflow-hidden">
                     <button
                       type="button"
+                      disabled={(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0}
                       onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      className="p-3 text-gray-700 hover:bg-gold/20 transition font-bold"
+                      className="p-3 text-gray-700 hover:bg-gold/20 transition font-bold disabled:opacity-30"
                     >
                       <Minus size={16} />
                     </button>
                     <span className="px-5 font-black text-sm text-[#0B1B3D] min-w-12 text-center">{quantity}</span>
                     <button
                       type="button"
+                      disabled={(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0}
                       onClick={() => setQuantity((q) => q + 1)}
-                      className="p-3 text-gray-700 hover:bg-gold/20 transition font-bold"
+                      className="p-3 text-gray-700 hover:bg-gold/20 transition font-bold disabled:opacity-30"
                     >
                       <Plus size={16} />
                     </button>
@@ -292,14 +327,17 @@ export default function ProductDetailClient({ product, initialReviews }: Product
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <button
                   type="button"
+                  disabled={(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0}
                   onClick={handleAddToCart}
-                  className={`w-full py-4 rounded-2xl font-black text-sm transition flex items-center justify-center gap-2 shadow-lg border ${
+                  className={`w-full py-4 rounded-2xl font-black text-sm transition flex items-center justify-center gap-2 shadow-lg border disabled:bg-gray-300 disabled:text-gray-500 disabled:border-gray-300 disabled:cursor-not-allowed ${
                     isAdded
                       ? 'bg-green-700 text-white border-green-700'
                       : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/40'
                   }`}
                 >
-                  {isAdded ? (
+                  {(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0 ? (
+                    <span>Out of Stock</span>
+                  ) : isAdded ? (
                     <>
                       <Check size={18} />
                       <span>Added to Cart!</span>
@@ -314,10 +352,11 @@ export default function ProductDetailClient({ product, initialReviews }: Product
 
                 <button
                   type="button"
+                  disabled={(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0}
                   onClick={handleBuyNow}
-                  className="w-full bg-gold text-[#0B1B3D] hover:bg-gold-light py-4 rounded-2xl font-black text-sm shadow-lg transition border border-gold text-center"
+                  className="w-full bg-gold text-[#0B1B3D] hover:bg-gold-light py-4 rounded-2xl font-black text-sm shadow-lg transition border border-gold text-center disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
                 >
-                  ⚡ Buy Now
+                  {(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0 ? "Out of Stock" : "⚡ Buy Now"}
                 </button>
               </div>
 

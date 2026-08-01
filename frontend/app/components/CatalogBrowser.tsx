@@ -46,6 +46,9 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
 
     const fetchProducts = async () => {
       setLoading(true);
+      let apiProductsList: any[] = [];
+      let apiTotalCount = 0;
+
       try {
         const response = await productService.getAll({
           category: category || undefined,
@@ -58,13 +61,9 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
           weight: selectedWeights.length > 0 ? selectedWeights.join(',') : undefined,
         });
 
-        if (!active) return;
-
         if (response.products && response.products.length > 0) {
-          setProducts(response.products);
-          setTotal(response.total);
-          setLoading(false);
-          return;
+          apiProductsList = response.products;
+          apiTotalCount = response.total;
         }
       } catch (e) {
         // Fallback to local dataset
@@ -72,47 +71,95 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
 
       if (!active) return;
 
-      // Filter local products dataset
-      let filtered = [...localProducts];
-
-      if (category) {
-        filtered = filtered.filter(
-          (p) =>
-            p.category === category ||
-            p.subcategory === category ||
-            categories[category as keyof typeof categories]?.subcategories?.some((s) => s.slug === category)
-        );
+      // 1. Get products from admin localStorage catalog
+      let adminProducts: any[] = [];
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('admin_products_catalog');
+        if (stored) {
+          try {
+            adminProducts = JSON.parse(stored);
+          } catch (e) {}
+        }
       }
 
+      // Combine admin custom products with local products dataset
+      const combinedPool = [...adminProducts, ...localProducts];
+
+      // Remove duplicates by slug
+      const uniqueMap = new Map();
+      combinedPool.forEach((p) => {
+        const key = p.slug || p.id;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, p);
+        }
+      });
+
+      let filtered = Array.from(uniqueMap.values());
+
+      // If backend API returned products, merge them as well
+      if (apiProductsList.length > 0) {
+        apiProductsList.forEach((p) => {
+          const key = p.slug || p.id;
+          if (!uniqueMap.has(key)) {
+            uniqueMap.set(key, p);
+          }
+        });
+        filtered = Array.from(uniqueMap.values());
+      }
+
+      // Filter by Category
+      if (category) {
+        const catLower = category.toLowerCase().trim();
+        filtered = filtered.filter((p: any) => {
+          const pCatSlug = (p.categorySlug || p.category?.slug || (typeof p.category === 'string' ? p.category : '') || '').toLowerCase().trim();
+          const pSubCat = (p.subcategory || '').toLowerCase().trim();
+          const pCatName = (p.category?.name || '').toLowerCase().trim();
+
+          const matchesDirect =
+            pCatSlug === catLower ||
+            pSubCat === catLower ||
+            pCatSlug.includes(catLower) ||
+            pCatName.includes(catLower) ||
+            catLower.includes(pCatSlug);
+
+          const matchesTree = categories[category as keyof typeof categories]?.subcategories?.some((s) => s.slug === category);
+
+          return matchesDirect || matchesTree;
+        });
+      }
+
+      // Filter by Search Term
       if (initialSearch) {
         const q = initialSearch.toLowerCase();
         filtered = filtered.filter(
-          (p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q)
+          (p: any) => p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q)
         );
       }
 
+      // Filter by Price Range
       if (selectedRange) {
-        filtered = filtered.filter((p) => {
-          const minP = p.variants[0]?.discountedPrice || p.variants[0]?.price || 0;
+        filtered = filtered.filter((p: any) => {
+          const minP = p.variants?.[0]?.discountedPrice || p.variants?.[0]?.price || p.price || 0;
           return minP >= selectedRange.min && minP <= selectedRange.max;
         });
       }
 
+      // Filter by Weight
       if (selectedWeights.length > 0) {
-        filtered = filtered.filter((p) =>
-          p.variants.some((v) => selectedWeights.includes(v.weight))
+        filtered = filtered.filter((p: any) =>
+          p.variants?.some((v: any) => selectedWeights.includes(v.weightLabel || v.weight))
         );
       }
 
       // Sort
       if (sort === 'price_low') {
-        filtered.sort((a, b) => (a.variants[0]?.price || 0) - (b.variants[0]?.price || 0));
+        filtered.sort((a: any, b: any) => (a.variants?.[0]?.price || 0) - (b.variants?.[0]?.price || 0));
       } else if (sort === 'price_high') {
-        filtered.sort((a, b) => (b.variants[0]?.price || 0) - (a.variants[0]?.price || 0));
+        filtered.sort((a: any, b: any) => (b.variants?.[0]?.price || 0) - (a.variants?.[0]?.price || 0));
       } else if (sort === 'newest') {
-        filtered.sort((a, b) => (b.isNew ? 1 : -1));
+        filtered.sort((a: any, b: any) => (b.isNew ? 1 : -1));
       } else {
-        filtered.sort((a, b) => b.rating - a.rating);
+        filtered.sort((a: any, b: any) => (b.rating || b.ratingAvg || 4.8) - (a.rating || a.ratingAvg || 4.8));
       }
 
       setTotal(filtered.length);
@@ -353,9 +400,14 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
               ) : (
                 <div className={viewMode === 'grid' ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
                   {products.map((p) => {
-                    const variantsList = p.variants || [{ weight: '250g', price: 200 }];
-                    const minPrice = variantsList[0]?.discountedPrice || variantsList[0]?.price || p.price || 100;
-                    const mainImage = p.image || p.primaryImage || p.images?.[0]?.imageUrl || '/images/sweet-1.jpg';
+                    const variantsList = p.variants || [{ weightLabel: '250g', price: 200 }];
+                    const minPrice = Math.min(...variantsList.map((v: any) => v.discountedPrice || v.price || p.price || 100));
+                    const maxPrice = Math.max(...variantsList.map((v: any) => v.price || p.price || 100));
+                    const priceDisplay = minPrice === maxPrice ? `₹${minPrice.toLocaleString('en-IN')}` : `₹${minPrice.toLocaleString('en-IN')} – ₹${maxPrice.toLocaleString('en-IN')}`;
+                    const totalStock = variantsList.reduce((sum: number, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
+                    const isOutOfStock = totalStock <= 0;
+
+                    const mainImage = p.image || p.primaryImage || p.imageUrls?.[0] || p.images?.[0]?.imageUrl || '/images/sweet-1.jpg';
 
                     return (
                       <article
@@ -369,8 +421,18 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
                           <img
                             src={mainImage}
                             alt={p.name}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
+                            }}
                             className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                           />
+                          {isOutOfStock && (
+                            <div className="absolute top-2 right-2">
+                              <span className="bg-red-600 text-white px-2 py-1 rounded text-[10px] font-bold shadow-md">
+                                Out of Stock
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Content */}
@@ -378,7 +440,7 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
                           <div>
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-gold-dark bg-gold/15 px-2 py-0.5 rounded">
-                                {p.category?.name || p.category || 'Vardayini Special'}
+                                {p.category?.name || p.categorySlug || p.category || 'Vardayini Special'}
                               </span>
                               <div className="flex items-center gap-1 text-xs font-bold text-gray-700">
                                 <Star size={13} className="fill-amber-400 text-amber-400" />
@@ -409,15 +471,17 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
                           {/* Footer action */}
                           <div className="flex items-center justify-between pt-2 border-t border-gray-100">
                             <div>
-                              <span className="text-[10px] text-gray-400 block font-semibold">Starting from</span>
-                              <span className="text-lg font-black text-[#0B1B3D]">₹{minPrice.toLocaleString('en-IN')}</span>
+                              <span className="text-[10px] text-gray-400 block font-semibold">Price</span>
+                              <span className="text-lg font-black text-[#0B1B3D]">{priceDisplay}</span>
                             </div>
 
                             <Link
                               href={`/products/${p.slug}`}
-                              className="bg-[#0B1B3D] text-gold hover:bg-[#162C5B] px-4 py-2 rounded-xl text-xs font-extrabold shadow transition border border-gold/30"
+                              className={`px-4 py-2 rounded-xl text-xs font-extrabold shadow transition border ${
+                                isOutOfStock ? 'bg-gray-200 text-gray-600 border-gray-300 hover:bg-gray-300' : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/30'
+                              }`}
                             >
-                              View Details
+                              {isOutOfStock ? 'Out of Stock' : 'View Details'}
                             </Link>
                           </div>
                         </div>
@@ -469,4 +533,4 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
       <Footer />
     </div>
   );
-}
+}

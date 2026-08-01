@@ -37,12 +37,65 @@ export default function ProductDetailPage() {
           return;
         }
       } catch (fetchError) {
-        // Fallback to local products dataset
+        // Fallback to local / admin products dataset
       }
 
       if (!active) return;
 
-      // Find in local products
+      // 1. Check admin created/edited products catalog in localStorage
+      let adminProducts: any[] = [];
+      if (typeof window !== 'undefined') {
+        const stored = localStorage.getItem('admin_products_catalog');
+        if (stored) {
+          try {
+            adminProducts = JSON.parse(stored);
+          } catch (e) {}
+        }
+      }
+
+      const adminMatch = adminProducts.find((p) => p.slug === slug || p.id === slug);
+      if (adminMatch) {
+        const formattedAdmin = {
+          id: adminMatch.id,
+          name: adminMatch.name,
+          slug: adminMatch.slug,
+          description: adminMatch.description,
+          ratingAvg: adminMatch.ratingAvg || 4.9,
+          ratingCount: adminMatch.ratingCount || 42,
+          primaryImage: adminMatch.primaryImage || adminMatch.imageUrls?.[0] || '/images/sweet-1.jpg',
+          category: { name: adminMatch.categorySlug?.replace(/-/g, ' ').toUpperCase() || 'SWEETS', slug: adminMatch.categorySlug || 'sweets' },
+          images: (adminMatch.imageUrls || [adminMatch.primaryImage || '/images/sweet-1.jpg']).map((img: string, idx: number) => ({
+            id: idx + 1,
+            imageUrl: img,
+            altText: `${adminMatch.name} ${idx + 1}`
+          })),
+          variants: (adminMatch.variants || []).map((v: any, idx: number) => ({
+            id: v.id || `${adminMatch.id}-${v.weightLabel || v.weight || idx}`,
+            weightLabel: v.weightLabel || v.weight || '500g',
+            price: Number(v.price || 250),
+            discountedPrice: v.discountedPrice ? Number(v.discountedPrice) : undefined,
+            stockQty: Number(v.stockQty ?? v.stock ?? 20),
+            sku: v.sku || `SKU-${idx + 1}`
+          }))
+        };
+
+        setProduct(formattedAdmin);
+        setReviews([
+          {
+            id: 'rev-admin-1',
+            productId: String(adminMatch.id),
+            userId: 'u1',
+            rating: 5,
+            comment: 'Freshly made with 100% pure A2 desi ghee. Highest quality sweets!',
+            createdAt: new Date().toISOString(),
+            user: { id: 'u1', name: 'Pratik Sukhadiya' }
+          }
+        ]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Find in static local products
       const localMatch = localProducts.find((p) => p.slug === slug || p.id === slug);
       if (localMatch) {
         const formattedLocal = {
@@ -74,15 +127,6 @@ export default function ProductDetailPage() {
             comment: 'Extremely fresh and delicious! Packed with authentic pure ghee flavors.',
             createdAt: new Date().toISOString(),
             user: { id: 'u1', name: 'Ramesh Patel' }
-          },
-          {
-            id: 'rev-2',
-            productId: String(localMatch.id || '1'),
-            userId: 'u2',
-            rating: 5,
-            comment: 'Fast delivery to Surat. The taste is exactly like traditional homemade sweets.',
-            createdAt: new Date().toISOString(),
-            user: { id: 'u2', name: 'Priya Shah' }
           }
         ]);
         setLoading(false);
@@ -115,4 +159,3 @@ export default function ProductDetailPage() {
 
   return <ProductDetailClient product={product} initialReviews={reviews} />;
 }
-

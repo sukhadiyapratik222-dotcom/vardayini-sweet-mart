@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { products as localProducts } from '../data';
+import { trackAddToCart } from '../lib/analytics';
 
 export interface CartItem {
   id: string;
@@ -195,6 +196,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const addToCart = async (productVariantId: string, quantity: number) => {
+    trackAddToCart({
+      id: productVariantId,
+      name: "Sweet Product Item",
+      quantity,
+    });
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE}/cart/items`, {

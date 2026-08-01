@@ -85,6 +85,22 @@ export interface Product {
 // Sample products data
 export const products: Product[] = [
   {
+    id: "prod-kjuuuu",
+    name: "kaju katri 1111",
+    slug: "kjuuuu",
+    category: "sweets",
+    subcategory: "kaju-sweets",
+    image: "/images/sweet-1.jpg",
+    rating: 4.9,
+    reviews: 186,
+    description: "Special Kaju Katri 1111 prepared with premium cashew nuts and pure ghee.",
+    variants: [
+      { id: "vkj-1", weight: "250g", price: 400, discountedPrice: 200, stock: 500, sku: "SKU-250G" }
+    ],
+    isBestSeller: true,
+    isPremium: true
+  },
+  {
     id: "1",
     name: "Kaju Katli Premium Pure Ghee",
     slug: "kaju-katli-premium",

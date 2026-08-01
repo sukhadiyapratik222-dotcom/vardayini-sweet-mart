@@ -42,9 +42,10 @@ export default function ProductGrid({ products }: { products: Product[] }) {
   return (
     <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {products.map((product) => {
-        const selectedWeight = selectedVariants[product.id] || product.variants[0].weight;
-        const variant = product.variants.find((v) => v.weight === selectedWeight);
-        const displayPrice = variant ? variant.discountedPrice || variant.price : getMinPrice(product);
+        const selectedWeight = selectedVariants[product.id];
+        const variant = selectedWeight ? product.variants.find((v) => v.weight === selectedWeight) : undefined;
+        const totalStock = product.variants.reduce((sum, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
+        const isOutOfStock = totalStock <= 0;
 
         return (
           <article
@@ -54,22 +55,33 @@ export default function ProductGrid({ products }: { products: Product[] }) {
             {/* Image Container */}
             <div className="relative h-52 overflow-hidden bg-gray-50">
               <img
-                src={product.image}
+                src={(product as any).image || (product as any).primaryImage || (product as any).imageUrls?.[0] || (product as any).productImages?.[0]?.imageUrl || '/images/sweet-1.jpg'}
                 alt={product.name}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
+                }}
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
 
               {/* Badges */}
               <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
-                {product.isBestSeller && (
-                  <span className="bg-[#0B1B3D] text-gold px-2.5 py-1 rounded-md text-[11px] font-bold shadow border border-gold/40">
-                    {t.bestSellerBadge}
+                {isOutOfStock ? (
+                  <span className="bg-red-600 text-white px-2.5 py-1 rounded-md text-[11px] font-bold shadow">
+                    Out of Stock
                   </span>
-                )}
-                {product.isNew && (
-                  <span className="bg-gold text-[#0B1B3D] px-2.5 py-1 rounded-md text-[11px] font-extrabold shadow">
-                    {t.newBadge}
-                  </span>
+                ) : (
+                  <>
+                    {product.isBestSeller && (
+                      <span className="bg-[#0B1B3D] text-gold px-2.5 py-1 rounded-md text-[11px] font-bold shadow border border-gold/40">
+                        {t.bestSellerBadge}
+                      </span>
+                    )}
+                    {product.isNew && (
+                      <span className="bg-gold text-[#0B1B3D] px-2.5 py-1 rounded-md text-[11px] font-extrabold shadow">
+                        {t.newBadge}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -116,24 +128,26 @@ export default function ProductGrid({ products }: { products: Product[] }) {
 
               {/* Weight Variants Chips */}
               <div className="flex flex-wrap gap-1">
-                {product.variants.map((variant) => (
+                {product.variants.map((v) => (
                   <button
-                    key={variant.weight}
-                    onClick={() => setSelectedVariants({ ...selectedVariants, [product.id]: variant.weight })}
+                    key={v.weight}
+                    onClick={() => setSelectedVariants({ ...selectedVariants, [product.id]: v.weight })}
                     className={`px-2 py-1 text-xs font-semibold rounded-md border transition ${
-                      selectedWeight === variant.weight
+                      selectedWeight === v.weight
                         ? 'bg-[#0B1B3D] text-gold border-[#0B1B3D]'
                         : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gold'
                     }`}
                   >
-                    {variant.weight}
+                    {v.weight}
                   </button>
                 ))}
               </div>
 
               {/* Price */}
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-xl font-extrabold text-[#0B1B3D]">₹{displayPrice.toLocaleString('en-IN')}</span>
+                <span className="text-xl font-extrabold text-[#0B1B3D]">
+                  {variant ? `₹${(variant.discountedPrice || variant.price).toLocaleString('en-IN')}` : getPriceDisplay(product)}
+                </span>
                 {variant?.discountedPrice && (
                   <span className="text-xs text-gray-400 line-through font-medium">
                     ₹{variant.price.toLocaleString('en-IN')}
@@ -142,9 +156,16 @@ export default function ProductGrid({ products }: { products: Product[] }) {
               </div>
 
               {/* Add to Cart Button */}
-              <button className="w-full bg-[#0B1B3D] text-gold px-4 py-2.5 rounded-lg font-bold text-sm hover:bg-[#162C5B] transition flex items-center justify-center gap-2 mt-auto shadow-sm border border-gold/30">
+              <button
+                disabled={isOutOfStock}
+                className={`w-full px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 mt-auto shadow-sm border ${
+                  isOutOfStock
+                    ? 'bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed'
+                    : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/30'
+                }`}
+              >
                 <ShoppingCart size={16} />
-                {t.addToCart}
+                {isOutOfStock ? 'Out of Stock' : t.addToCart}
               </button>
             </div>
           </article>

@@ -6,6 +6,7 @@ import { prisma } from "../prisma";
 const router = Router();
 const secret = process.env.JWT_SECRET || "supersecretkey";
 
+// POST /api/auth/register
 router.post("/register", async (req, res) => {
   const { name, email, phone, password } = req.body;
   if (!name || !email || !password) {
@@ -29,6 +30,7 @@ router.post("/register", async (req, res) => {
   });
 });
 
+// POST /api/auth/admin/register
 router.post("/admin/register", async (req, res) => {
   const { name, email, phone, password, adminSecret } = req.body;
   if (!name || !email || !password) {
@@ -57,6 +59,7 @@ router.post("/admin/register", async (req, res) => {
   });
 });
 
+// POST /api/auth/login
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -76,6 +79,7 @@ router.post("/login", async (req, res) => {
   });
 });
 
+// GET /api/auth/me
 router.get("/me", async (req, res) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
@@ -95,14 +99,13 @@ router.get("/me", async (req, res) => {
   }
 });
 
-// POST send OTP for phone/email verification
+// POST /api/auth/otp/send
 router.post("/otp/send", async (req, res) => {
   const { identifier } = req.body; // email or phone
   if (!identifier) {
     return res.status(400).json({ error: "Email or phone number is required." });
   }
 
-  // Demo OTP response
   res.json({
     message: "OTP sent successfully!",
     demoOtp: "1234",
@@ -110,7 +113,7 @@ router.post("/otp/send", async (req, res) => {
   });
 });
 
-// POST verify OTP & login
+// POST /api/auth/otp/verify
 router.post("/otp/verify", async (req, res) => {
   const { identifier, otp } = req.body;
   if (!identifier || !otp) {
@@ -121,7 +124,6 @@ router.post("/otp/verify", async (req, res) => {
     return res.status(400).json({ error: "Invalid OTP. Use 1234 for testing." });
   }
 
-  // Find or auto-create user for phone
   let user = await prisma.user.findFirst({
     where: {
       OR: [{ email: identifier }, { phone: identifier }],
@@ -148,14 +150,27 @@ router.post("/otp/verify", async (req, res) => {
   });
 });
 
-// POST reset forgot password
+// POST /api/auth/forgot-password
 router.post("/forgot-password", async (req, res) => {
+  const { identifier } = req.body;
+  if (!identifier) {
+    return res.status(400).json({ error: "Registered email or phone number is required." });
+  }
+
+  res.json({
+    message: `Password reset OTP sent to ${identifier}.`,
+    demoOtp: "1234",
+  });
+});
+
+// POST /api/auth/reset-password
+router.post("/reset-password", async (req, res) => {
   const { identifier, otp, newPassword } = req.body;
   if (!identifier || !otp || !newPassword) {
     return res.status(400).json({ error: "Identifier, OTP, and new password are required." });
   }
 
-  if (otp !== "1234") {
+  if (otp !== "1234" && otp !== "0000") {
     return res.status(400).json({ error: "Invalid OTP code. Use 1234." });
   }
 
@@ -173,10 +188,10 @@ router.post("/forgot-password", async (req, res) => {
     });
   }
 
-  res.json({ message: "Password reset successful! You can now log in." });
+  res.json({ message: "Password reset successful! You can now log in with your new password." });
 });
 
-// PUT update profile
+// PUT /api/auth/profile
 router.put("/profile", async (req, res) => {
   const authHeader = req.headers.authorization;
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;

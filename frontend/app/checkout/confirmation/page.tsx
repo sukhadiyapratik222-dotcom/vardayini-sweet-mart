@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Header from '../../components/Header';
 import Footer from '../../components/Footer';
+import { trackPurchase } from '../../lib/analytics';
 
 export default function OrderConfirmationPage() {
   const searchParams = useSearchParams();
@@ -20,11 +21,21 @@ export default function OrderConfirmationPage() {
       const stored = localStorage.getItem('latest_order');
       if (stored) {
         try {
-          setOrderDetails(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          setOrderDetails(parsed);
+          trackPurchase({
+            orderId: parsed.orderId || orderId,
+            total: parsed.total || 1250,
+          });
         } catch (e) {}
+      } else {
+        trackPurchase({
+          orderId,
+          total: 1250,
+        });
       }
     }
-  }, []);
+  }, [orderId]);
 
   const handleDownloadInvoice = () => {
     // Generate text invoice download blob

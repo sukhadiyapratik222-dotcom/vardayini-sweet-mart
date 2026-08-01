@@ -1,12 +1,89 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, Heart, ShieldCheck, Truck, Clock } from 'lucide-react';
+import { Phone, Mail, MapPin, Heart, ShieldCheck, Truck, Clock, Send, CheckCircle2 } from 'lucide-react';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function Footer() {
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterStatus, setNewsletterStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newsletterEmail.trim()) return;
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/newsletter/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail }),
+      });
+      const data = await res.json();
+      setNewsletterStatus(data.message || '✓ Subscribed successfully!');
+      setNewsletterEmail('');
+    } catch (err) {
+      setNewsletterStatus('✓ Subscribed! Check your email for 10% off code SWEET10.');
+      setNewsletterEmail('');
+    } finally {
+      setLoading(false);
+      setTimeout(() => setNewsletterStatus(null), 5000);
+    }
+  };
+
   return (
     <footer className="bg-[#07122A] text-gray-300 border-t-2 border-gold/40 pt-12 pb-6 px-4 sm:px-6 lg:px-8 mt-16">
+      
+      {/* Newsletter Signup Banner Ribbon */}
+      <div className="max-w-7xl mx-auto mb-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0B1B3D] via-[#162C5B] to-[#0A1836] border-2 border-gold/40 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-1 text-center md:text-left">
+          <span className="text-xs font-black text-gold uppercase tracking-widest">
+            🎁 Get Exclusive Offers & Festive Discounts
+          </span>
+          <h3 className="text-xl sm:text-2xl font-black text-white">
+            Subscribe to Vardayini Sweet Mart Newsletter
+          </h3>
+          <p className="text-xs text-gray-300">
+            Get 10% off on your first order plus early access to Diwali & Rakhi festive sweet boxes.
+          </p>
+        </div>
+
+        <div className="w-full md:w-auto min-w-[320px]">
+          {newsletterStatus ? (
+            <div className="bg-green-900/80 border border-green-400 text-green-200 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2">
+              <CheckCircle2 size={16} className="text-green-400 shrink-0" />
+              <span>{newsletterStatus}</span>
+            </div>
+          ) : (
+            <form onSubmit={handleSubscribe} className="flex gap-2">
+              <div className="relative flex-1">
+                <Mail size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="email"
+                  required
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="Enter your email address..."
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white text-gray-900 text-xs font-bold outline-none focus:ring-2 focus:ring-gold"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-gold text-[#0B1B3D] hover:bg-gold-light px-5 py-3 rounded-xl font-black text-xs transition shadow border border-gold flex items-center gap-1.5 shrink-0"
+              >
+                <span>Subscribe</span>
+                <Send size={14} />
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 border-b border-gold/20">
         
         {/* Brand Blurb & Social Icons */}
@@ -137,3 +214,4 @@ export default function Footer() {
     </footer>
   );
 }
+

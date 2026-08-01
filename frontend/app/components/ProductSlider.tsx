@@ -97,9 +97,16 @@ export default function ProductSlider({
           style={{ scrollBehavior: 'smooth' }}
         >
           {products.map((product) => {
-            const selectedWeight = selectedVariants[product.id] || product.variants[0].weight;
-            const variant = product.variants.find((v) => v.weight === selectedWeight) || product.variants[0];
-            const displayPrice = variant.discountedPrice || variant.price;
+            const selectedWeight = selectedVariants[product.id];
+            const variant = selectedWeight ? product.variants.find((v) => v.weight === selectedWeight) : undefined;
+            const totalStock = product.variants.reduce((sum, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
+            const isOutOfStock = totalStock <= 0;
+
+            const minPrice = Math.min(...product.variants.map((v) => v.discountedPrice || v.price));
+            const maxPrice = Math.max(...product.variants.map((v) => v.price));
+            const priceRange = minPrice === maxPrice ? `₹${minPrice.toLocaleString('en-IN')}` : `₹${minPrice.toLocaleString('en-IN')}–₹${maxPrice.toLocaleString('en-IN')}`;
+
+            const displayPrice = variant ? `₹${(variant.discountedPrice || variant.price).toLocaleString('en-IN')}` : priceRange;
             const isAdded = addedItems[product.id];
 
             return (
@@ -111,27 +118,38 @@ export default function ProductSlider({
                   {/* Image Container */}
                   <div className="relative h-52 overflow-hidden bg-gray-50">
                     <img
-                      src={product.image}
+                      src={(product as any).image || (product as any).primaryImage || (product as any).imageUrls?.[0] || (product as any).productImages?.[0]?.imageUrl || '/images/sweet-1.jpg'}
                       alt={product.name}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
+                      }}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
 
                     {/* Badges */}
                     <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end z-10">
-                      {product.isBestSeller && (
-                        <span className="bg-[#0B1B3D] text-gold px-2.5 py-1 rounded-md text-[10px] font-extrabold shadow-md border border-gold/40">
-                          {t.bestSellerBadge}
+                      {isOutOfStock ? (
+                        <span className="bg-red-600 text-white px-2.5 py-1 rounded-md text-[10px] font-extrabold shadow-md border border-red-600">
+                          Out of Stock
                         </span>
-                      )}
-                      {product.isNew && (
-                        <span className="bg-gold text-[#0B1B3D] px-2.5 py-1 rounded-md text-[10px] font-black shadow-md">
-                          {t.newBadge}
-                        </span>
-                      )}
-                      {product.isCombo && (
-                        <span className="bg-amber-600 text-white px-2.5 py-1 rounded-md text-[10px] font-black shadow-md">
-                          COMBO
-                        </span>
+                      ) : (
+                        <>
+                          {product.isBestSeller && (
+                            <span className="bg-[#0B1B3D] text-gold px-2.5 py-1 rounded-md text-[10px] font-extrabold shadow-md border border-gold/40">
+                              {t.bestSellerBadge}
+                            </span>
+                          )}
+                          {product.isNew && (
+                            <span className="bg-gold text-[#0B1B3D] px-2.5 py-1 rounded-md text-[10px] font-black shadow-md">
+                              {t.newBadge}
+                            </span>
+                          )}
+                          {product.isCombo && (
+                            <span className="bg-amber-600 text-white px-2.5 py-1 rounded-md text-[10px] font-black shadow-md">
+                              COMBO
+                            </span>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -200,30 +218,35 @@ export default function ProductSlider({
                     {/* Price display per variant */}
                     <div className="flex items-baseline gap-2 pt-1">
                       <span className="text-xl font-black text-[#0B1B3D]">
-                        ₹{displayPrice.toLocaleString('en-IN')}
+                        {displayPrice}
                       </span>
-                      {variant.discountedPrice && (
+                      {variant?.discountedPrice && (
                         <span className="text-xs text-gray-400 line-through font-semibold">
                           ₹{variant.price.toLocaleString('en-IN')}
                         </span>
                       )}
-                      {variant.stock <= 5 && (
+                      {variant && (Number((variant as any).stockQty ?? (variant as any).stock ?? 0)) <= 5 && (Number((variant as any).stockQty ?? (variant as any).stock ?? 0)) > 0 && (
                         <span className="text-[10px] text-red-600 font-bold ml-auto">
-                          Only {variant.stock} left
+                          Only {(variant as any).stockQty ?? (variant as any).stock} left
                         </span>
                       )}
                     </div>
 
                     {/* Add to Cart Button */}
                     <button
-                      onClick={() => handleAddToCart(product, selectedWeight)}
+                      disabled={isOutOfStock}
+                      onClick={() => handleAddToCart(product, selectedWeight || product.variants[0].weight)}
                       className={`w-full px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition flex items-center justify-center gap-2 mt-auto shadow-sm border ${
-                        isAdded
+                        isOutOfStock
+                          ? 'bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed'
+                          : isAdded
                           ? 'bg-green-700 text-white border-green-700'
                           : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/40'
                       }`}
                     >
-                      {isAdded ? (
+                      {isOutOfStock ? (
+                        <span>Out of Stock</span>
+                      ) : isAdded ? (
                         <>
                           <Check size={16} />
                           <span>Added to Cart!</span>
@@ -231,7 +254,7 @@ export default function ProductSlider({
                       ) : (
                         <>
                           <ShoppingCart size={16} />
-                          <span>{t.addToCart} • ₹{displayPrice}</span>
+                          <span>{t.addToCart}</span>
                         </>
                       )}
                     </button>

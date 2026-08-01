@@ -7,7 +7,7 @@ import PromoTicker from "./components/PromoTicker";
 import HeroCarousel from "./components/HeroCarousel";
 import ProductSlider from "./components/ProductSlider";
 import Footer from "./components/Footer";
-import { products } from "./data";
+import { products as localProducts } from "./data";
 import { useLanguage } from "./context/LanguageContext";
 import { Store, MapPin, Phone, Clock, ArrowRight } from "lucide-react";
 
@@ -55,6 +55,7 @@ const defaultOutlets = [
 export default function HomePage() {
   const { t } = useLanguage();
   const [outlets, setOutlets] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
 
   useEffect(() => {
     async function loadOutlets() {
@@ -67,11 +68,8 @@ export default function HomePage() {
             return;
           }
         }
-      } catch (e) {
-        console.warn("Backend stores API offline, using local store data.");
-      }
+      } catch (e) {}
 
-      // Check Admin added stores in localStorage
       const cached = typeof window !== "undefined" ? localStorage.getItem("admin_stores_list") : null;
       if (cached) {
         try {
@@ -86,58 +84,84 @@ export default function HomePage() {
       setOutlets(defaultOutlets);
     }
 
+    async function loadCatalogProducts() {
+      let adminProducts: any[] = [];
+      if (typeof window !== "undefined") {
+        const cachedCatalog = localStorage.getItem("admin_products_catalog");
+        if (cachedCatalog) {
+          try {
+            adminProducts = JSON.parse(cachedCatalog);
+          } catch (e) {}
+        }
+      }
+
+      const combinedPool = [...adminProducts, ...localProducts];
+      const uniqueMap = new Map();
+      combinedPool.forEach((p) => {
+        const key = p.slug || p.id;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, p);
+        }
+      });
+
+      // Instantly filter out any product marked Inactive (isActive === false)
+      const activeOnly = Array.from(uniqueMap.values()).filter((p: any) => p.isActive !== false);
+      setAllProducts(activeOnly);
+    }
+
     loadOutlets();
+    loadCatalogProducts();
   }, []);
 
-  // Filter products by category & tags for horizontal sliders
-  const bestSellers = products.filter((p) => p.isBestSeller);
-  const newArrivals = products.filter((p) => p.isNew);
-  const premiumSweets = products.filter((p) => p.isPremium || p.category === "sweets");
-  const combos = products.filter((p) => p.isCombo || p.category === "corporate-gift-boxes");
-  const namkeenProducts = products.filter((p) => p.category === "namkeen");
+  // Auto-pull products by tag field (Best Sellers, New Arrivals, Premium, Combos)
+  const bestSellers = allProducts.filter((p) => p.tag === "best_seller" || p.isBestSeller);
+  const newArrivals = allProducts.filter((p) => p.tag === "new_arrival" || p.isNew);
+  const premiumSweets = allProducts.filter((p) => p.tag === "premium" || p.isPremium || p.category === "sweets" || p.categorySlug === "kaju-sweets");
+  const combos = allProducts.filter((p) => p.tag === "combo" || p.isCombo || p.category === "corporate-gift-boxes");
+  const namkeenProducts = allProducts.filter((p) => p.category === "namkeen" || p.categorySlug === "gujarati" || p.categorySlug === "sev");
 
   return (
     <main className="min-h-screen bg-[#FAF7F0]">
-      {/* Sticky Header with Logo, Search, Wishlist, Cart (Live count + ₹ total) & Mega Menu */}
+      {/* Sticky Header with Logo, Search, Wishlist, Cart & Mega Menu */}
       <Header />
 
-      {/* Scrolling Promo Ticker (Offers text loop) */}
+      {/* Scrolling Promo Ticker */}
       <PromoTicker />
 
-      {/* Hero Banner Carousel (Auto-rotating images/slides) */}
+      {/* Hero Banner Carousel */}
       <HeroCarousel />
 
-      {/* Horizontal Product Sliders */}
+      {/* Horizontal Product Sliders Driven by Product Tag Field */}
       <div className="space-y-4 max-w-7xl mx-auto">
-        {/* 1. Best Sellers Slider */}
+        {/* 1. Best Sellers Slider (Auto-pulled by tag: best_seller) */}
         <ProductSlider
-          title={t.bestSellersTitle || "Best Sellers"}
+          title={t.bestSellersTitle || "Best Sellers 🔥"}
           subtitle="Customer favorite sweets & savories ordered most this week"
-          products={bestSellers}
+          products={bestSellers.length > 0 ? bestSellers : allProducts.slice(0, 4)}
           categoryLink="/categories"
         />
 
-        {/* 2. New Arrivals Slider */}
+        {/* 2. New Arrivals Slider (Auto-pulled by tag: new_arrival) */}
         <ProductSlider
-          title={t.newArrivalsTitle || "New Arrivals"}
+          title={t.newArrivalsTitle || "New Arrivals ✨"}
           subtitle="Freshly prepared sweets and oven-roasted snacks just added"
-          products={newArrivals}
-          categoryLink="/categories?new=true"
+          products={newArrivals.length > 0 ? newArrivals : allProducts.slice(1, 5)}
+          categoryLink="/categories"
         />
 
-        {/* 3. Premium Sweets Slider */}
+        {/* 3. Premium Sweets Slider (Auto-pulled by tag: premium) */}
         <ProductSlider
-          title={t.premiumSweetsTitle || "Premium Sweets"}
+          title={t.premiumSweetsTitle || "Premium Sweets 👑"}
           subtitle="Handcrafted Kaju Katli, Mawa Penda & Pure Desi Ghee delicacies"
-          products={premiumSweets}
+          products={premiumSweets.length > 0 ? premiumSweets : allProducts.slice(0, 4)}
           categoryLink="/categories/sweets"
         />
 
-        {/* 4. Combos & Gift Packs Slider */}
+        {/* 4. Combos & Gift Packs Slider (Auto-pulled by tag: combo) */}
         <ProductSlider
-          title="Festive Combos & Special Gift Boxes"
+          title="Festive Combos & Special Gift Boxes 🎁"
           subtitle="Handpicked combinations of sweets, dry fruits & savories for all occasions"
-          products={combos}
+          products={combos.length > 0 ? combos : allProducts.slice(2, 6)}
           categoryLink="/categories/corporate-gift-boxes"
         />
 
@@ -145,7 +169,7 @@ export default function HomePage() {
         <ProductSlider
           title={t.namkeenTitle || "Namkeen & Savories"}
           subtitle="Authentic Gujarati Ratlami Sev, Khakhra, and crunchy mixtures"
-          products={namkeenProducts}
+          products={namkeenProducts.length > 0 ? namkeenProducts : allProducts.slice(0, 4)}
           categoryLink="/categories/namkeen"
         />
       </div>
@@ -251,6 +275,3 @@ export default function HomePage() {
     </main>
   );
 }
-
-
-

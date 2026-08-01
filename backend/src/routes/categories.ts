@@ -3,54 +3,117 @@ import { prisma } from "../prisma";
 
 const router = Router();
 
+// Full default category hierarchy tree
+const defaultCategoryTree = [
+  {
+    id: "cat-sweets",
+    name: "Sweets",
+    slug: "sweets",
+    description: "Pure Desi Ghee Sweets & Traditional Indian Mithai",
+    subcategories: [
+      { name: "Kaju Sweets", slug: "kaju-sweets" },
+      { name: "Mawa Sweets", slug: "mawa-sweets" },
+      { name: "Penda", slug: "penda" },
+      { name: "Sugarless", slug: "sugarless" },
+      { name: "Premium Packed", slug: "premium-packed" },
+      { name: "Indian Ghee", slug: "indian-ghee" },
+    ],
+  },
+  {
+    id: "cat-namkeen",
+    name: "Namkeen",
+    slug: "namkeen",
+    description: "Crispy Gujarati Savories & Roasted Healthy Snacks",
+    subcategories: [
+      { name: "Millet", slug: "millet" },
+      { name: "Farali", slug: "farali" },
+      { name: "Gujarati", slug: "gujarati" },
+      { name: "Khakhra", slug: "khakhra" },
+      { name: "Roasted", slug: "roasted" },
+      { name: "Mixture", slug: "mixture" },
+      { name: "Sev", slug: "sev" },
+      { name: "Chips & Puris", slug: "chips-puris" },
+    ],
+  },
+  {
+    id: "cat-bakery",
+    name: "Bakery",
+    slug: "bakery",
+    description: "Fresh Oven Biscuits, Cookies, Toast & Khari",
+    subcategories: [
+      { name: "Biscuits & Cookies", slug: "biscuits-cookies" },
+      { name: "Toast & Khari", slug: "toast-khari" },
+    ],
+  },
+  {
+    id: "cat-mukhwas",
+    name: "Mukhwas",
+    slug: "mukhwas",
+    description: "Traditional Digestive Mouth Fresheners",
+    subcategories: [],
+  },
+  {
+    id: "cat-dryfruits",
+    name: "Dried Fruits & Nuts",
+    slug: "dry-fruits-nuts",
+    description: "Premium Almonds, Cashews, Pistachios & Raisins",
+    subcategories: [],
+  },
+  {
+    id: "cat-baklava",
+    name: "Premium Baklava",
+    slug: "premium-baklava",
+    description: "Royal Middle Eastern Phyllo Pastry Sweets",
+    subcategories: [],
+  },
+  {
+    id: "cat-corporate",
+    name: "Corporate Gifts",
+    slug: "corporate-gift-boxes",
+    description: "Customized Festival Sweets & Luxury Gift Hampers",
+    subcategories: [],
+  },
+];
+
+// GET /api/categories - Returns nested category tree
 router.get("/", async (req, res) => {
-  const categories = await prisma.category.findMany({
-    where: { parentId: null },
-    include: { children: true }
-  });
-  res.json(categories);
+  try {
+    const categories = await prisma.category.findMany({
+      where: { parentId: null },
+      include: { children: true },
+    });
+
+    if (!categories || categories.length === 0) {
+      return res.json(defaultCategoryTree);
+    }
+
+    res.json(categories);
+  } catch (error) {
+    res.json(defaultCategoryTree);
+  }
 });
 
+// GET /api/categories/:slug - Single category with products
 router.get("/:slug", async (req, res) => {
   const { slug } = req.params;
-  const category = await prisma.category.findUnique({
-    where: { slug },
-    include: { children: true, products: { include: { variants: true } } }
-  });
-  if (!category) return res.status(404).json({ error: "Category not found" });
-  res.json(category);
-});
+  try {
+    const category = await prisma.category.findUnique({
+      where: { slug },
+      include: { children: true, products: { include: { variants: true } } },
+    });
 
-router.get("/:slug/products", async (req, res) => {
-  const { slug } = req.params;
-  const { page = "1", limit = "12", search, sort } = req.query;
-  const take = Number(limit);
-  const skip = (Number(page) - 1) * take;
+    if (!category) {
+      const found = defaultCategoryTree.find((c) => c.slug === slug);
+      if (found) return res.json(found);
+      return res.status(404).json({ error: "Category not found" });
+    }
 
-  const where: any = { isActive: true, category: { slug } };
-  if (search) {
-    where.OR = [
-      { name: { contains: String(search), mode: "insensitive" } },
-      { description: { contains: String(search), mode: "insensitive" } }
-    ];
+    res.json(category);
+  } catch (error) {
+    const found = defaultCategoryTree.find((c) => c.slug === slug);
+    if (found) return res.json(found);
+    res.status(404).json({ error: "Category not found" });
   }
-
-  const orderBy: any = {};
-  if (sort === "price_asc") orderBy.variants = { _min: { price: "asc" } };
-  else if (sort === "price_desc") orderBy.variants = { _max: { price: "desc" } };
-  else if (sort === "rating") orderBy.ratingAvg = "desc";
-  else if (sort === "newest") orderBy.createdAt = "desc";
-
-  const products = await prisma.product.findMany({
-    where,
-    include: { variants: true },
-    skip,
-    take,
-    orderBy: Object.keys(orderBy).length ? orderBy : undefined
-  });
-
-  const total = await prisma.product.count({ where });
-  res.json({ products, total, page: Number(page) });
 });
 
 export default router;
