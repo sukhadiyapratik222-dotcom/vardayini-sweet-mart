@@ -55,7 +55,7 @@ const defaultOutlets = [
 export default function HomePage() {
   const { t } = useLanguage();
   const [outlets, setOutlets] = useState<any[]>([]);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>(localProducts);
 
   useEffect(() => {
     async function loadOutlets() {

@@ -76,7 +76,7 @@ export default function HeroCarousel() {
         <div className="absolute -top-32 -right-32 w-96 h-96 bg-gold/15 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 items-center gap-8 w-full">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 items-center gap-6 w-full">
           {/* Text Content Left Column */}
           <div className="lg:col-span-7 space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full bg-gold/15 px-3.5 py-1 border border-gold/40">
@@ -109,9 +109,9 @@ export default function HeroCarousel() {
             </div>
           </div>
 
-          {/* Image & Showcase Right Column */}
-          <div className="lg:col-span-5 hidden lg:flex justify-end">
-            <div className="relative w-80 h-72 rounded-2xl overflow-hidden border-2 border-gold/40 shadow-2xl group">
+          {/* Image & Showcase Right Column - visible on sm+ */}
+          <div className="lg:col-span-5 flex justify-center lg:justify-end">
+            <div className="relative w-full max-w-xs sm:max-w-sm lg:w-80 h-44 sm:h-56 lg:h-72 rounded-2xl overflow-hidden border-2 border-gold/40 shadow-2xl group">
               <img
                 src={slide.image}
                 alt={slide.title}
