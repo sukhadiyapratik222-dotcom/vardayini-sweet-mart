@@ -14,44 +14,8 @@ import CornerMotif from "./components/CornerMotif";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-const defaultOutlets = [
-  {
-    id: "out-1",
-    name: "Vardayini Sweet Mart - Main Outlet",
-    city: "Surat",
-    address: "123 Ring Road, Near Textile Market",
-    pincode: "395002",
-    phone: "+91 98765 43210",
-    hours: "8:00 AM - 10:00 PM",
-  },
-  {
-    id: "out-2",
-    name: "Vardayini Sweet Mart - Station Road",
-    city: "Surat",
-    address: "45 Station Road, Opposite Railway Station",
-    pincode: "395003",
-    phone: "+91 98765 43211",
-    hours: "7:30 AM - 10:30 PM",
-  },
-  {
-    id: "out-3",
-    name: "Vardayini Sweet Mart - Navrangpura",
-    city: "Ahmedabad",
-    address: "78 CG Road, Navrangpura",
-    pincode: "380009",
-    phone: "+91 98765 43212",
-    hours: "9:00 AM - 9:30 PM",
-  },
-  {
-    id: "out-4",
-    name: "Vardayini Sweet Mart - Alkapuri",
-    city: "Vadodara",
-    address: "12 Alkapuri Main Road",
-    pincode: "390007",
-    phone: "+91 98765 43213",
-    hours: "8:30 AM - 10:00 PM",
-  },
-];
+
+
 
 export default function HomePage() {
   const { t } = useLanguage();
@@ -60,6 +24,7 @@ export default function HomePage() {
 
   useEffect(() => {
     async function loadOutlets() {
+      // 1. Try to load from backend API
       try {
         const res = await fetch(`${API_BASE}/stores`);
         if (res.ok) {
@@ -71,6 +36,7 @@ export default function HomePage() {
         }
       } catch (e) {}
 
+      // 2. Fallback: load from admin panel localStorage (stores added via admin)
       const cached = typeof window !== "undefined" ? localStorage.getItem("admin_stores_list") : null;
       if (cached) {
         try {
@@ -82,7 +48,8 @@ export default function HomePage() {
         } catch (e) {}
       }
 
-      setOutlets(defaultOutlets);
+      // 3. No real outlets found — show nothing (don't show fake demo outlets)
+      setOutlets([]);
     }
 
     async function loadCatalogProducts() {
@@ -225,51 +192,59 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {outlets.map((outlet: any) => (
-              <div
-                key={outlet.id}
-                className="bg-white rounded-2xl p-5 border-2 border-gold/30 shadow-md hover:shadow-xl transition-all space-y-3 flex flex-col justify-between"
-              >
-                <div className="space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="bg-[#0B1B3D] text-gold text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
-                      {outlet.city}
-                    </span>
-                    <span className="text-[10px] text-gray-500 font-semibold">PIN {outlet.pincode}</span>
+          {outlets.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <Store size={48} className="mx-auto mb-4 text-gold/40" />
+              <p className="text-base font-semibold">No outlets added yet.</p>
+              <p className="text-sm mt-1">Please add store outlets from the admin panel.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {outlets.map((outlet: any) => (
+                <div
+                  key={outlet.id}
+                  className="bg-white rounded-2xl p-5 border-2 border-gold/30 shadow-md hover:shadow-xl transition-all space-y-3 flex flex-col justify-between"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="bg-[#0B1B3D] text-gold text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wide">
+                        {outlet.city}
+                      </span>
+                      <span className="text-[10px] text-gray-500 font-semibold">PIN {outlet.pincode}</span>
+                    </div>
+
+                    <h3 className="font-extrabold text-[#0B1B3D] text-base leading-snug">{outlet.name}</h3>
+
+                    <div className="space-y-1 text-xs text-gray-600">
+                      <div className="flex items-start gap-1.5">
+                        <MapPin size={14} className="text-gold-dark flex-shrink-0 mt-0.5" />
+                        <span>{outlet.address}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Phone size={14} className="text-gold-dark flex-shrink-0" />
+                        <span className="font-bold text-[#0B1B3D]">{outlet.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock size={14} className="text-gold-dark flex-shrink-0" />
+                        <span>{outlet.hours}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <h3 className="font-extrabold text-[#0B1B3D] text-base leading-snug">{outlet.name}</h3>
-
-                  <div className="space-y-1 text-xs text-gray-600">
-                    <div className="flex items-start gap-1.5">
-                      <MapPin size={14} className="text-gold-dark flex-shrink-0 mt-0.5" />
-                      <span>{outlet.address}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Phone size={14} className="text-gold-dark flex-shrink-0" />
-                      <span className="font-bold text-[#0B1B3D]">{outlet.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock size={14} className="text-gold-dark flex-shrink-0" />
-                      <span>{outlet.hours}</span>
-                    </div>
+                  <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-green-600">✓ Open Today</span>
+                    <Link
+                      href="/stores"
+                      className="text-xs font-extrabold text-gold-dark hover:text-gold flex items-center gap-1 transition"
+                    >
+                      <span>Store Info</span>
+                      <ArrowRight size={12} />
+                    </Link>
                   </div>
                 </div>
-
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-green-600">✓ Open Today</span>
-                  <Link
-                    href="/stores"
-                    className="text-xs font-extrabold text-gold-dark hover:text-gold flex items-center gap-1 transition"
-                  >
-                    <span>Store Info</span>
-                    <ArrowRight size={12} />
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
