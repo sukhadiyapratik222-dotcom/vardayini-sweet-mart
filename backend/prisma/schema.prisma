@@ -20,9 +20,9 @@ model User {
   name         String
   email        String     @unique
   phone        String?    @unique
-  passwordHash String
-  createdAt    DateTime   @default(now())
-  isAdmin      Boolean    @default(false)
+  passwordHash String     @map("password_hash")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  role         String     @default("customer")
   addresses    Address[]
   orders       Order[]
   carts        Cart[]
@@ -37,9 +37,9 @@ model Admin {
   name         String
   email        String   @unique
   phone        String?  @unique
-  passwordHash String
+  passwordHash String   @map("password_hash")
   role         String   @default("admin")
-  createdAt    DateTime @default(now())
+  createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("admins")
 }

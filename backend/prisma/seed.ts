@@ -10,21 +10,20 @@ async function main() {
     update: {}
   });
 
-  const namkeen = await prisma.category.upsert({
+  await prisma.category.upsert({
     where: { slug: "namkeen" },
     create: { name: "Namkeen", slug: "namkeen" },
     update: {}
   });
 
-  const product1 = await prisma.product.upsert({
+  await prisma.product.upsert({
     where: { slug: "kaju-katli" },
     create: {
       name: "Kaju Katli",
       slug: "kaju-katli",
       description: "Premium kaju katli with rich cashew taste.",
       categoryId: sweets.id,
-      imageUrls: ["/images/sweet-1.jpg"],
-      tags: ["Best Seller", "Premium"],
+      tag: "best_seller",
       variants: {
         create: [
           { weightLabel: "250g", price: 450, discountedPrice: 399, stockQty: 20, sku: "KK-250" },
@@ -51,35 +50,47 @@ async function main() {
     update: {}
   });
 
-  // create admin users for testing & production
-  await prisma.user.upsert({
+  // Create seed Admin users in dedicated admins table
+  await prisma.admin.upsert({
     where: { email: "admin@vardayinisweets.com" },
     create: {
       name: "Admin Owner",
       email: "admin@vardayinisweets.com",
       phone: "+91 98765 43210",
       passwordHash: bcrypt.hashSync("admin1234", 10),
-      isAdmin: true
+      role: "admin"
     },
-    update: { name: "Admin Owner", isAdmin: true }
+    update: { name: "Admin Owner", role: "admin" }
   });
 
-  await prisma.user.upsert({
+  await prisma.admin.upsert({
     where: { email: "admin@local" },
     create: {
       name: "Admin",
       email: "admin@local",
       phone: null,
       passwordHash: bcrypt.hashSync("password", 10),
-      isAdmin: true
+      role: "admin"
     },
-    update: { isAdmin: true }
+    update: { role: "admin" }
+  });
+
+  // Seed default customer user
+  await prisma.user.upsert({
+    where: { email: "pratik.sukhadiya@example.com" },
+    create: {
+      name: "Pratik Sukhadiya",
+      email: "pratik.sukhadiya@example.com",
+      phone: "+91 98765 43210",
+      passwordHash: bcrypt.hashSync("customer1234", 10),
+      role: "customer"
+    },
+    update: { name: "Pratik Sukhadiya" }
   });
 }
 
 main()
   .catch((e) => {
-    // eslint-disable-next-line no-console
     console.error(e);
     process.exit(1);
   })
