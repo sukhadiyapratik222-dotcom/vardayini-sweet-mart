@@ -60,10 +60,9 @@ export default function AdminAuthPage() {
         setError("Invalid response from server.");
       }
     } catch (err) {
-      // Backend is offline -> Verify if email belongs to Admin ID
-      const isAdminAccount = email.toLowerCase().includes("admin") || email.toLowerCase().includes("owner");
-      if (!isAdminAccount && mode === "login") {
-        setError("Access Denied: Only verified Admin accounts can sign in to the Admin Portal.");
+      // Backend is offline — allow login with any credentials (owner knows the admin URL)
+      if (!email || !password) {
+        setError("Please enter your email and password.");
         setLoading(false);
         return;
       }
@@ -72,7 +71,7 @@ export default function AdminAuthPage() {
       const adminUser = {
         id: "admin-local-1",
         name: name || "Admin Owner",
-        email: email || "admin@vardayini.com",
+        email: email,
         isAdmin: true
       };
       login(mockToken, adminUser);
