@@ -59,7 +59,7 @@ export default function AdminAuthPage({ initialMode = "login" }: { initialMode?:
       if (res.ok && data.token && data.user) {
         login(data.token, { ...data.user, isAdmin: true });
         localStorage.setItem("admin_token", data.token);
-        router.push("/admin/products");
+        router.push("/admin");
         return;
       }
     } catch (err) {
@@ -79,7 +79,7 @@ export default function AdminAuthPage({ initialMode = "login" }: { initialMode?:
     login(mockToken, adminUser);
     localStorage.setItem("admin_token", mockToken);
     localStorage.setItem("auth_user", JSON.stringify(adminUser));
-    router.push("/admin/products");
+    router.push("/admin");
     setLoading(false);
   }
 
