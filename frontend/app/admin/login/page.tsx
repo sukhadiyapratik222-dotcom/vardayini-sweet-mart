@@ -61,26 +61,14 @@ export default function AdminAuthPage({ initialMode = "login" }: { initialMode?:
         localStorage.setItem("admin_token", data.token);
         router.push("/admin");
         return;
+      } else {
+        setError(data.error || "Invalid Admin credentials. Please check your email and password.");
       }
-    } catch (err) {
-      // Backend offline -> Fallthrough to local admin registration below
+    } catch (err: any) {
+      setError(err.message || "Network error connecting to authentication server.");
+    } finally {
+      setLoading(false);
     }
-
-    // Direct Instant Admin Login & Registration Fallback (Fail-proof)
-    const mockToken = "admin_token_" + Date.now();
-    const adminUser: User = {
-      id: `admin-${Date.now()}`,
-      name: name.trim() || "Admin Owner",
-      email: email.trim(),
-      phone: phone.trim() || undefined,
-      isAdmin: true,
-    };
-
-    login(mockToken, adminUser);
-    localStorage.setItem("admin_token", mockToken);
-    localStorage.setItem("auth_user", JSON.stringify(adminUser));
-    router.push("/admin");
-    setLoading(false);
   }
 
   return (

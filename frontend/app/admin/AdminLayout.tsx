@@ -30,23 +30,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { logout, user, isLoading, login } = useAuth();
 
   useEffect(() => {
-    // Auto-authorize local admin session so owner never gets blocked or stuck on loading
-    if (!user || !user.isAdmin) {
-      const defaultAdmin = {
-        id: "admin-owner-1",
-        name: "Admin Owner",
-        email: "admin@vardayinisweets.com",
-        isAdmin: true,
-      };
-      if (login) {
-        login("admin_token_owner", defaultAdmin);
-      }
-      if (typeof window !== "undefined") {
-        localStorage.setItem("admin_token", "admin_token_owner");
-        localStorage.setItem("auth_user", JSON.stringify(defaultAdmin));
+    if (!isLoading && (!user || !user.isAdmin)) {
+      if (pathname !== "/admin/login" && pathname !== "/admin/signup") {
+        router.push("/admin/login");
       }
     }
-  }, [user, login]);
+  }, [user, isLoading, pathname, router]);
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: BarChart3 },
