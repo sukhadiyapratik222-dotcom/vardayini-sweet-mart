@@ -8,8 +8,8 @@ import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-export default function AdminAuthPage() {
-  const [mode, setMode] = useState<"login" | "signup">("login");
+export default function AdminAuthPage({ initialMode = "login" }: { initialMode?: "login" | "signup" }) {
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
