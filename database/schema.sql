@@ -261,10 +261,3 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
--- ============================================================
--- DEFAULT SEED ADMIN ACCOUNT IN ADMINS TABLE
--- Email: admin@vardayinisweets.com | Password: admin1234
--- ============================================================
-INSERT IGNORE INTO admins (id, name, email, phone, password_hash, role) 
-VALUES ('admin-seed-1', 'Admin Owner', 'admin@vardayinisweets.com', '+91 98765 43210', '$2a$10$w8T0M/p3.x1Wq234g56789uYp0W/xV1.9/W2r1.9', 'admin');

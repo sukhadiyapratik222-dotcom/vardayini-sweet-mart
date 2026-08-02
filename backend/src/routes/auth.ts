@@ -35,14 +35,15 @@ router.post("/register", async (req, res) => {
         email,
         phone: phone || undefined,
         passwordHash,
-        isAdmin: false,
+        role: "customer",
       },
     });
   }
 
-  const token = jwt.sign({ userId: user.id, isAdmin: user.isAdmin }, secret, { expiresIn: "7d" });
+  const isAdminUser = user.role === "admin";
+  const token = jwt.sign({ userId: user.id, isAdmin: isAdminUser }, secret, { expiresIn: "7d" });
   res.json({
-    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: user.isAdmin },
+    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: isAdminUser },
     token,
   });
 });

@@ -23,6 +23,7 @@ model User {
   passwordHash String     @map("password_hash")
   createdAt    DateTime   @default(now()) @map("created_at")
   role         String     @default("customer")
+  isAdmin      Boolean    @default(false) @map("is_admin")
   addresses    Address[]
   orders       Order[]
   carts        Cart[]
