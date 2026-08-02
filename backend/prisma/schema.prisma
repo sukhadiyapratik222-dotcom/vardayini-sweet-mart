@@ -28,6 +28,8 @@ model User {
   carts        Cart[]
   reviews      Review[]
   wishlists    Wishlist[]
+
+  @@map("users")
 }
 
 model Admin {
@@ -38,6 +40,8 @@ model Admin {
   passwordHash String
   role         String   @default("admin")
   createdAt    DateTime @default(now())
+
+  @@map("admins")
 }
 
 model Address {
