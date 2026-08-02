@@ -71,6 +71,48 @@ router.post("/register", async (req, res) => {
   }
 });
 
+// PUT /api/auth/profile
+router.put("/profile", async (req, res) => {
+  try {
+    const { id, name, email, phone } = req.body;
+    const cleanPhone = phone ? String(phone).trim() : null;
+
+    let user;
+
+    if (id) {
+      user = await prisma.user.update({
+        where: { id },
+        data: {
+          name: name ? String(name).trim() : undefined,
+          email: email ? String(email).trim() : undefined,
+          phone: cleanPhone || undefined,
+        },
+      });
+    } else if (email) {
+      user = await prisma.user.update({
+        where: { email: String(email).trim() },
+        data: {
+          name: name ? String(name).trim() : undefined,
+          phone: cleanPhone || undefined,
+        },
+      });
+    } else {
+      return res.status(400).json({ error: "User ID or Email is required to update profile." });
+    }
+
+    const isAdminUser = user.role === "admin";
+    const token = jwt.sign({ userId: user.id, isAdmin: isAdminUser }, secret, { expiresIn: "7d" });
+
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: isAdminUser },
+      token,
+    });
+  } catch (error: any) {
+    console.error("Profile update error:", error);
+    res.status(400).json({ error: error.message || "Failed to update profile details in database." });
+  }
+});
+
 // POST /api/auth/admin/register
 router.post("/admin/register", async (req, res) => {
   const { name, email, phone, password, adminSecret } = req.body;

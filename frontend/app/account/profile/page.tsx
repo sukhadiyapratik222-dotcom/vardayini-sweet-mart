@@ -104,35 +104,26 @@ export default function ProfileDashboardPage() {
     e.preventDefault();
     try {
       const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-      const res = await fetch(`${API_BASE}/auth/register`, {
-        method: "POST",
+      const res = await fetch(`${API_BASE}/auth/profile`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, phone, password: "password123" }),
-      });
-      const data = await res.json();
-      if (data && data.user) {
-        login(data.token || localStorage.getItem('auth_token') || 'token_123', data.user);
-      } else {
-        const updatedUser = {
-          id: user?.id || 'u-101',
+        body: JSON.stringify({
+          id: user?.id,
           name,
           email,
           phone,
-          isAdmin: user?.isAdmin || false,
-        };
-        login(localStorage.getItem('auth_token') || 'token_123', updatedUser);
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data && data.user) {
+        login(data.token || localStorage.getItem('auth_token') || 'token_123', data.user);
+        setSavedFeedback('✓ Profile details successfully updated in database!');
+      } else {
+        setSavedFeedback(data.error || 'Failed to save details to database.');
       }
-    } catch (err) {
-      const updatedUser = {
-        id: user?.id || 'u-101',
-        name,
-        email,
-        phone,
-        isAdmin: user?.isAdmin || false,
-      };
-      login(localStorage.getItem('auth_token') || 'token_123', updatedUser);
+    } catch (err: any) {
+      setSavedFeedback(err.message || 'Error updating profile details.');
     }
-    setSavedFeedback('✓ Profile details successfully saved in database!');
     setTimeout(() => setSavedFeedback(null), 3000);
   };
 
