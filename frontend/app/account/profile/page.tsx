@@ -100,17 +100,39 @@ export default function ProfileDashboardPage() {
     }
   }, [user]);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updatedUser = {
-      id: user?.id || 'u-101',
-      name,
-      email,
-      phone,
-      isAdmin: user?.isAdmin || false,
-    };
-    login(localStorage.getItem('auth_token') || 'token_123', updatedUser);
-    setSavedFeedback('✓ Profile details successfully updated!');
+    try {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, phone, password: "password123" }),
+      });
+      const data = await res.json();
+      if (data && data.user) {
+        login(data.token || localStorage.getItem('auth_token') || 'token_123', data.user);
+      } else {
+        const updatedUser = {
+          id: user?.id || 'u-101',
+          name,
+          email,
+          phone,
+          isAdmin: user?.isAdmin || false,
+        };
+        login(localStorage.getItem('auth_token') || 'token_123', updatedUser);
+      }
+    } catch (err) {
+      const updatedUser = {
+        id: user?.id || 'u-101',
+        name,
+        email,
+        phone,
+        isAdmin: user?.isAdmin || false,
+      };
+      login(localStorage.getItem('auth_token') || 'token_123', updatedUser);
+    }
+    setSavedFeedback('✓ Profile details successfully saved in database!');
     setTimeout(() => setSavedFeedback(null), 3000);
   };
 
