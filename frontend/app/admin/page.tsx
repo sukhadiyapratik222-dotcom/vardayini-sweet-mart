@@ -575,7 +575,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2 text-gold font-bold text-xs">
                   <Clock3 size={16} /> Total Orders
                 </div>
-                <p className="mt-2 text-2xl font-black text-white">{loading ? '...' : `${orders.length} orders`}</p>
+                <p className="mt-2 text-2xl font-black text-white">{`${orders.length} orders`}</p>
                 <p className="mt-1 text-[11px] text-gray-300 leading-snug">Prepared for fulfillment.</p>
               </div>
             </div>
@@ -587,28 +587,28 @@ export default function AdminDashboardPage() {
           <StatCard
             icon={<Package size={20} />}
             title="Products"
-            value={loading ? '...' : String(stats?.productCount ?? 0)}
+            value={String(stats?.productCount ?? sampleProducts.length)}
             hint="Active products currently in the catalog"
             trend="Catalog"
           />
           <StatCard
             icon={<ShoppingBag size={20} />}
             title="Categories"
-            value={loading ? '...' : String(stats?.categoryCount ?? 26)}
+            value={String(stats?.categoryCount ?? 15)}
             hint="Root categories available for browsing"
             trend="Browse"
           />
           <StatCard
             icon={<Star size={20} />}
             title="High-rated items"
-            value={loading ? '...' : String(stats?.featuredCount ?? 0)}
+            value={String(stats?.featuredCount ?? 12)}
             hint="Products averaging 4.5 stars or above"
             trend="Featured"
           />
           <StatCard
             icon={<Truck size={20} />}
             title="Low stock alerts"
-            value={loading ? '...' : String(stats?.lowStockCount ?? 0)}
+            value={String(stats?.lowStockCount ?? 0)}
             hint="Products with at least one variant at 5 or fewer units"
             trend="Action needed"
           />
