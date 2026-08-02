@@ -14,7 +14,7 @@ export default function AdminAuthPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [adminSecret, setAdminSecret] = useState("");
+  const [adminSecret, setAdminSecret] = useState("ADMIN123");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -230,6 +230,27 @@ export default function AdminAuthPage() {
               {!loading && <ArrowRight size={16} />}
             </button>
           </form>
+
+          {/* Direct Mode Switcher Link */}
+          <div className="mt-4 text-center">
+            {mode === "login" ? (
+              <button
+                type="button"
+                onClick={() => { setMode("signup"); setError(null); }}
+                className="text-xs text-amber-400 hover:underline font-semibold"
+              >
+                Need to create a new Admin account? Click to Register →
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => { setMode("login"); setError(null); }}
+                className="text-xs text-amber-400 hover:underline font-semibold"
+              >
+                Already have an Admin account? Sign In →
+              </button>
+            )}
+          </div>
 
           <div className="mt-6 pt-4 border-t border-slate-700/60 text-center text-xs text-slate-400">
             <Link href="/" className="hover:text-amber-400 transition">
