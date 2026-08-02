@@ -10,6 +10,7 @@ import Footer from "./components/Footer";
 import { products as localProducts } from "./data";
 import { useLanguage } from "./context/LanguageContext";
 import { Store, MapPin, Phone, Clock, ArrowRight } from "lucide-react";
+import CornerMotif from "./components/CornerMotif";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -121,7 +122,7 @@ export default function HomePage() {
   const namkeenProducts = allProducts.filter((p) => p.category === "namkeen" || p.categorySlug === "gujarati" || p.categorySlug === "sev");
 
   return (
-    <main className="min-h-screen bg-[#FAF7F0]">
+    <main className="min-h-screen bg-gradient-to-b from-[#0D226B] via-[#0B1B3D] to-[#07122A] text-white">
       {/* Sticky Header with Logo, Search, Wishlist, Cart & Mega Menu */}
       <Header />
 
@@ -176,19 +177,21 @@ export default function HomePage() {
 
       {/* Promo Special Offer Banner */}
       <section className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
-        <div className="bg-gradient-to-r from-[#0B1B3D] via-[#162C5B] to-[#07122A] border-2 border-gold/40 rounded-3xl p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="bg-gradient-to-r from-[#0D226B] via-[#0B2580] to-[#07122A] border-2 border-gold/50 rounded-3xl p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+          <CornerMotif position="all" size={110} />
           <div className="relative z-10 max-w-xl">
-            <span className="text-gold font-black text-xs uppercase tracking-widest block mb-2">{t.comboOfferTag}</span>
-            <h2 className="text-2xl sm:text-4xl font-black mb-3 text-gold">{t.comboOfferTitle}</h2>
-            <p className="text-gray-300 mb-6 text-sm sm:text-base leading-relaxed">
+            <span className="text-gold-light font-black text-xs uppercase tracking-widest block mb-2">{t.comboOfferTag}</span>
+            <h2 className="text-2xl sm:text-4xl font-black mb-3 text-gold-light">{t.comboOfferTitle}</h2>
+            <p className="text-gray-200 mb-6 text-sm sm:text-base leading-relaxed">
               {t.comboOfferSubtitle}
             </p>
-            <Link href="/categories/corporate-gift-boxes" className="inline-block bg-gold text-[#0B1B3D] px-7 py-3.5 rounded-xl font-extrabold hover:bg-gold-light transition shadow-lg border border-gold">
+            <Link href="/categories/corporate-gift-boxes" className="inline-block bg-gradient-to-r from-[#F5E5A3] via-[#D4AF37] to-[#AA7C11] text-[#0B1B3D] px-7 py-3.5 rounded-xl font-extrabold hover:brightness-110 transition shadow-lg border border-gold">
               {t.exploreCombos}
             </Link>
           </div>
 
-          <div className="relative z-10 w-full md:w-80 h-44 rounded-2xl overflow-hidden border-2 border-gold/40 shadow-2xl bg-black/40 flex-shrink-0">
+          <div className="relative z-10 w-full md:w-80 h-44 rounded-2xl overflow-hidden border-2 border-gold/50 shadow-2xl bg-black/40 flex-shrink-0">
+            <CornerMotif position="bottom-corners" size={60} />
             <img
               src="https://uploads-ssl.webflow.com/5ffcd643561bc26ed27a87a1/6005c64f2dff8a196637b467_ezgif.com-gif-maker.gif"
               alt="Customer Special Offer Animation"

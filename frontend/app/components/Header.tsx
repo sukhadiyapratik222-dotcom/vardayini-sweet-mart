@@ -25,22 +25,22 @@ export default function Header() {
   const categoryKeys = Object.keys(categories);
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md shadow-md border-b border-gold/30">
+    <header className="sticky top-0 z-50 bg-[#0B1B3D]/95 backdrop-blur-md shadow-xl border-b border-gold/40 text-white">
       {/* Top bar */}
-      <div className="bg-[#0B1B3D] px-4 py-1.5 sm:px-6 lg:px-8 border-b border-gold/30">
+      <div className="bg-[#07122A] px-4 py-1.5 sm:px-6 lg:px-8 border-b border-gold/30">
         <div className="flex items-center justify-between text-xs sm:text-sm text-gold-light">
           <div className="text-[11px] sm:text-xs font-medium tracking-wide hidden md:block">
-            🌟 <span className="text-gold font-bold">Vardayini Sweet Mart</span> — Pure Desi Ghee Sweets Since 1976
+            🌟 <span className="text-gold-bright font-bold">Vardayini Sweet Mart</span> — Pure Desi Ghee Sweets Since 1976
           </div>
 
           <div className="flex items-center gap-3 text-xs ml-auto">
             {/* Language Selector Dropdown */}
-            <div className="flex items-center gap-1 bg-gold/15 px-2 py-0.5 rounded border border-gold/30">
-              <Globe size={13} className="text-gold" />
+            <div className="flex items-center gap-1 bg-gold/20 px-2.5 py-0.5 rounded-full border border-gold/40 shadow-sm">
+              <Globe size={13} className="text-gold-bright" />
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as Language)}
-                className="bg-transparent text-gold font-semibold text-xs border-none outline-none cursor-pointer pr-1"
+                className="bg-transparent text-gold-light font-bold text-xs border-none outline-none cursor-pointer pr-1"
                 aria-label="Select Language"
               >
                 <option value="en" className="bg-[#0B1B3D] text-white">English</option>
@@ -51,21 +51,21 @@ export default function Header() {
 
             {user ? (
               <>
-                <span className="text-gold font-medium hidden sm:inline truncate max-w-[80px]">{t.hello}, {user.name}</span>
+                <span className="text-gold-light font-medium hidden sm:inline truncate max-w-[80px]">{t.hello}, {user.name}</span>
                 {user.isAdmin ? (
-                  <Link href="/admin/products" className="hover:text-gold transition font-semibold text-amber-300 hidden sm:inline">{t.adminPortal}</Link>
+                  <Link href="/admin/products" className="hover:text-gold-bright transition font-semibold text-amber-300 hidden sm:inline">{t.adminPortal}</Link>
                 ) : (
-                  <Link href="/account/profile" className="hover:text-gold transition hidden sm:inline">{t.dashboard}</Link>
+                  <Link href="/account/profile" className="hover:text-gold-bright transition hidden sm:inline">{t.dashboard}</Link>
                 )}
-                <button onClick={logout} className="hover:text-gold transition flex items-center gap-1 hidden sm:flex">
+                <button onClick={logout} className="hover:text-gold-bright transition flex items-center gap-1 hidden sm:flex">
                   <LogOut size={13} /> {t.logout}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="hover:text-gold transition hidden sm:inline">{t.signIn}</Link>
-                <Link href="/signup" className="hover:text-gold transition hidden sm:inline">{t.signUp}</Link>
-                <Link href="/admin/login" className="hover:text-gold transition text-amber-300 font-semibold hidden sm:inline">{t.admin}</Link>
+                <Link href="/login" className="hover:text-gold-bright transition hidden sm:inline">{t.signIn}</Link>
+                <Link href="/signup" className="hover:text-gold-bright transition hidden sm:inline">{t.signUp}</Link>
+                <Link href="/admin/login" className="hover:text-gold-bright transition text-amber-300 font-semibold hidden sm:inline">{t.admin}</Link>
               </>
             )}
           </div>
@@ -77,14 +77,14 @@ export default function Header() {
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 flex items-center gap-3 group">
-            <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-gold shadow-md bg-[#0B1B3D] group-hover:scale-105 transition-transform">
+            <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-gold shadow-lg bg-[#0B2580] ring-2 ring-gold/40 group-hover:scale-105 transition-transform">
               <Image src="/logo.png" alt="Vardayini Sweet Mart Since 1976" fill sizes="48px" className="object-cover" />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl font-black text-[#0B1B3D] tracking-tight group-hover:text-gold-dark transition-colors">
+              <span className="text-xl sm:text-2xl font-black text-gold-light tracking-tight group-hover:text-gold-bright transition-colors drop-shadow">
                 {t.brandName}
               </span>
-              <span className="text-[10px] uppercase tracking-widest text-gold-dark font-bold">
+              <span className="text-[10px] uppercase tracking-widest text-gold font-extrabold">
                 {t.brandTagline}
               </span>
             </div>
@@ -105,20 +105,20 @@ export default function Header() {
                 >
                   <Link
                     href={`/categories/${cat.slug}`}
-                    className="px-2.5 py-2 text-sm font-bold text-[#0B1B3D] hover:text-gold-dark transition flex items-center gap-1 whitespace-nowrap"
+                    className="px-2.5 py-2 text-sm font-bold text-gray-100 hover:text-gold-bright transition flex items-center gap-1 whitespace-nowrap"
                   >
                     <span>{cat.name}</span>
-                    {hasSubcategories && <ChevronDown size={14} className="text-gray-500 group-hover:text-gold-dark" />}
+                    {hasSubcategories && <ChevronDown size={14} className="text-gray-400 group-hover:text-gold-bright" />}
                   </Link>
 
                   {/* Mega Menu Dropdown */}
                   {hasSubcategories && (
-                    <div className="absolute left-0 mt-0 w-56 bg-[#0B1B3D] border-2 border-gold/40 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="absolute left-0 mt-0 w-56 bg-[#0B1B3D] border-2 border-gold/50 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                       {cat.subcategories.map((sub) => (
                         <Link
                           key={sub.slug}
                           href={`/categories/${cat.slug}/${sub.slug}`}
-                          className="block px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-gold/20 hover:text-gold transition border-b border-white/5 last:border-none"
+                          className="block px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5 last:border-none"
                         >
                           {sub.name}
                         </Link>
@@ -132,7 +132,7 @@ export default function Header() {
             {/* Outlets Link */}
             <Link
               href="/stores"
-              className="ml-1 px-3 py-1.5 text-xs font-black text-[#0B1B3D] bg-gold/20 hover:bg-gold text-[#0B1B3D] rounded-lg transition flex items-center gap-1.5 whitespace-nowrap border border-gold/40 shadow-sm"
+              className="ml-1 px-3 py-1.5 text-xs font-black text-[#0B1B3D] bg-gradient-to-r from-[#F5E5A3] to-[#D4AF37] hover:brightness-110 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap border border-gold shadow-md"
             >
               <Store size={14} className="text-[#0B1B3D]" />
               <span>Outlets</span>

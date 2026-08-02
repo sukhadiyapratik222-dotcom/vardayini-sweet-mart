@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Phone, Mail, MapPin, Heart, ShieldCheck, Truck, Clock, Send, CheckCircle2 } from 'lucide-react';
+import CornerMotif from './CornerMotif';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -36,10 +37,13 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-[#07122A] text-gray-300 border-t-2 border-gold/40 pt-12 pb-6 px-4 sm:px-6 lg:px-8 mt-16">
-      
+    <footer className="relative overflow-hidden bg-gradient-to-b from-[#0B1B3D] via-[#07122A] to-[#040B1A] text-gray-300 border-t-2 border-gold/50 pt-12 pb-6 px-4 sm:px-6 lg:px-8 mt-16">
+      {/* Traditional Ornate Golden Corner Motifs on Bottom Corners of Footer */}
+      <CornerMotif position="bottom-corners" size={140} />
+
       {/* Newsletter Signup Banner Ribbon */}
-      <div className="max-w-7xl mx-auto mb-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0B1B3D] via-[#162C5B] to-[#0A1836] border-2 border-gold/40 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+      <div className="relative z-20 max-w-7xl mx-auto mb-10 p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-[#0D226B] via-[#0B2580] to-[#07122A] border-2 border-gold/50 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden">
+        <CornerMotif position="all" size={85} />
         <div className="space-y-1 text-center md:text-left">
           <span className="text-xs font-black text-gold uppercase tracking-widest">
             🎁 Get Exclusive Offers & Festive Discounts

@@ -17,7 +17,8 @@ body {
   max-width: 100%;
   overflow-x: hidden !important;
   min-height: 100vh;
-  background: radial-gradient(circle at top, #FAF7F0 0%, #F3EAD8 100%);
+  background: radial-gradient(circle at 50% 0%, #0D226B 0%, #0B1B3D 50%, #07122A 100%);
+  color: #FAF7F0;
 }
 
 main {
