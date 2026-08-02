@@ -120,10 +120,12 @@ export default function SpinWheelPopup() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 left-6 z-40 bg-gold text-[#0B1B3D] hover:bg-gold-light font-black text-xs px-4 py-3 rounded-full shadow-2xl border-2 border-[#0B1B3D] flex items-center gap-2 transition hover:scale-105 animate-bounce"
+          className="fixed bottom-6 left-6 z-50 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-500 text-[#0B1B3D] hover:from-amber-300 hover:to-amber-400 font-extrabold text-xs sm:text-sm px-5 py-3.5 rounded-full shadow-[0_10px_25px_rgba(212,175,55,0.6)] border-2 border-[#0B1B3D] flex items-center gap-2.5 transition transform hover:scale-110 active:scale-95 animate-bounce"
         >
-          <Gift size={18} className="text-[#0B1B3D]" />
-          <span>Spin & Win Discount!</span>
+          <div className="w-7 h-7 rounded-full bg-[#0B1B3D] text-amber-300 flex items-center justify-center shadow-inner">
+            <Gift size={16} />
+          </div>
+          <span className="tracking-wide font-black drop-shadow">Spin &amp; Win Discount! 🎁</span>
         </button>
       )}
 
