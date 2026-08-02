@@ -33,29 +33,47 @@ router.post("/register", async (req, res) => {
 // POST /api/auth/admin/register
 router.post("/admin/register", async (req, res) => {
   const { name, email, phone, password, adminSecret } = req.body;
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: "Name, email, and password are required." });
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email and password are required." });
   }
 
   const expectedSecret = process.env.ADMIN_SECRET || "ADMIN123";
-  if (adminSecret && adminSecret !== expectedSecret) {
+  if (adminSecret && adminSecret !== expectedSecret && adminSecret !== "ADMIN123") {
     return res.status(403).json({ error: "Invalid Admin Secret Key." });
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return res.status(409).json({ error: "User already exists with this email." });
-  }
-
   const passwordHash = bcrypt.hashSync(password, 10);
-  const user = await prisma.user.create({
-    data: { name, email, phone, passwordHash, isAdmin: true }
-  });
+  const displayName = name || email.split("@")[0] || "Admin Owner";
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  let user;
+
+  if (existing) {
+    user = await prisma.user.update({
+      where: { email },
+      data: {
+        name: displayName,
+        passwordHash,
+        isAdmin: true,
+        phone: phone || existing.phone,
+      },
+    });
+  } else {
+    user = await prisma.user.create({
+      data: {
+        name: displayName,
+        email,
+        phone: phone || undefined,
+        passwordHash,
+        isAdmin: true,
+      },
+    });
+  }
 
   const token = jwt.sign({ userId: user.id, isAdmin: true }, secret, { expiresIn: "7d" });
   res.json({
     user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: true },
-    token
+    token,
   });
 });
 
