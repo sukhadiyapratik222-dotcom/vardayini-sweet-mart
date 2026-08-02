@@ -395,20 +395,34 @@ export default function AdminDashboardPage() {
     const load = async () => {
       try {
         const [productsResponse, categoriesResponse, statsResponse, ordersResponse] = await Promise.all([
-          fetch(`${API_BASE}/products?limit=100&sort=newest`),
-          fetch(`${API_BASE}/categories`),
+          fetch(`${API_BASE}/products?limit=100&sort=newest`).catch(() => null),
+          fetch(`${API_BASE}/categories`).catch(() => null),
           fetch(`${API_BASE}/admin/dashboard/stats`).catch(() => null),
           fetch(`${API_BASE}/admin/orders`).catch(() => null),
         ]);
 
-        const productsData = await productsResponse.json();
-        const categoriesData = await categoriesResponse.json();
-        const statsData = statsResponse && statsResponse.ok ? await statsResponse.json() : null;
-        const products = productsData.products || [];
+        const productsData = productsResponse && productsResponse.ok ? await productsResponse.json().catch(() => null) : null;
+        const categoriesData = categoriesResponse && categoriesResponse.ok ? await categoriesResponse.json().catch(() => null) : null;
+        const statsData = statsResponse && statsResponse.ok ? await statsResponse.json().catch(() => null) : null;
+        
+        let products = productsData?.products || [];
+
+        // Fallback: check localStorage for custom admin products
+        if (products.length === 0 && typeof window !== "undefined") {
+          const cachedProds = localStorage.getItem("admin_products_catalog");
+          if (cachedProds) {
+            try {
+              const parsed = JSON.parse(cachedProds);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                products = parsed;
+              }
+            } catch (e) {}
+          }
+        }
 
         let fetchedOrders: RealOrder[] = [];
         if (ordersResponse && ordersResponse.ok) {
-          const rawOrders = await ordersResponse.json();
+          const rawOrders = await ordersResponse.json().catch(() => null);
           if (Array.isArray(rawOrders) && rawOrders.length > 0) {
             fetchedOrders = rawOrders;
           }
@@ -433,7 +447,7 @@ export default function AdminDashboardPage() {
         if (active) setOrders(fetchedOrders);
 
         const recentProducts = [...products]
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .sort((a, b) => new Date(b.createdAt || Date.now()).getTime() - new Date(a.createdAt || Date.now()).getTime())
           .slice(0, 5);
 
         const lowStockCount = products.filter((product: any) =>
@@ -443,13 +457,20 @@ export default function AdminDashboardPage() {
         if (!active) return;
 
         setStats({
-          productCount: productsData.total ?? products.length,
-          categoryCount: Array.isArray(categoriesData) ? categoriesData.length : 26,
-          featuredCount: products.filter((product: any) => Number(product.ratingAvg) >= 4.5).length,
+          productCount: productsData?.total ?? (products.length > 0 ? products.length : sampleProducts.length),
+          categoryCount: Array.isArray(categoriesData) ? categoriesData.length : 15,
+          featuredCount: products.filter((product: any) => Number(product.ratingAvg || 5) >= 4.5).length || sampleProducts.filter((p) => p.rating >= 4.5).length,
           lowStockCount,
           orderCount: fetchedOrders.length,
-          customerCount: statsData?.customerCount ?? 2,
-          recentProducts,
+          customerCount: statsData?.customerCount ?? 3,
+          recentProducts: recentProducts.length > 0 ? recentProducts : sampleProducts.slice(0, 5).map((p) => ({
+            id: p.id,
+            name: p.name,
+            slug: p.slug,
+            ratingAvg: p.rating,
+            ratingCount: p.reviews,
+            createdAt: new Date().toISOString(),
+          })),
           alerts: [
             {
               title: 'Low stock monitoring',
@@ -465,11 +486,11 @@ export default function AdminDashboardPage() {
         if (!active) return;
         setStats({
           productCount: sampleProducts.length,
-          categoryCount: 26,
+          categoryCount: 15,
           featuredCount: sampleProducts.filter((p) => p.rating >= 4.5).length,
           lowStockCount: 0,
           orderCount: defaultMockOrders.length,
-          customerCount: 2,
+          customerCount: 3,
           recentProducts: sampleProducts.slice(0, 5).map((p) => ({
             id: p.id,
             name: p.name,
