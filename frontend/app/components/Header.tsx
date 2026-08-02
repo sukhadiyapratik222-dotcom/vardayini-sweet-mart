@@ -87,7 +87,7 @@ export default function Header() {
           </Link>
 
           {/* Top mega-menu navigation */}
-          <nav className="hidden xl:flex items-center gap-1 shrink-0">
+          <nav className="hidden lg:flex items-center gap-1 shrink-0">
             {/* Primary Main Categories: Sweets, Namkeen, Bakery */}
             {["sweets", "namkeen", "bakery"].map((key) => {
               const cat = categories[key as keyof typeof categories];
@@ -103,15 +103,15 @@ export default function Header() {
                 >
                   <Link
                     href={`/categories/${cat.slug}`}
-                    className="px-2.5 py-2 text-sm font-bold text-gray-100 hover:text-gold-bright transition flex items-center gap-1 whitespace-nowrap"
+                    className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition flex items-center gap-0.5 whitespace-nowrap"
                   >
                     <span>{cat.name}</span>
-                    {hasSubcategories && <ChevronDown size={14} className="text-gray-400 group-hover:text-gold-bright" />}
+                    {hasSubcategories && <ChevronDown size={12} className="text-gray-400 group-hover:text-gold-bright" />}
                   </Link>
 
                   {/* Mega Menu Dropdown */}
                   {hasSubcategories && (
-                    <div className="absolute left-0 mt-0 w-56 bg-[#0B1B3D] border-2 border-gold/50 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="absolute left-0 mt-0 w-52 bg-[#0B1B3D] border-2 border-gold/50 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                       {cat.subcategories.map((sub) => (
                         <Link
                           key={sub.slug}
@@ -127,62 +127,20 @@ export default function Header() {
               );
             })}
 
-            {/* "Our Special" Unified Dropdown Menu */}
-            <div
-              className="relative group"
-              onMouseEnter={() => setActiveMenu("our-special")}
-              onMouseLeave={() => setActiveMenu(null)}
-            >
-              <button
-                type="button"
-                className="px-3 py-2 text-sm font-extrabold text-gold-bright hover:text-white transition flex items-center gap-1 whitespace-nowrap"
-              >
-                <span>Our Special 🌟</span>
-                <ChevronDown size={14} className="text-gold group-hover:text-white" />
-              </button>
-
-              {/* Our Special Dropdown Items */}
-              <div className="absolute left-0 mt-0 w-60 bg-[#0B1B3D] border-2 border-gold/50 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <Link
-                  href="/categories/mukhwas"
-                  className="block px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5"
-                >
-                  🍃 Mukhwas
-                </Link>
-                <Link
-                  href="/categories/dry-fruits-nuts"
-                  className="block px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5"
-                >
-                  🥜 Dried Fruits & Nuts
-                </Link>
-                <Link
-                  href="/categories/premium-baklava"
-                  className="block px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5"
-                >
-                  🍯 Premium Baklava
-                </Link>
-                <Link
-                  href="/categories/corporate-gifts"
-                  className="block px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5"
-                >
-                  🎁 Corporate Gifts
-                </Link>
-                <Link
-                  href="/categories/sweets/premium-packed"
-                  className="block px-4 py-2.5 text-xs font-bold text-gold-bright hover:bg-gold/20 transition"
-                >
-                  ✨ Festive Gift Boxes
-                </Link>
-              </div>
-            </div>
-
-            {/* Outlets Link */}
-            <Link
-              href="/stores"
-              className="ml-1 px-3 py-1.5 text-xs font-black text-[#0B1B3D] bg-gradient-to-r from-[#F5E5A3] to-[#D4AF37] hover:brightness-110 rounded-lg transition flex items-center gap-1.5 whitespace-nowrap border border-gold shadow-md"
-            >
-              <Store size={14} className="text-[#0B1B3D]" />
-              <span>Outlets</span>
+            <Link href="/categories/mukhwas" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
+              Mukhwas
+            </Link>
+            <Link href="/categories/dry-fruits-nuts" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
+              Dried Fruits & Nuts
+            </Link>
+            <Link href="/categories/premium-baklava" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
+              Premium Baklava
+            </Link>
+            <Link href="/categories/corporate-gifts" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
+              Corporate Gifts
+            </Link>
+            <Link href="/stores" className="px-2 py-1.5 text-xs font-extrabold text-gold-bright hover:text-white transition whitespace-nowrap">
+              ⚡ Instant Delivery
             </Link>
           </nav>
 

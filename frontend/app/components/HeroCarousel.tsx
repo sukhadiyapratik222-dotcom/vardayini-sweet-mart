@@ -8,15 +8,15 @@ import CornerMotif from './CornerMotif';
 const slides = [
   {
     id: 1,
-    tag: "HANDCRAFTED SINCE 1976",
-    title: "Pure Desi Ghee Sweets & Traditional Delicacies",
-    subtitle: "Made with authentic recipes passed down through generations using 100% pure A2 ghee, organic saffron & premium nuts.",
-    primaryCtaText: "Shop Best Sellers",
+    tag: "WELCOME TO VARDAYINI SWEET MART",
+    title: "Step into a World of Mithaas",
+    subtitle: "Authentic sweets and crispy namkeens, crafted with pure ingredients and lots of prem.",
+    primaryCtaText: "Explore Sweets",
     primaryCtaLink: "/categories/sweets",
-    secondaryCtaText: "Explore Combos",
+    secondaryCtaText: "Shop Namkeen",
     secondaryCtaLink: "/categories/namkeen",
-    bgGradient: "from-[#0D226B] via-[#0B2580] to-[#07122A]",
-    image: "/images/sweet-1.jpg"
+    bgGradient: "from-[#FBF3D5] via-[#FFF8E7] to-[#FDF4DC]",
+    image: "/images/hero-world-of-mithaas.png"
   },
   {
     id: 2,
