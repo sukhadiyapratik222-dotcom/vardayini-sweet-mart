@@ -67,44 +67,45 @@ export default function HeroCarousel() {
   const slide = slides[currentSlide];
 
   return (
-    <section 
+    <section
       className="w-full relative overflow-hidden"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      <div className="relative w-full overflow-hidden shadow-xl min-h-[300px] sm:min-h-[420px] md:min-h-[480px] lg:min-h-[540px]">
-        <Link href={slide.primaryCtaLink} className="block relative w-full h-full">
+      <div className="relative w-full bg-[#FDF4DC]">
+        <Link href={slide.primaryCtaLink} className="block w-full">
           <img
             src={slide.image}
             alt={slide.title}
-            className="w-full h-auto max-h-[580px] object-cover object-center w-full block transition-transform duration-700 hover:scale-[1.01]"
+            className="w-full block"
+            style={{ display: 'block', width: '100%', height: 'auto' }}
           />
         </Link>
 
         {/* Carousel Prev/Next Buttons */}
         <button
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-gold hover:text-[#0B1B3D] text-white p-3 rounded-full backdrop-blur-md border border-white/30 transition z-30 shadow-2xl"
+          onClick={(e) => { e.preventDefault(); prevSlide(); }}
+          className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white p-3 rounded-full border border-white/30 transition z-30 shadow-2xl"
           aria-label="Previous Slide"
         >
           <ChevronLeft size={24} />
         </button>
         <button
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-gold hover:text-[#0B1B3D] text-white p-3 rounded-full backdrop-blur-md border border-white/30 transition z-30 shadow-2xl"
+          onClick={(e) => { e.preventDefault(); nextSlide(); }}
+          className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/70 text-white p-3 rounded-full border border-white/30 transition z-30 shadow-2xl"
           aria-label="Next Slide"
         >
           <ChevronRight size={24} />
         </button>
 
         {/* Carousel Indicators / Dots */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-30 bg-black/40 px-4 py-2 rounded-full backdrop-blur-md border border-white/20">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-30 bg-black/30 px-4 py-2 rounded-full border border-white/20">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
               className={`h-2.5 rounded-full transition-all ${
-                currentSlide === index ? 'w-8 bg-gold shadow-md' : 'w-2.5 bg-white/60 hover:bg-white'
+                currentSlide === index ? 'w-8 bg-amber-500 shadow-md' : 'w-2.5 bg-white/60 hover:bg-white'
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />
