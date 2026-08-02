@@ -51,15 +51,26 @@ async function main() {
     update: {}
   });
 
-  // create admin user for testing
-  const adminPassword = "password"; // change after initial login
+  // create admin users for testing & production
+  await prisma.user.upsert({
+    where: { email: "admin@vardayinisweets.com" },
+    create: {
+      name: "Admin Owner",
+      email: "admin@vardayinisweets.com",
+      phone: "+91 98765 43210",
+      passwordHash: bcrypt.hashSync("admin1234", 10),
+      isAdmin: true
+    },
+    update: { name: "Admin Owner", isAdmin: true }
+  });
+
   await prisma.user.upsert({
     where: { email: "admin@local" },
     create: {
       name: "Admin",
       email: "admin@local",
       phone: null,
-      passwordHash: bcrypt.hashSync(adminPassword, 10),
+      passwordHash: bcrypt.hashSync("password", 10),
       isAdmin: true
     },
     update: { isAdmin: true }
