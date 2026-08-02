@@ -66,25 +66,14 @@ export default function SignUpPage() {
         login(data.token, data.user);
         router.push("/account/profile");
         return;
+      } else {
+        setError(data.error || "Registration failed. Please try again.");
       }
-    } catch (err) {
-      // Backend offline -> fallback below
+    } catch (err: any) {
+      setError(err.message || "Network error. Please check your connection.");
+    } finally {
+      setLoading(false);
     }
-
-    // Fail-proof Customer Registration
-    const mockToken = "user_token_" + Date.now();
-    const mockUser = {
-      id: "user-new-" + Date.now(),
-      name: name.trim() || "Valued Customer",
-      email: email.trim(),
-      phone: phone.trim() || undefined,
-      isAdmin: false,
-    };
-
-    login(mockToken, mockUser);
-    localStorage.setItem("auth_user", JSON.stringify(mockUser));
-    setLoading(false);
-    router.push("/account/profile");
   };
 
   return (
