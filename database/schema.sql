@@ -4,9 +4,9 @@
 -- File: database/schema.sql
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS sweet_shop DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS vardayini_sweet_mart DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE sweet_shop;
+USE vardayini_sweet_mart;
 
 -- 1. USERS TABLE
 CREATE TABLE IF NOT EXISTS users (
