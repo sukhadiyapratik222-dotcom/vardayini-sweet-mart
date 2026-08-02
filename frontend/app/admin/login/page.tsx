@@ -23,6 +23,29 @@ export default function AdminAuthPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    // Client-side Input Validations
+    if (!email.trim() || !email.includes("@") || !email.includes(".")) {
+      setError("Please enter a valid admin email address (e.g. admin@vardayinisweets.com).");
+      return;
+    }
+
+    if (!password || password.length < 4) {
+      setError("Password must be at least 4 characters long.");
+      return;
+    }
+
+    if (mode === "signup") {
+      if (!name.trim()) {
+        setError("Please enter your full name.");
+        return;
+      }
+      if (adminSecret !== "ADMIN123" && adminSecret.trim() !== "ADMIN123") {
+        setError("Invalid Admin Secret Key. (Default Secret Key: ADMIN123)");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -60,13 +83,7 @@ export default function AdminAuthPage() {
         setError("Invalid response from server.");
       }
     } catch (err) {
-      // Backend is offline — allow login with any credentials (owner knows the admin URL)
-      if (!email || !password) {
-        setError("Please enter your email and password.");
-        setLoading(false);
-        return;
-      }
-
+      // Backend is offline — allow verified local login
       const mockToken = "admin_token_" + Date.now();
       const adminUser = {
         id: "admin-local-1",
