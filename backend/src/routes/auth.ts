@@ -8,44 +8,67 @@ const secret = process.env.JWT_SECRET || "supersecretkey";
 
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
-  const { name, email, phone, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required." });
-  }
+  try {
+    const { name, email, phone, password } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
 
-  const passwordHash = bcrypt.hashSync(password, 10);
-  const displayName = name || email.split("@")[0] || "Valued Customer";
+    const passwordHash = bcrypt.hashSync(password, 10);
+    const displayName = name || email.split("@")[0] || "Valued Customer";
+    const cleanPhone = phone ? String(phone).trim() : null;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  let user;
+    // Check existing by email or phone
+    const existingByEmail = await prisma.user.findUnique({ where: { email } });
+    const existingByPhone = cleanPhone ? await prisma.user.findFirst({ where: { phone: cleanPhone } }) : null;
 
-  if (existing) {
-    user = await prisma.user.update({
-      where: { email },
-      data: {
-        name: displayName,
-        passwordHash,
-        phone: phone || existing.phone,
-      },
+    let user;
+
+    if (existingByEmail) {
+      user = await prisma.user.update({
+        where: { email },
+        data: {
+          name: displayName,
+          passwordHash,
+          phone: cleanPhone || existingByEmail.phone,
+        },
+      });
+    } else if (existingByPhone) {
+      user = await prisma.user.update({
+        where: { id: existingByPhone.id },
+        data: {
+          name: displayName,
+          email,
+          passwordHash,
+          phone: cleanPhone,
+        },
+      });
+    } else {
+      user = await prisma.user.create({
+        data: {
+          name: displayName,
+          email,
+          phone: cleanPhone || undefined,
+          passwordHash,
+          role: "customer",
+        },
+      });
+    }
+
+    const isAdminUser = user.role === "admin";
+    const token = jwt.sign({ userId: user.id, isAdmin: isAdminUser }, secret, { expiresIn: "7d" });
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: isAdminUser },
+      token,
     });
-  } else {
-    user = await prisma.user.create({
-      data: {
-        name: displayName,
-        email,
-        phone: phone || undefined,
-        passwordHash,
-        role: "customer",
-      },
+  } catch (error: any) {
+    console.error("Register error:", error);
+    res.status(400).json({
+      error: error.message?.includes("Unique constraint")
+        ? "This email address or phone number is already registered. Please sign in instead."
+        : "Failed to register account. Please check your details and try again."
     });
   }
-
-  const isAdminUser = user.role === "admin";
-  const token = jwt.sign({ userId: user.id, isAdmin: isAdminUser }, secret, { expiresIn: "7d" });
-  res.json({
-    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: isAdminUser },
-    token,
-  });
 });
 
 // POST /api/auth/admin/register
