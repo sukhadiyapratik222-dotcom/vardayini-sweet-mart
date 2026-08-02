@@ -112,7 +112,24 @@ router.get("/:slug", async (req, res) => {
   } catch (error) {
     const found = defaultCategoryTree.find((c) => c.slug === slug);
     if (found) return res.json(found);
-    res.status(404).json({ error: "Category not found" });
+// DELETE /api/categories/:id - Block deletion if category has products (Rule 5)
+router.delete("/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const productsCount = await prisma.product.count({
+      where: { categoryId: id }
+    });
+
+    if (productsCount > 0) {
+      return res.status(400).json({
+        error: `Cannot delete category. ${productsCount} products are currently assigned to this category. Reassign or delete the products first.`
+      });
+    }
+
+    await prisma.category.delete({ where: { id } });
+    res.json({ message: "Category deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete category" });
   }
 });
 
