@@ -1,17 +1,12 @@
--- Active: 1785433203832@@127.0.0.1@3306@vardayini_sweet_mart
+-- Active: 1785433203832@@127.0.0.1@3306@sweet_shop
 -- ============================================================
 -- VARDAYINI SWEET MART - MYSQL 8+ DATABASE SCHEMA
 -- File: database/schema.sql
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS vardayini_sweet_mart DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS sweet_shop DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-SELECT id, name, email, phone
-FROM vardayini_sweet_mart.users
-WHERE
-    id = 'ea65573e-d738-402c-9198-38d7a3c8a385';
-
-USE vardayini_sweet_mart;
+USE sweet_shop;
 
 DELETE FROM cart_items;
 
