@@ -68,7 +68,7 @@ export default function UserLoginPage() {
 
       if (data.token && data.user) {
         login(data.token, data.user);
-        router.push("/dashboard");
+        router.push("/account/profile");
       }
     } catch (err) {
       if (otp === "1234" || otp === "0000" || otp.length === 4) {
@@ -81,7 +81,7 @@ export default function UserLoginPage() {
           isAdmin: false,
         };
         login(mockToken, mockUser);
-        router.push("/dashboard");
+        router.push("/account/profile");
       } else {
         setError("Invalid OTP code. Use 1234.");
       }
@@ -112,7 +112,7 @@ export default function UserLoginPage() {
 
       if (data.token && data.user) {
         login(data.token, data.user);
-        router.push("/dashboard");
+        router.push("/account/profile");
       } else {
         setError("Invalid response from server.");
       }
@@ -126,7 +126,7 @@ export default function UserLoginPage() {
         isAdmin: false,
       };
       login(mockToken, mockUser);
-      router.push("/dashboard");
+      router.push("/account/profile");
     } finally {
       setLoading(false);
     }
