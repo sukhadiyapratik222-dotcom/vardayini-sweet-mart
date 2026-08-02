@@ -45,34 +45,33 @@ router.post("/admin/register", async (req, res) => {
   const passwordHash = bcrypt.hashSync(password, 10);
   const displayName = name || email.split("@")[0] || "Admin Owner";
 
-  const existing = await prisma.user.findUnique({ where: { email } });
-  let user;
+  const existing = await prisma.admin.findUnique({ where: { email } });
+  let admin;
 
   if (existing) {
-    user = await prisma.user.update({
+    admin = await prisma.admin.update({
       where: { email },
       data: {
         name: displayName,
         passwordHash,
-        isAdmin: true,
         phone: phone || existing.phone,
       },
     });
   } else {
-    user = await prisma.user.create({
+    admin = await prisma.admin.create({
       data: {
         name: displayName,
         email,
         phone: phone || undefined,
         passwordHash,
-        isAdmin: true,
+        role: "admin",
       },
     });
   }
 
-  const token = jwt.sign({ userId: user.id, isAdmin: true }, secret, { expiresIn: "7d" });
+  const token = jwt.sign({ userId: admin.id, isAdmin: true }, secret, { expiresIn: "7d" });
   res.json({
-    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: true },
+    user: { id: admin.id, name: admin.name, email: admin.email, phone: admin.phone, isAdmin: true },
     token,
   });
 });
@@ -84,6 +83,20 @@ router.post("/login", async (req, res) => {
     return res.status(400).json({ error: "Email and password are required." });
   }
 
+  // 1. First check admins table
+  const admin = await prisma.admin.findUnique({ where: { email } });
+  if (admin) {
+    const isPasswordValid = bcrypt.compareSync(password, admin.passwordHash) || password === admin.passwordHash;
+    if (isPasswordValid) {
+      const token = jwt.sign({ userId: admin.id, isAdmin: true }, secret, { expiresIn: "7d" });
+      return res.json({
+        user: { id: admin.id, name: admin.name, email: admin.email, phone: admin.phone, isAdmin: true },
+        token,
+      });
+    }
+  }
+
+  // 2. Check users table for customer login
   const user = await prisma.user.findUnique({ where: { email } });
   const isPasswordValid = user ? (bcrypt.compareSync(password, user.passwordHash) || password === user.passwordHash) : false;
   if (!user || !isPasswordValid) {
@@ -107,6 +120,14 @@ router.get("/me", async (req, res) => {
 
   try {
     const payload = jwt.verify(token, secret) as { userId: string; isAdmin?: boolean };
+    
+    if (payload.isAdmin) {
+      const admin = await prisma.admin.findUnique({ where: { id: payload.userId } });
+      if (admin) {
+        return res.json({ id: admin.id, name: admin.name, email: admin.email, phone: admin.phone, isAdmin: true });
+      }
+    }
+
     const user = await prisma.user.findUnique({ where: { id: payload.userId } });
     if (!user) {
       return res.status(404).json({ error: "User not found." });

@@ -251,9 +251,20 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
     subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
+-- 20. ADMINS TABLE (Dedicated table for Admin Control Room accounts)
+CREATE TABLE IF NOT EXISTS admins (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    phone VARCHAR(15) UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
 -- ============================================================
--- DEFAULT SEED ADMIN ACCOUNT
+-- DEFAULT SEED ADMIN ACCOUNT IN ADMINS TABLE
 -- Email: admin@vardayinisweets.com | Password: admin1234
 -- ============================================================
-INSERT IGNORE INTO users (name, email, phone, password_hash, role) 
+INSERT IGNORE INTO admins (name, email, phone, password_hash, role) 
 VALUES ('Admin Owner', 'admin@vardayinisweets.com', '+91 98765 43210', '$2a$10$w8T0M/p3.x1Wq234g56789uYp0W/xV1.9/W2r1.9', 'admin');

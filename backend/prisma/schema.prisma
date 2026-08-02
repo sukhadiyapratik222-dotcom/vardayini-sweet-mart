@@ -30,6 +30,16 @@ model User {
   wishlists    Wishlist[]
 }
 
+model Admin {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  phone        String?  @unique
+  passwordHash String
+  role         String   @default("admin")
+  createdAt    DateTime @default(now())
+}
+
 model Address {
   id        String  @id @default(uuid())
   user      User    @relation(fields: [userId], references: [id])
