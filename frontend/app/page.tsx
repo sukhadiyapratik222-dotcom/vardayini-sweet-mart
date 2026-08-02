@@ -202,7 +202,7 @@ export default function HomePage() {
       </section>
 
       {/* Physical Outlets & Store Branches Section */}
-      <section className="px-4 sm:px-6 lg:px-8 py-12 bg-white border-t border-gray-100">
+      <section className="px-4 sm:px-6 lg:px-8 py-12 bg-gray-50 border-t border-gray-100">
         <div className="max-w-7xl mx-auto space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-gray-200 pb-4">
             <div>
@@ -239,29 +239,29 @@ export default function HomePage() {
                     <span className="text-[10px] text-gray-500 font-semibold">PIN {outlet.pincode}</span>
                   </div>
 
-                  <h3 className="font-extrabold text-gold-light text-base leading-snug">{outlet.name}</h3>
+                  <h3 className="font-extrabold text-[#0B1B3D] text-base leading-snug">{outlet.name}</h3>
 
-                  <div className="space-y-1 text-xs text-gray-300">
+                  <div className="space-y-1 text-xs text-gray-600">
                     <div className="flex items-start gap-1.5">
-                      <MapPin size={14} className="text-gold flex-shrink-0 mt-0.5" />
+                      <MapPin size={14} className="text-gold-dark flex-shrink-0 mt-0.5" />
                       <span>{outlet.address}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Phone size={14} className="text-gold flex-shrink-0" />
-                      <span className="font-bold text-gold-light">{outlet.phone}</span>
+                      <Phone size={14} className="text-gold-dark flex-shrink-0" />
+                      <span className="font-bold text-[#0B1B3D]">{outlet.phone}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Clock size={14} className="text-gold flex-shrink-0" />
+                      <Clock size={14} className="text-gold-dark flex-shrink-0" />
                       <span>{outlet.hours}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-gold/20 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-green-400">✓ Open Today</span>
+                <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-green-600">✓ Open Today</span>
                   <Link
                     href="/stores"
-                    className="text-xs font-extrabold text-gold hover:text-gold-bright flex items-center gap-1 transition"
+                    className="text-xs font-extrabold text-gold-dark hover:text-gold flex items-center gap-1 transition"
                   >
                     <span>Store Info</span>
                     <ArrowRight size={12} />
