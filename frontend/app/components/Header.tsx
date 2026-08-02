@@ -51,12 +51,8 @@ export default function Header() {
 
             {user ? (
               <>
-                <span className="text-gold-light font-medium truncate max-w-[100px]">{t.hello}, {user.name}</span>
-                {user.isAdmin ? (
-                  <Link href="/admin/products" className="hover:text-gold-bright transition font-bold text-amber-300 px-1">{t.adminPortal}</Link>
-                ) : (
-                  <Link href="/account/profile" className="hover:text-gold-bright transition font-semibold px-1">{t.dashboard}</Link>
-                )}
+                <span className="text-gold-light font-medium truncate max-w-[120px]">{t.hello}, {user.name}</span>
+                <Link href="/account/profile" className="hover:text-gold-bright transition font-semibold px-1">{t.dashboard}</Link>
                 <button onClick={logout} className="hover:text-gold-bright transition flex items-center gap-1">
                   <LogOut size={13} /> {t.logout}
                 </button>
@@ -66,8 +62,6 @@ export default function Header() {
                 <Link href="/login" className="hover:text-gold-bright transition font-semibold px-1">{t.signIn}</Link>
                 <span className="text-gold-light/40">|</span>
                 <Link href="/signup" className="hover:text-gold-bright transition font-semibold px-1">{t.signUp}</Link>
-                <span className="text-gold-light/40">|</span>
-                <Link href="/admin/login" className="hover:text-gold-bright transition text-amber-300 font-extrabold px-1">{t.admin}</Link>
               </>
             )}
           </div>
@@ -201,7 +195,7 @@ export default function Header() {
           <div className="flex items-center gap-3">
             {/* Account Icon */}
             <Link
-              href={user ? (user.isAdmin ? "/admin/products" : "/account/profile") : "/login"}
+              href={user ? "/account/profile" : "/login"}
               className="text-gold-light hover:text-gold-bright p-2 rounded-lg hover:bg-gold/20 transition hidden sm:flex items-center justify-center"
               title={user ? user.name : t.signIn}
             >
