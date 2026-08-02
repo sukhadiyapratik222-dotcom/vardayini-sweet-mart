@@ -9,7 +9,7 @@ interface CornerMotifProps {
   color?: string;
 }
 
-export function SingleCornerSVG({ size = 150, className = '' }: { size?: number; className?: string; color?: string }) {
+export function SingleCornerSVG({ size = 160, className = '' }: { size?: number; className?: string; color?: string }) {
   return (
     <svg
       width={size}
@@ -20,179 +20,176 @@ export function SingleCornerSVG({ size = 150, className = '' }: { size?: number;
       className={`pointer-events-none ${className}`}
     >
       <defs>
-        <linearGradient id="goldVine" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFF5C0" />
-          <stop offset="50%" stopColor="#E8C84A" />
-          <stop offset="100%" stopColor="#C9A227" />
+        {/* Soft blue-gray for vines and leaves */}
+        <linearGradient id="blueVine" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#A8B8D8" />
+          <stop offset="100%" stopColor="#7090B8" />
         </linearGradient>
-        <linearGradient id="goldFlower" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FFFADC" />
-          <stop offset="60%" stopColor="#F0D060" />
-          <stop offset="100%" stopColor="#B8860B" />
+        {/* Yellow-gold for flowers */}
+        <linearGradient id="yellowFlower" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#F5E270" />
+          <stop offset="60%" stopColor="#E8C840" />
+          <stop offset="100%" stopColor="#C8A020" />
         </linearGradient>
-        <linearGradient id="blueFlower" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#4A5FA0" />
-          <stop offset="100%" stopColor="#7B9ED9" />
+        {/* Soft gold for accents */}
+        <linearGradient id="softGold" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#F8EFA0" />
+          <stop offset="100%" stopColor="#D4B840" />
         </linearGradient>
       </defs>
 
-      {/* === MAIN VINE STEMS === */}
-      {/* Primary large curving stem from corner outward */}
-      <path d="M 4,4 C 20,12 40,30 55,55 C 65,72 70,92 68,115" stroke="url(#goldVine)" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      {/* Secondary stem branching right */}
-      <path d="M 4,4 C 18,10 42,18 68,28 C 90,38 112,50 128,68" stroke="url(#goldVine)" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      {/* Branch stem top */}
-      <path d="M 22,8 C 35,5 55,8 70,18 C 85,28 95,45 95,62" stroke="url(#goldVine)" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-      {/* Branch stem left */}
-      <path d="M 8,22 C 5,35 8,55 18,70 C 28,85 45,95 62,95" stroke="url(#goldVine)" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
-      {/* Small curling tendrils */}
-      <path d="M 55,55 C 60,48 70,44 78,50 C 84,55 82,65 75,68" stroke="url(#goldVine)" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-      <path d="M 68,28 C 75,22 85,22 90,30 C 94,38 88,48 80,48" stroke="url(#goldVine)" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-      <path d="M 28,68 C 22,75 22,85 30,90 C 38,94 48,88 48,80" stroke="url(#goldVine)" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+      {/* === MAIN CURVING VINE STEMS (blue-gray) === */}
+      {/* Large outer arc from corner */}
+      <path d="M 2,2 C 22,14 50,38 70,68 C 85,90 92,118 88,148"
+        stroke="url(#blueVine)" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.75"/>
+      {/* Upper branch arc */}
+      <path d="M 2,2 C 16,10 45,20 78,32 C 108,44 135,62 152,88"
+        stroke="url(#blueVine)" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.75"/>
+      {/* Mid inner stem */}
+      <path d="M 18,6 C 32,10 58,26 78,50 C 95,70 100,95 98,120"
+        stroke="url(#blueVine)" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.6"/>
+      {/* Inner left stem */}
+      <path d="M 6,18 C 10,32 26,58 50,78 C 70,95 95,100 120,98"
+        stroke="url(#blueVine)" strokeWidth="1.5" fill="none" strokeLinecap="round" opacity="0.6"/>
+      {/* Curling tendril top-right */}
+      <path d="M 78,32 C 88,24 100,24 106,34 C 110,42 104,54 96,56"
+        stroke="url(#blueVine)" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.65"/>
+      {/* Curling tendril bottom-left */}
+      <path d="M 32,78 C 24,88 24,100 34,106 C 42,110 54,104 56,96"
+        stroke="url(#blueVine)" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.65"/>
+      {/* Small side curls */}
+      <path d="M 50,22 C 56,16 66,16 70,24 C 73,30 68,40 62,40"
+        stroke="url(#blueVine)" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.55"/>
+      <path d="M 22,50 C 16,56 16,66 24,70 C 30,73 40,68 40,62"
+        stroke="url(#blueVine)" strokeWidth="1" fill="none" strokeLinecap="round" opacity="0.55"/>
 
-      {/* === GOLD TULIP FLOWERS === */}
-      {/* Big tulip at center - main flower */}
-      <g transform="translate(68, 68)">
-        {/* Stem base */}
-        <line x1="0" y1="0" x2="0" y2="14" stroke="url(#goldVine)" strokeWidth="2"/>
-        {/* Left petal */}
-        <path d="M -3,12 C -14,4 -16,-10 -6,-18 C -2,-21 2,-20 4,-16 C 6,-10 4,0 -3,12 Z" fill="url(#goldFlower)" opacity="0.95"/>
-        {/* Right petal */}
-        <path d="M 3,12 C 14,4 16,-10 6,-18 C 2,-21 -2,-20 -4,-16 C -6,-10 -4,0 3,12 Z" fill="url(#goldFlower)" opacity="0.95"/>
-        {/* Center petal (taller) */}
-        <path d="M 0,10 C -5,0 -5,-14 0,-22 C 5,-14 5,0 0,10 Z" fill="#FFF8D0" opacity="0.9"/>
-        {/* Gold base sepal */}
-        <path d="M -5,12 Q 0,18 5,12 L 3,14 Q 0,20 -3,14 Z" fill="url(#goldFlower)"/>
+      {/* === YELLOW ROUND FLOWERS === */}
+      {/* Large flower - center of design */}
+      <g transform="translate(70, 70)">
+        {/* 8 petals */}
+        <ellipse cx="0" cy="-13" rx="5.5" ry="11" fill="url(#yellowFlower)" opacity="0.85"/>
+        <ellipse cx="0" cy="-13" rx="5.5" ry="11" fill="url(#yellowFlower)" opacity="0.85" transform="rotate(45)"/>
+        <ellipse cx="0" cy="-13" rx="5.5" ry="11" fill="url(#yellowFlower)" opacity="0.85" transform="rotate(90)"/>
+        <ellipse cx="0" cy="-13" rx="5.5" ry="11" fill="url(#yellowFlower)" opacity="0.85" transform="rotate(135)"/>
+        <ellipse cx="0" cy="-13" rx="5.5" ry="11" fill="url(#yellowFlower)" opacity="0.85" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-13" rx="5.5" ry="11" fill="url(#yellowFlower)" opacity="0.85" transform="rotate(225)"/>
+        <ellipse cx="0" cy="-13" rx="5.5" ry="11" fill="url(#yellowFlower)" opacity="0.85" transform="rotate(270)"/>
+        <ellipse cx="0" cy="-13" rx="5.5" ry="11" fill="url(#yellowFlower)" opacity="0.85" transform="rotate(315)"/>
+        {/* Center */}
+        <circle cx="0" cy="0" r="7" fill="#C8A020"/>
+        <circle cx="0" cy="0" r="4" fill="#F5E270"/>
+        <circle cx="0" cy="0" r="2" fill="#FFF8C0"/>
       </g>
 
-      {/* Medium tulip top-right area */}
-      <g transform="translate(110, 35)">
-        <line x1="0" y1="0" x2="0" y2="10" stroke="url(#goldVine)" strokeWidth="1.8"/>
-        <path d="M -2.5,9 C -10,3 -12,-7 -5,-14 C -2,-16 2,-15 3,-12 C 5,-8 3,1 -2.5,9 Z" fill="url(#goldFlower)" opacity="0.9"/>
-        <path d="M 2.5,9 C 10,3 12,-7 5,-14 C 2,-16 -2,-15 -3,-12 C -5,-8 -3,1 2.5,9 Z" fill="url(#goldFlower)" opacity="0.9"/>
-        <path d="M 0,8 C -4,0 -4,-10 0,-16 C 4,-10 4,0 0,8 Z" fill="#FFF8D0" opacity="0.85"/>
-        <path d="M -4,9 Q 0,14 4,9 L 2,11 Q 0,16 -2,11 Z" fill="url(#goldFlower)"/>
+      {/* Medium flower - upper right */}
+      <g transform="translate(108, 36)">
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(0)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(60)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(120)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(240)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(300)"/>
+        <circle cx="0" cy="0" r="5" fill="#C8A020"/>
+        <circle cx="0" cy="0" r="2.5" fill="#F5E270"/>
       </g>
 
-      {/* Medium tulip left-bottom area */}
-      <g transform="translate(35, 110)">
-        <line x1="0" y1="0" x2="0" y2="10" stroke="url(#goldVine)" strokeWidth="1.8"/>
-        <path d="M -2.5,9 C -10,3 -12,-7 -5,-14 C -2,-16 2,-15 3,-12 C 5,-8 3,1 -2.5,9 Z" fill="url(#goldFlower)" opacity="0.9"/>
-        <path d="M 2.5,9 C 10,3 12,-7 5,-14 C 2,-16 -2,-15 -3,-12 C -5,-8 -3,1 2.5,9 Z" fill="url(#goldFlower)" opacity="0.9"/>
-        <path d="M 0,8 C -4,0 -4,-10 0,-16 C 4,-10 4,0 0,8 Z" fill="#FFF8D0" opacity="0.85"/>
-        <path d="M -4,9 Q 0,14 4,9 L 2,11 Q 0,16 -2,11 Z" fill="url(#goldFlower)"/>
+      {/* Medium flower - lower left */}
+      <g transform="translate(36, 108)">
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(0)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(60)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(120)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(240)"/>
+        <ellipse cx="0" cy="-9" rx="4" ry="8" fill="url(#yellowFlower)" opacity="0.82" transform="rotate(300)"/>
+        <circle cx="0" cy="0" r="5" fill="#C8A020"/>
+        <circle cx="0" cy="0" r="2.5" fill="#F5E270"/>
       </g>
 
-      {/* Small tulip on side branch */}
-      <g transform="translate(82, 18)">
-        <line x1="0" y1="0" x2="0" y2="8" stroke="url(#goldVine)" strokeWidth="1.5"/>
-        <path d="M -2,7 C -8,2 -9,-5 -4,-10 C -2,-12 2,-11 3,-9 C 4,-6 3,0 -2,7 Z" fill="url(#goldFlower)" opacity="0.88"/>
-        <path d="M 2,7 C 8,2 9,-5 4,-10 C 2,-12 -2,-11 -3,-9 C -4,-6 -3,0 2,7 Z" fill="url(#goldFlower)" opacity="0.88"/>
-        <path d="M 0,6 C -3,0 -3,-7 0,-12 C 3,-7 3,0 0,6 Z" fill="#FFF8D0" opacity="0.8"/>
-      </g>
-      <g transform="translate(18, 82)">
-        <line x1="0" y1="0" x2="0" y2="8" stroke="url(#goldVine)" strokeWidth="1.5"/>
-        <path d="M -2,7 C -8,2 -9,-5 -4,-10 C -2,-12 2,-11 3,-9 C 4,-6 3,0 -2,7 Z" fill="url(#goldFlower)" opacity="0.88"/>
-        <path d="M 2,7 C 8,2 9,-5 4,-10 C 2,-12 -2,-11 -3,-9 C -4,-6 -3,0 2,7 Z" fill="url(#goldFlower)" opacity="0.88"/>
-        <path d="M 0,6 C -3,0 -3,-7 0,-12 C 3,-7 3,0 0,6 Z" fill="#FFF8D0" opacity="0.8"/>
+      {/* Small flower - along top vine */}
+      <g transform="translate(140, 60)">
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(0)"/>
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(72)"/>
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(144)"/>
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(216)"/>
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(288)"/>
+        <circle cx="0" cy="0" r="4" fill="#C8A020"/>
+        <circle cx="0" cy="0" r="2" fill="#F5E270"/>
       </g>
 
-      {/* === BLUE ROUND FLOWERS === */}
-      {/* Large blue flower - upper branch */}
-      <g transform="translate(95, 62)">
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(60)"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(120)"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(180)"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(240)"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(300)"/>
-        <circle cx="0" cy="0" r="5" fill="#2A3A78"/>
-        <circle cx="0" cy="0" r="2.5" fill="#E8D070"/>
+      {/* Small flower - along left vine */}
+      <g transform="translate(60, 140)">
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(0)"/>
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(72)"/>
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(144)"/>
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(216)"/>
+        <ellipse cx="0" cy="-7" rx="3" ry="6" fill="url(#yellowFlower)" opacity="0.78" transform="rotate(288)"/>
+        <circle cx="0" cy="0" r="4" fill="#C8A020"/>
+        <circle cx="0" cy="0" r="2" fill="#F5E270"/>
       </g>
 
-      {/* Large blue flower - left branch */}
-      <g transform="translate(62, 95)">
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(60)"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(120)"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(180)"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(240)"/>
-        <circle cx="0" cy="-9" r="5" fill="url(#blueFlower)" opacity="0.85" transform="rotate(300)"/>
-        <circle cx="0" cy="0" r="5" fill="#2A3A78"/>
-        <circle cx="0" cy="0" r="2.5" fill="#E8D070"/>
+      {/* Tiny flowers near corner */}
+      <g transform="translate(38, 28)">
+        <ellipse cx="0" cy="-5" rx="2.2" ry="4.5" fill="url(#yellowFlower)" opacity="0.75" transform="rotate(0)"/>
+        <ellipse cx="0" cy="-5" rx="2.2" ry="4.5" fill="url(#yellowFlower)" opacity="0.75" transform="rotate(90)"/>
+        <ellipse cx="0" cy="-5" rx="2.2" ry="4.5" fill="url(#yellowFlower)" opacity="0.75" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-5" rx="2.2" ry="4.5" fill="url(#yellowFlower)" opacity="0.75" transform="rotate(270)"/>
+        <circle cx="0" cy="0" r="3" fill="#C8A020"/>
+        <circle cx="0" cy="0" r="1.5" fill="#F5E270"/>
+      </g>
+      <g transform="translate(28, 38)">
+        <ellipse cx="0" cy="-5" rx="2.2" ry="4.5" fill="url(#yellowFlower)" opacity="0.75" transform="rotate(0)"/>
+        <ellipse cx="0" cy="-5" rx="2.2" ry="4.5" fill="url(#yellowFlower)" opacity="0.75" transform="rotate(90)"/>
+        <ellipse cx="0" cy="-5" rx="2.2" ry="4.5" fill="url(#yellowFlower)" opacity="0.75" transform="rotate(180)"/>
+        <ellipse cx="0" cy="-5" rx="2.2" ry="4.5" fill="url(#yellowFlower)" opacity="0.75" transform="rotate(270)"/>
+        <circle cx="0" cy="0" r="3" fill="#C8A020"/>
+        <circle cx="0" cy="0" r="1.5" fill="#F5E270"/>
       </g>
 
-      {/* Small blue flower mid-right */}
-      <g transform="translate(128, 50)">
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8"/>
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8" transform="rotate(72)"/>
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8" transform="rotate(144)"/>
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8" transform="rotate(216)"/>
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8" transform="rotate(288)"/>
-        <circle cx="0" cy="0" r="3.5" fill="#2A3A78"/>
-        <circle cx="0" cy="0" r="1.8" fill="#E8D070"/>
-      </g>
+      {/* === BLUE-GRAY LEAVES === */}
+      {/* Large leaves at main junction */}
+      <ellipse cx="46" cy="44" rx="12" ry="5" fill="url(#blueVine)" opacity="0.6" transform="rotate(-40 46 44)"/>
+      <ellipse cx="44" cy="46" rx="12" ry="5" fill="url(#blueVine)" opacity="0.6" transform="rotate(50 44 46)"/>
+      {/* Leaf pair mid-upper */}
+      <ellipse cx="84" cy="42" rx="9" ry="4" fill="url(#blueVine)" opacity="0.55" transform="rotate(-20 84 42)"/>
+      <ellipse cx="86" cy="44" rx="9" ry="4" fill="url(#blueVine)" opacity="0.55" transform="rotate(30 86 44)"/>
+      {/* Leaf pair mid-left */}
+      <ellipse cx="42" cy="84" rx="9" ry="4" fill="url(#blueVine)" opacity="0.55" transform="rotate(70 42 84)"/>
+      <ellipse cx="44" cy="86" rx="9" ry="4" fill="url(#blueVine)" opacity="0.55" transform="rotate(120 44 86)"/>
+      {/* Leaf outer right */}
+      <ellipse cx="118" cy="68" rx="8" ry="3.5" fill="url(#blueVine)" opacity="0.5" transform="rotate(-10 118 68)"/>
+      {/* Leaf outer bottom */}
+      <ellipse cx="68" cy="118" rx="8" ry="3.5" fill="url(#blueVine)" opacity="0.5" transform="rotate(80 68 118)"/>
+      {/* Tiny leaves near corner */}
+      <ellipse cx="18" cy="28" rx="6" ry="2.5" fill="url(#blueVine)" opacity="0.5" transform="rotate(-50 18 28)"/>
+      <ellipse cx="28" cy="18" rx="6" ry="2.5" fill="url(#blueVine)" opacity="0.5" transform="rotate(40 28 18)"/>
+      {/* Extra leaf clusters */}
+      <ellipse cx="55" cy="94" rx="7" ry="3" fill="url(#blueVine)" opacity="0.48" transform="rotate(60 55 94)"/>
+      <ellipse cx="94" cy="55" rx="7" ry="3" fill="url(#blueVine)" opacity="0.48" transform="rotate(-30 94 55)"/>
 
-      {/* Small blue flower mid-bottom */}
-      <g transform="translate(50, 128)">
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8"/>
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8" transform="rotate(72)"/>
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8" transform="rotate(144)"/>
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8" transform="rotate(216)"/>
-        <circle cx="0" cy="-6" r="3.5" fill="url(#blueFlower)" opacity="0.8" transform="rotate(288)"/>
-        <circle cx="0" cy="0" r="3.5" fill="#2A3A78"/>
-        <circle cx="0" cy="0" r="1.8" fill="#E8D070"/>
-      </g>
+      {/* === BLUE-GRAY ROUND BERRY DOTS (small) === */}
+      <circle cx="56" cy="18" r="3" fill="url(#blueVine)" opacity="0.7"/>
+      <circle cx="18" cy="56" r="3" fill="url(#blueVine)" opacity="0.7"/>
+      <circle cx="98" cy="20" r="2.5" fill="url(#blueVine)" opacity="0.65"/>
+      <circle cx="20" cy="98" r="2.5" fill="url(#blueVine)" opacity="0.65"/>
+      <circle cx="148" cy="68" r="2.2" fill="url(#blueVine)" opacity="0.6"/>
+      <circle cx="68" cy="148" r="2.2" fill="url(#blueVine)" opacity="0.6"/>
+      <circle cx="128" cy="40" r="2" fill="url(#blueVine)" opacity="0.55"/>
+      <circle cx="40" cy="128" r="2" fill="url(#blueVine)" opacity="0.55"/>
 
-      {/* Tiny blue flower near corner */}
-      <g transform="translate(40, 28)">
-        <circle cx="0" cy="-4.5" r="2.8" fill="url(#blueFlower)" opacity="0.75"/>
-        <circle cx="0" cy="-4.5" r="2.8" fill="url(#blueFlower)" opacity="0.75" transform="rotate(90)"/>
-        <circle cx="0" cy="-4.5" r="2.8" fill="url(#blueFlower)" opacity="0.75" transform="rotate(180)"/>
-        <circle cx="0" cy="-4.5" r="2.8" fill="url(#blueFlower)" opacity="0.75" transform="rotate(270)"/>
-        <circle cx="0" cy="0" r="2.8" fill="#2A3A78"/>
-        <circle cx="0" cy="0" r="1.2" fill="#E8D070"/>
-      </g>
-      <g transform="translate(28, 40)">
-        <circle cx="0" cy="-4.5" r="2.8" fill="url(#blueFlower)" opacity="0.75"/>
-        <circle cx="0" cy="-4.5" r="2.8" fill="url(#blueFlower)" opacity="0.75" transform="rotate(90)"/>
-        <circle cx="0" cy="-4.5" r="2.8" fill="url(#blueFlower)" opacity="0.75" transform="rotate(180)"/>
-        <circle cx="0" cy="-4.5" r="2.8" fill="url(#blueFlower)" opacity="0.75" transform="rotate(270)"/>
-        <circle cx="0" cy="0" r="2.8" fill="#2A3A78"/>
-        <circle cx="0" cy="0" r="1.2" fill="#E8D070"/>
-      </g>
+      {/* === GOLD ACCENT DOTS === */}
+      <circle cx="82" cy="14" r="3" fill="url(#softGold)" opacity="0.85"/>
+      <circle cx="14" cy="82" r="3" fill="url(#softGold)" opacity="0.85"/>
+      <circle cx="158" cy="76" r="2.5" fill="url(#softGold)" opacity="0.8"/>
+      <circle cx="76" cy="158" r="2.5" fill="url(#softGold)" opacity="0.8"/>
+      <circle cx="110" cy="8" r="2.2" fill="url(#softGold)" opacity="0.75"/>
+      <circle cx="8" cy="110" r="2.2" fill="url(#softGold)" opacity="0.75"/>
+      <circle cx="170" cy="96" r="2" fill="url(#softGold)" opacity="0.7"/>
+      <circle cx="96" cy="170" r="2" fill="url(#softGold)" opacity="0.7"/>
 
-      {/* === GOLD LEAVES === */}
-      <ellipse cx="45" cy="42" rx="10" ry="4.5" fill="url(#goldFlower)" opacity="0.7" transform="rotate(-40 45 42)"/>
-      <ellipse cx="42" cy="45" rx="10" ry="4.5" fill="url(#goldFlower)" opacity="0.7" transform="rotate(50 42 45)"/>
-      <ellipse cx="80" cy="42" rx="8" ry="3.5" fill="url(#goldFlower)" opacity="0.65" transform="rotate(-20 80 42)"/>
-      <ellipse cx="42" cy="80" rx="8" ry="3.5" fill="url(#goldFlower)" opacity="0.65" transform="rotate(70 42 80)"/>
-      <ellipse cx="112" cy="70" rx="7" ry="3" fill="url(#goldFlower)" opacity="0.6" transform="rotate(-10 112 70)"/>
-      <ellipse cx="70" cy="112" rx="7" ry="3" fill="url(#goldFlower)" opacity="0.6" transform="rotate(80 70 112)"/>
-
-      {/* === GOLD DOT BERRIES / ACCENT DOTS === */}
-      <circle cx="58" cy="22" r="3" fill="#F0D060" opacity="0.9"/>
-      <circle cx="22" cy="58" r="3" fill="#F0D060" opacity="0.9"/>
-      <circle cx="100" cy="20" r="2.5" fill="#F0D060" opacity="0.85"/>
-      <circle cx="20" cy="100" r="2.5" fill="#F0D060" opacity="0.85"/>
-      <circle cx="140" cy="55" r="2.2" fill="#F0D060" opacity="0.8"/>
-      <circle cx="55" cy="140" r="2.2" fill="#F0D060" opacity="0.8"/>
-      <circle cx="75" cy="75" r="2" fill="#FFF8A0" opacity="0.7"/>
-      <circle cx="90" cy="80" r="1.5" fill="#F0D060" opacity="0.65"/>
-      <circle cx="80" cy="90" r="1.5" fill="#F0D060" opacity="0.65"/>
-
-      {/* Blue dot accents */}
-      <circle cx="72" cy="15" r="2.2" fill="#6B8ED9" opacity="0.8"/>
-      <circle cx="15" cy="72" r="2.2" fill="#6B8ED9" opacity="0.8"/>
-      <circle cx="115" cy="38" r="1.8" fill="#6B8ED9" opacity="0.7"/>
-      <circle cx="38" cy="115" r="1.8" fill="#6B8ED9" opacity="0.7"/>
-      <circle cx="145" cy="75" r="1.5" fill="#6B8ED9" opacity="0.65"/>
-      <circle cx="75" cy="145" r="1.5" fill="#6B8ED9" opacity="0.65"/>
-
-      {/* Corner anchor dot */}
-      <circle cx="5" cy="5" r="3" fill="#F0D060" opacity="0.95"/>
-      <circle cx="12" cy="5" r="2" fill="#6B8ED9" opacity="0.8"/>
-      <circle cx="5" cy="12" r="2" fill="#6B8ED9" opacity="0.8"/>
+      {/* === CORNER ANCHOR === */}
+      <circle cx="4" cy="4" r="3.5" fill="url(#softGold)" opacity="0.9"/>
+      <circle cx="11" cy="4" r="2" fill="url(#blueVine)" opacity="0.75"/>
+      <circle cx="4" cy="11" r="2" fill="url(#blueVine)" opacity="0.75"/>
     </svg>
   );
 }
@@ -200,7 +197,7 @@ export function SingleCornerSVG({ size = 150, className = '' }: { size?: number;
 export default function CornerMotif({
   position = 'bottom-corners',
   className = '',
-  size = 150,
+  size = 160,
   color = '#D4AF37',
 }: CornerMotifProps) {
   const showTopLeft = position === 'top-left' || position === 'top-corners' || position === 'all';
