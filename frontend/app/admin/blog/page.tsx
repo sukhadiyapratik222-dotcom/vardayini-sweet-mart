@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BookOpen, Plus, Trash2, CheckCircle2, Calendar, User, ArrowRight } from "lucide-react";
 import AdminLayout from "../AdminLayout";
 
@@ -15,29 +15,75 @@ interface BlogPost {
   image: string;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 export default function AdminBlogPage() {
-  const [posts, setPosts] = useState<BlogPost[]>([
-    {
-      id: "b-1",
-      title: "The Golden Art of Making Authentic A2 Ghee Kaju Katli",
-      slug: "art-of-making-kaju-katli",
-      summary: "Discover our 48-year-old traditional recipe for preparing silky smooth, melt-in-the-mouth Kaju Katli using pure silver vark.",
-      content: "For over four decades, Vardayini Sweet Mart has preserved the authentic heritage of traditional Indian sweet making...",
-      author: "Vardayini Master Chef",
-      date: "2026-07-28",
-      image: "/images/sweet-1.jpg",
-    },
-    {
-      id: "b-2",
-      title: "Top 5 Health Benefits of Sugarless Anjeer & Dry Fruit Sweets",
-      slug: "health-benefits-sugarless-anjeer-sweets",
-      summary: "Explore how natural dates, figs, and premium nuts offer guilt-free festive indulgence without added artificial sugars.",
-      content: "Health-conscious sweet lovers no longer have to compromise on taste during festive celebrations...",
-      author: "Nutrition Desk",
-      date: "2026-07-20",
-      image: "/images/sweet-2.jpg",
-    },
-  ]);
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  async function fetchPosts() {
+    setLoading(true);
+    let list: BlogPost[] = [];
+
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("admin_blog_posts");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+        } catch (e) {}
+      }
+    }
+
+    if (list.length === 0) {
+      try {
+        const res = await fetch(`${API_BASE}/admin/blog`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) list = data;
+        }
+      } catch (e) {}
+    }
+
+    if (list.length === 0) {
+      list = [
+        {
+          id: "b-1",
+          title: "The Golden Art of Making Authentic A2 Ghee Kaju Katli",
+          slug: "art-of-making-kaju-katli",
+          summary: "Discover our 48-year-old traditional recipe for preparing silky smooth, melt-in-the-mouth Kaju Katli using pure silver vark.",
+          content: "For over four decades, Vardayini Sweet Mart has preserved the authentic heritage of traditional Indian sweet making...",
+          author: "Vardayini Master Chef",
+          date: "2026-07-28",
+          image: "/images/sweet-1.jpg",
+        },
+        {
+          id: "b-2",
+          title: "Top 5 Health Benefits of Sugarless Anjeer & Dry Fruit Sweets",
+          slug: "health-benefits-sugarless-anjeer-sweets",
+          summary: "Explore how natural dates, figs, and premium nuts offer guilt-free festive indulgence without added artificial sugars.",
+          content: "Health-conscious sweet lovers no longer have to compromise on taste during festive celebrations...",
+          author: "Nutrition Desk",
+          date: "2026-07-20",
+          image: "/images/sweet-2.jpg",
+        },
+      ];
+    }
+
+    savePostsToStorage(list);
+    setLoading(false);
+  }
+
+  function savePostsToStorage(newList: BlogPost[]) {
+    setPosts(newList);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("admin_blog_posts", JSON.stringify(newList));
+    }
+  }
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [title, setTitle] = useState("");
@@ -45,7 +91,7 @@ export default function AdminBlogPage() {
   const [content, setContent] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  function handleCreatePost(e: React.FormEvent) {
+  async function handleCreatePost(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
 
@@ -62,7 +108,17 @@ export default function AdminBlogPage() {
       image: "/images/sweet-3.jpg",
     };
 
-    setPosts([newPost, ...posts]);
+    const updated = [newPost, ...posts];
+    savePostsToStorage(updated);
+
+    try {
+      await fetch(`${API_BASE}/admin/blog`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPost),
+      });
+    } catch (e) {}
+
     setTitle("");
     setSummary("");
     setContent("");
@@ -71,8 +127,13 @@ export default function AdminBlogPage() {
     setTimeout(() => setFeedback(null), 3000);
   }
 
-  function handleDelete(id: string) {
-    setPosts(posts.filter((p) => p.id !== id));
+  async function handleDelete(id: string) {
+    const updated = posts.filter((p) => p.id !== id);
+    savePostsToStorage(updated);
+
+    try {
+      await fetch(`${API_BASE}/admin/blog/${id}`, { method: "DELETE" });
+    } catch (e) {}
   }
 
   return (

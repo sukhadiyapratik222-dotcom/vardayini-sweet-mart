@@ -14,27 +14,73 @@ interface ComboOffer {
   isFeatured: boolean;
 }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 export default function AdminCombosPage() {
-  const [combos, setCombos] = useState<ComboOffer[]>([
-    {
-      id: "c-1",
-      name: "Royal Festive Sweet Box (1kg)",
-      price: 1499,
-      originalPrice: 1800,
-      description: "Includes Royal Kaju Katli (250g), Sugarless Anjeer Roll (250g), Kesar Penda (250g), & Special Dryfruit Mix (250g).",
-      image: "/images/sweet-1.jpg",
-      isFeatured: true,
-    },
-    {
-      id: "c-2",
-      name: "Gujarati Premium Namkeen Variety Combo",
-      price: 699,
-      originalPrice: 850,
-      description: "Includes Farali Chevdo, Ratlami Sev, Special Khatta Meetha Mixture, Masala Khakhra, & Roasted Millet Snacks.",
-      image: "/images/sweet-2.jpg",
-      isFeatured: true,
-    },
-  ]);
+  const [combos, setCombos] = useState<ComboOffer[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCombos();
+  }, []);
+
+  async function fetchCombos() {
+    setLoading(true);
+    let list: ComboOffer[] = [];
+
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("admin_combos_list");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) list = parsed;
+        } catch (e) {}
+      }
+    }
+
+    if (list.length === 0) {
+      try {
+        const res = await fetch(`${API_BASE}/admin/combos`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) list = data;
+        }
+      } catch (e) {}
+    }
+
+    if (list.length === 0) {
+      list = [
+        {
+          id: "c-1",
+          name: "Royal Festive Sweet Box (1kg)",
+          price: 1499,
+          originalPrice: 1800,
+          description: "Includes Royal Kaju Katli (250g), Sugarless Anjeer Roll (250g), Kesar Penda (250g), & Special Dryfruit Mix (250g).",
+          image: "/images/sweet-1.jpg",
+          isFeatured: true,
+        },
+        {
+          id: "c-2",
+          name: "Gujarati Premium Namkeen Variety Combo",
+          price: 699,
+          originalPrice: 850,
+          description: "Includes Farali Chevdo, Ratlami Sev, Special Khatta Meetha Mixture, Masala Khakhra, & Roasted Millet Snacks.",
+          image: "/images/sweet-2.jpg",
+          isFeatured: true,
+        },
+      ];
+    }
+
+    saveCombosToStorage(list);
+    setLoading(false);
+  }
+
+  function saveCombosToStorage(newList: ComboOffer[]) {
+    setCombos(newList);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("admin_combos_list", JSON.stringify(newList));
+    }
+  }
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [name, setName] = useState("");
@@ -43,7 +89,7 @@ export default function AdminCombosPage() {
   const [description, setDescription] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  function handleCreateCombo(e: React.FormEvent) {
+  async function handleCreateCombo(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
 
@@ -57,7 +103,17 @@ export default function AdminCombosPage() {
       isFeatured: true,
     };
 
-    setCombos([...combos, newCombo]);
+    const updated = [newCombo, ...combos];
+    saveCombosToStorage(updated);
+
+    try {
+      await fetch(`${API_BASE}/admin/combos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCombo),
+      });
+    } catch (e) {}
+
     setName("");
     setDescription("");
     setShowAddModal(false);
@@ -65,8 +121,13 @@ export default function AdminCombosPage() {
     setTimeout(() => setFeedback(null), 3000);
   }
 
-  function handleDelete(id: string) {
-    setCombos(combos.filter((c) => c.id !== id));
+  async function handleDelete(id: string) {
+    const updated = combos.filter((c) => c.id !== id);
+    saveCombosToStorage(updated);
+
+    try {
+      await fetch(`${API_BASE}/admin/combos/${id}`, { method: "DELETE" });
+    } catch (e) {}
   }
 
   return (

@@ -134,10 +134,17 @@ export default function AdminOrdersPage() {
     setLoading(false);
   }
 
+  function saveOrdersToStorage(newOrders: Order[]) {
+    setOrders(newOrders);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("my_orders", JSON.stringify(newOrders));
+      localStorage.setItem("admin_orders_list", JSON.stringify(newOrders));
+    }
+  }
+
   async function handleUpdateStatus(orderId: string, newStatus: Order["status"]) {
-    setOrders((prev) =>
-      prev.map((o) => (o.orderId === orderId ? { ...o, status: newStatus } : o))
-    );
+    const updated = orders.map((o) => (o.orderId === orderId ? { ...o, status: newStatus } : o));
+    saveOrdersToStorage(updated);
 
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("admin_token") : null;
@@ -150,9 +157,8 @@ export default function AdminOrdersPage() {
   }
 
   function handleProcessRefund(order: Order) {
-    setOrders((prev) =>
-      prev.map((o) => (o.orderId === order.orderId ? { ...o, paymentStatus: "REFUNDED", status: "Cancelled" } : o))
-    );
+    const updated = orders.map((o) => (o.orderId === order.orderId ? { ...o, paymentStatus: "REFUNDED" as const, status: "Cancelled" as const } : o));
+    saveOrdersToStorage(updated);
     setRefundSuccess(`✓ Refund of ₹${order.total.toLocaleString("en-IN")} successfully processed for Order #${order.orderId}`);
     setSelectedOrder(null);
     setTimeout(() => setRefundSuccess(null), 4000);

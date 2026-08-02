@@ -34,14 +34,33 @@ export default function AdminCouponsPage() {
     setLoading(true);
     let list: Coupon[] = [];
 
-    try {
-      const res = await fetch(`${API_BASE}/admin/coupons`);
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) list = data;
+    // 1. Try to load from localStorage first
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("admin_coupons_list");
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            list = parsed;
+          }
+        } catch (e) {}
       }
-    } catch (e) {}
+    }
 
+    // 2. Try to fetch from backend API
+    if (list.length === 0) {
+      try {
+        const res = await fetch(`${API_BASE}/admin/coupons`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            list = data;
+          }
+        }
+      } catch (e) {}
+    }
+
+    // 3. Fallback sample list if empty
     if (list.length === 0) {
       list = [
         { id: "c1", code: "SWEET10", discountPercent: 10, minPurchase: 500, isActive: true, expiryDate: "2026-12-31" },
@@ -51,10 +70,18 @@ export default function AdminCouponsPage() {
     }
 
     setCoupons(list);
+    saveCouponsToStorage(list);
     setLoading(false);
   }
 
-  function handleCreateCoupon(e: React.FormEvent) {
+  function saveCouponsToStorage(newList: Coupon[]) {
+    setCoupons(newList);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("admin_coupons_list", JSON.stringify(newList));
+    }
+  }
+
+  async function handleCreateCoupon(e: React.FormEvent) {
     e.preventDefault();
     if (!code.trim()) return;
 
@@ -67,19 +94,44 @@ export default function AdminCouponsPage() {
       expiryDate: "2026-12-31",
     };
 
-    setCoupons([...coupons, newCoupon]);
+    const updated = [newCoupon, ...coupons];
+    saveCouponsToStorage(updated);
+
+    try {
+      await fetch(`${API_BASE}/admin/coupons`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCoupon),
+      });
+    } catch (e) {}
+
     setCode("");
     setShowAddModal(false);
     setFeedback(`✓ Coupon code "${newCoupon.code}" successfully created!`);
     setTimeout(() => setFeedback(null), 3000);
   }
 
-  function handleDelete(id: string) {
-    setCoupons(coupons.filter((c) => c.id !== id));
+  async function handleDelete(id: string) {
+    const updated = coupons.filter((c) => c.id !== id);
+    saveCouponsToStorage(updated);
+
+    try {
+      await fetch(`${API_BASE}/admin/coupons/${id}`, { method: "DELETE" });
+    } catch (e) {}
   }
 
-  function handleToggle(id: string) {
-    setCoupons(coupons.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c)));
+  async function handleToggle(id: string) {
+    const updated = coupons.map((c) => (c.id === id ? { ...c, isActive: !c.isActive } : c));
+    saveCouponsToStorage(updated);
+
+    try {
+      const target = updated.find((c) => c.id === id);
+      await fetch(`${API_BASE}/admin/coupons/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(target),
+      });
+    } catch (e) {}
   }
 
   return (
