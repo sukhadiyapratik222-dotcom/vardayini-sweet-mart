@@ -1,14 +1,12 @@
--- Active: 1785433203832@@127.0.0.1@3306@sweet_shop
-
--- Active: 1785433203832@@127.0.0.1@3306@sweet_shop
+-- Active: 1785433203832@@127.0.0.1@3306@vardayini_sweet_mart
 -- ============================================================
 -- VARDAYINI SWEET MART - MYSQL 8+ DATABASE SCHEMA
 -- File: database/schema.sql
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS vardayini_sweet_mart DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS sweet_shop DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-USE vardayini_sweet_mart;
+USE sweet_shop;
 
 -- 1. USERS TABLE
 CREATE TABLE IF NOT EXISTS users (
@@ -25,7 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- 2. SAVED ADDRESSES TABLE
 CREATE TABLE IF NOT EXISTS addresses (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
     full_name VARCHAR(100),
     phone VARCHAR(15),
     line1 VARCHAR(255) NOT NULL,
@@ -92,7 +90,7 @@ CREATE TABLE IF NOT EXISTS product_variants (
 -- 7. CARTS TABLE
 CREATE TABLE IF NOT EXISTS carts (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NULL,
+    user_id VARCHAR(50) NULL,
     session_id VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
@@ -125,7 +123,7 @@ CREATE TABLE IF NOT EXISTS coupons (
 -- 10. ORDERS TABLE
 CREATE TABLE IF NOT EXISTS orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
     order_number VARCHAR(30) UNIQUE NOT NULL,
     status ENUM(
         'placed',
@@ -194,7 +192,7 @@ CREATE TABLE IF NOT EXISTS payments (
 CREATE TABLE IF NOT EXISTS reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
-    user_id INT NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
     rating TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     comment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -205,7 +203,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- 15. WISHLISTS TABLE
 CREATE TABLE IF NOT EXISTS wishlists (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id VARCHAR(50) NOT NULL,
     product_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_user_product (user_id, product_id),
