@@ -151,7 +151,7 @@ export default function Header() {
             {/* Account Icon */}
             <Link
               href={user ? (user.isAdmin ? "/admin/products" : "/account/profile") : "/login"}
-              className="text-[#0B1B3D] hover:text-gold-dark p-2 rounded-lg hover:bg-gold/10 transition hidden sm:flex items-center justify-center"
+              className="text-gold-light hover:text-gold-bright p-2 rounded-lg hover:bg-gold/20 transition hidden sm:flex items-center justify-center"
               title={user ? user.name : t.signIn}
             >
               <User size={22} />
@@ -160,7 +160,7 @@ export default function Header() {
             {/* Wishlist Icon */}
             <Link
               href="/account/profile"
-              className="text-[#0B1B3D] hover:text-gold-dark p-2 rounded-lg hover:bg-gold/10 transition hidden sm:flex items-center justify-center relative"
+              className="text-gold-light hover:text-gold-bright p-2 rounded-lg hover:bg-gold/20 transition hidden sm:flex items-center justify-center relative"
               title="Wishlist"
             >
               <Heart size={22} />
@@ -169,16 +169,16 @@ export default function Header() {
             {/* Cart Icon (Live count + ₹ total) */}
             <Link
               href="/cart"
-              className="flex items-center gap-2.5 bg-[#0B1B3D] text-gold px-3 py-2 rounded-xl hover:bg-[#162C5B] transition shadow-md border border-gold/40 group"
+              className="flex items-center gap-2.5 bg-gradient-to-r from-[#0B1B3D] to-[#162C5B] text-gold px-3.5 py-2 rounded-xl hover:brightness-110 transition shadow-md border border-gold/50 group"
               title="View Cart"
             >
               <div className="relative">
-                <ShoppingCart size={20} className="group-hover:scale-110 transition-transform" />
+                <ShoppingCart size={20} className="text-gold-bright group-hover:scale-110 transition-transform" />
                 <span className="absolute -top-2.5 -right-2.5 bg-gold text-[#0B1B3D] font-black text-[10px] rounded-full w-4 h-4 flex items-center justify-center shadow">
                   {cart?.itemCount || 0}
                 </span>
               </div>
-              <span className="font-extrabold text-xs sm:text-sm text-gold tracking-tight whitespace-nowrap">
+              <span className="font-extrabold text-xs sm:text-sm text-gold-bright tracking-tight whitespace-nowrap">
                 ₹{(cart?.total || 0).toLocaleString('en-IN')}
               </span>
             </Link>
@@ -186,9 +186,10 @@ export default function Header() {
             {/* Mobile Hamburger Menu Toggle */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="xl:hidden text-[#0B1B3D] hover:text-gold-dark transition p-1"
+              className="xl:hidden text-gold-light hover:text-gold-bright transition p-1.5 rounded-lg bg-gold/10 border border-gold/30"
+              aria-label="Toggle Navigation Menu"
             >
-              {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
