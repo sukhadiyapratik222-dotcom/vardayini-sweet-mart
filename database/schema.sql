@@ -249,42 +249,16 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 
 -- ============================================================
 -- INDEXES FOR PERFORMANCE & FAST LOOKUPS
+-- Note: UNIQUE columns (email, phone, slug, sku, order_number)
+-- are automatically indexed by MySQL during CREATE TABLE.
 -- ============================================================
-DROP INDEX IF EXISTS idx_users_email ON users;
-CREATE INDEX idx_users_email ON users (email);
 
-DROP INDEX IF EXISTS idx_users_phone ON users;
-CREATE INDEX idx_users_phone ON users (phone);
-
-DROP INDEX IF EXISTS idx_products_category ON products;
+-- Additional non-unique performance indexes
 CREATE INDEX idx_products_category ON products (category_id);
-
-DROP INDEX IF EXISTS idx_products_slug ON products;
-CREATE INDEX idx_products_slug ON products (slug);
-
-DROP INDEX IF EXISTS idx_products_active ON products;
 CREATE INDEX idx_products_active ON products (is_active);
-
-DROP INDEX IF EXISTS idx_variants_product ON product_variants;
 CREATE INDEX idx_variants_product ON product_variants (product_id);
-
-DROP INDEX IF EXISTS idx_variants_sku ON product_variants;
-CREATE INDEX idx_variants_sku ON product_variants (sku);
-
-DROP INDEX IF EXISTS idx_orders_user ON orders;
 CREATE INDEX idx_orders_user ON orders (user_id);
-
-DROP INDEX IF EXISTS idx_orders_number ON orders;
-CREATE INDEX idx_orders_number ON orders (order_number);
-
-DROP INDEX IF EXISTS idx_orders_status ON orders;
 CREATE INDEX idx_orders_status ON orders (status);
-
-DROP INDEX IF EXISTS idx_cartitems_cart ON cart_items;
 CREATE INDEX idx_cartitems_cart ON cart_items (cart_id);
-
-DROP INDEX IF EXISTS idx_reviews_product ON reviews;
 CREATE INDEX idx_reviews_product ON reviews (product_id);
-
-DROP INDEX IF EXISTS idx_spinwheel_phone ON spinwheel_entries;
 CREATE INDEX idx_spinwheel_phone ON spinwheel_entries (phone);
