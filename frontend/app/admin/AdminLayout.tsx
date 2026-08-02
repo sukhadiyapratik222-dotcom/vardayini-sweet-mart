@@ -48,6 +48,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: "/admin/settings", label: "Settings", icon: Settings },
   ];
 
+  const handleAdminLogout = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("auth_user");
+      window.location.href = "/admin/login";
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#FAF7F0] text-gray-900 flex flex-col">
       {/* Top Mobile Bar (visible below lg) */}
@@ -61,61 +70,60 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="text-[10px] text-gold font-bold uppercase tracking-wider block">Admin Control Room</span>
           </div>
         </div>
-        <button
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="p-2 rounded-lg bg-white/10 text-gold hover:bg-gold/20 transition"
-        >
-          {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleAdminLogout}
+            className="p-2 text-gold hover:bg-gold/20 rounded-lg transition"
+            title="Logout"
+          >
+            <LogOut size={20} />
+          </button>
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="p-2 rounded-lg bg-white/10 text-gold hover:bg-gold/20 transition"
+          >
+            {isMobileOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </header>
 
-      {/* Desktop Fixed Sidebar */}
-      <aside className="hidden lg:flex flex-col fixed top-0 left-0 h-screen w-72 bg-[#0B1B3D] border-r border-gold/30 z-40 p-6 overflow-y-auto scrollbar-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden text-white shadow-2xl">
+      {/* Desktop Sidebar (visible on lg+) */}
+      <aside className="hidden lg:flex flex-col fixed top-0 bottom-0 left-0 w-80 bg-[#0B1B3D] border-r border-gold/30 p-6 text-white shadow-xl z-30 overflow-y-auto">
         {/* Brand Header */}
-        <div className="pb-6 border-b border-gold/25">
-          <div className="flex items-center gap-3">
-            <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-gold shadow-md bg-[#0B1B3D]">
-              <Image src="/logo.png" alt="Vardayini Sweet Mart" fill sizes="48px" className="object-cover" />
-            </div>
-            <div>
-              <div className="inline-flex items-center gap-1 text-[10px] uppercase tracking-widest text-gold font-bold">
-                <ShieldCheck size={12} />
-                Control Room
-              </div>
-              <h1 className="text-lg font-extrabold text-white tracking-tight leading-tight mt-0.5">
-                Vardayini Sweet Mart
-              </h1>
-            </div>
+        <div className="pb-6 border-b border-gold/25 flex items-center gap-3">
+          <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-gold shadow-lg bg-[#0B1B3D]">
+            <Image src="/logo.png" alt="Vardayini Sweet Mart" fill sizes="48px" className="object-cover" priority />
           </div>
-          <p className="mt-2.5 text-xs text-gray-300 leading-relaxed">
-            Admin dashboard for catalog, inventory, stores, and orders.
-          </p>
+          <div>
+            <h1 className="text-lg font-black text-white leading-tight">Vardayini Sweet Mart</h1>
+            <span className="text-[11px] text-gold font-extrabold uppercase tracking-widest block">Admin Control Room</span>
+          </div>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="my-6 space-y-1.5 flex-1">
+        {/* Navigation Items */}
+        <nav className="my-6 space-y-2 flex-1">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href || (href !== "/admin" && pathname.startsWith(href));
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition ${
+                className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-semibold transition ${
                   isActive
                     ? "bg-gold text-[#0B1B3D] shadow-lg font-extrabold border border-gold"
-                    : "text-gray-200 hover:bg-gold/15 hover:text-gold border border-transparent"
+                    : "text-gray-200 hover:bg-gold/15 hover:text-gold"
                 }`}
               >
-                <Icon size={18} className={isActive ? "text-[#0B1B3D]" : "text-gold/80"} />
+                <Icon size={20} />
                 <span>{label}</span>
               </Link>
             );
           })}
 
-          <div className="pt-3 border-t border-gold/20 mt-4">
+          <div className="pt-4 border-t border-gold/20 mt-6">
             <Link
               href="/"
-              className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-bold text-gold hover:bg-gold/15 transition border border-gold/30"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-gold hover:bg-gold/15 transition border border-gold/30"
             >
               <Home size={16} />
               <span>Return to Storefront</span>
@@ -131,11 +139,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </div>
             <div className="truncate">
               <p className="text-xs font-bold text-white truncate">{user?.name || "Administrator"}</p>
-              <p className="text-[10px] text-gold/80 truncate">{user?.email || "admin@local"}</p>
+              <p className="text-[10px] text-gold/80 truncate">{user?.email || "admin@vardayinisweets.com"}</p>
             </div>
           </div>
           <button
-            onClick={logout}
+            onClick={handleAdminLogout}
             className="p-1.5 text-gray-300 hover:text-red-400 hover:bg-white/10 rounded-lg transition"
             title="Logout"
           >
