@@ -46,73 +46,8 @@ const defaultCategories = [
   { name: "Corporate Gift Boxes", slug: "corporate-gift-boxes" }
 ];
 
-const defaultSampleProducts: Product[] = [
-  {
-    id: "sweet-1",
-    name: "Royal Kaju Katli",
-    slug: "royal-kaju-katli",
-    categorySlug: "kaju-sweets",
-    category: { name: "Kaju Sweets", slug: "kaju-sweets" },
-    tag: "best_seller",
-    description: "Pure cashew sweet layered with authentic silver vark and 100% pure desi ghee.",
-    primaryImage: "/images/sweet-1.jpg",
-    imageUrls: ["/images/sweet-1.jpg"],
-    isActive: true,
-    variants: [
-      { id: "v1-1", weightLabel: "250g", price: 450, discountedPrice: 399, stockQty: 4, sku: "SKU-KAJU-250G" },
-      { id: "v1-2", weightLabel: "500g", price: 850, discountedPrice: 799, stockQty: 40, sku: "SKU-KAJU-500G" },
-      { id: "v1-3", weightLabel: "1kg", price: 1600, discountedPrice: 1450, stockQty: 25, sku: "SKU-KAJU-1KG" }
-    ]
-  },
-  {
-    id: "sweet-2",
-    name: "Special Motichoor Ladoo",
-    slug: "special-motichoor-ladoo",
-    categorySlug: "indian-ghee",
-    category: { name: "Indian Ghee", slug: "indian-ghee" },
-    tag: "best_seller",
-    description: "Melt-in-mouth golden Motichoor Ladoos made with pure A2 cow ghee and saffron.",
-    primaryImage: "/images/sweet-2.jpg",
-    imageUrls: ["/images/sweet-2.jpg"],
-    isActive: true,
-    variants: [
-      { id: "v2-1", weightLabel: "250g", price: 350, discountedPrice: 299, stockQty: 60, sku: "SKU-LADOO-250G" },
-      { id: "v2-2", weightLabel: "500g", price: 650, discountedPrice: 599, stockQty: 45, sku: "SKU-LADOO-500G" },
-      { id: "v2-3", weightLabel: "1kg", price: 1200, discountedPrice: 1100, stockQty: 30, sku: "SKU-LADOO-1KG" }
-    ]
-  },
-  {
-    id: "sweet-3",
-    name: "Sugarless Anjeer Dryfruit Roll",
-    slug: "sugarless-anjeer-dryfruit-roll",
-    categorySlug: "sugarless",
-    category: { name: "Sugarless", slug: "sugarless" },
-    tag: "new_arrival",
-    description: "Sugar-free luxury sweet made from premium Afghan figs, almonds, cashews & honey.",
-    primaryImage: "/images/sweet-3.jpg",
-    imageUrls: ["/images/sweet-3.jpg"],
-    isActive: true,
-    variants: [
-      { id: "v3-1", weightLabel: "250g", price: 550, discountedPrice: 499, stockQty: 3, sku: "SKU-ANJEER-250G" },
-      { id: "v3-2", weightLabel: "500g", price: 1050, discountedPrice: 950, stockQty: 20, sku: "SKU-ANJEER-500G" }
-    ]
-  },
-  {
-    id: "prod-kjuuuu",
-    name: "kaju katri 1111",
-    slug: "kjuuuu",
-    categorySlug: "kaju-sweets",
-    category: { name: "Kaju Sweets", slug: "kaju-sweets" },
-    tag: "best_seller",
-    description: "Special Kaju Katri 1111 prepared with premium cashews and pure ghee.",
-    primaryImage: "/images/sweet-1.jpg",
-    imageUrls: ["/images/sweet-1.jpg"],
-    isActive: true,
-    variants: [
-      { id: "vkj-1", weightLabel: "250g", price: 400, discountedPrice: 200, stockQty: 500, sku: "SKU-250G" }
-    ]
-  }
-];
+
+
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -143,29 +78,37 @@ export default function AdminProductsPage() {
     setLoading(true);
     let list: Product[] = [];
 
+    // 1. First: load from localStorage (admin-added products)
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("admin_products_catalog");
       if (stored) {
         try {
-          list = JSON.parse(stored);
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            list = parsed;
+          }
         } catch (e) {}
       }
     }
 
+    // 2. If localStorage empty, try API
     if (!list || list.length === 0) {
       try {
         const res = await fetch(`${API_BASE}/admin/products`);
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) list = data;
+          if (Array.isArray(data) && data.length > 0) {
+            list = data;
+            // Save API data to localStorage for offline use
+            if (typeof window !== "undefined") {
+              localStorage.setItem("admin_products_catalog", JSON.stringify(data));
+            }
+          }
         }
       } catch (err) {}
     }
 
-    if (!list || list.length === 0) {
-      list = defaultSampleProducts;
-    }
-
+    // 3. No products found at all — show empty list (NOT fake demo data)
     setProducts(list);
     setLoading(false);
   }
