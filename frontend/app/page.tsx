@@ -122,7 +122,7 @@ export default function HomePage() {
   const namkeenProducts = allProducts.filter((p) => p.category === "namkeen" || p.categorySlug === "gujarati" || p.categorySlug === "sev");
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#0D226B] via-[#0B1B3D] to-[#07122A] text-white">
+    <main className="min-h-screen bg-white text-gray-900">
       {/* Sticky Header with Logo, Search, Wishlist, Cart & Mega Menu */}
       <Header />
 
@@ -202,16 +202,16 @@ export default function HomePage() {
       </section>
 
       {/* Physical Outlets & Store Branches Section */}
-      <section className="px-4 sm:px-6 lg:px-8 py-12 bg-gradient-to-b from-[#0B1B3D] to-[#07122A] border-t border-gold/30">
+      <section className="px-4 sm:px-6 lg:px-8 py-12 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto space-y-8">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-gold/20 pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-gray-200 pb-4">
             <div>
-              <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-gold-bright uppercase tracking-widest bg-gold/20 px-3 py-1 rounded-full border border-gold/40 mb-2">
+              <div className="inline-flex items-center gap-1.5 text-xs font-extrabold text-gold-dark uppercase tracking-widest bg-gold/15 px-3 py-1 rounded-full border border-gold/30 mb-2">
                 <Store size={14} />
                 <span>Visit Us In Store</span>
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-gold-light">Our Store Outlets & Branches</h2>
-              <p className="text-xs sm:text-sm text-gray-300 mt-1">
+              <h2 className="text-2xl sm:text-4xl font-black text-[#0B1B3D]">Our Store Outlets &amp; Branches</h2>
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Experience fresh, authentic sweets, namkeen, and gift boxes at any of our physical outlets.
               </p>
             </div>
@@ -229,7 +229,7 @@ export default function HomePage() {
             {outlets.map((outlet: any) => (
               <div
                 key={outlet.id}
-                className="bg-[#0B2580]/80 backdrop-blur-sm rounded-2xl p-5 border-2 border-gold/40 shadow-md hover:shadow-2xl hover:border-gold/70 transition-all space-y-3 flex flex-col justify-between"
+                className="bg-white rounded-2xl p-5 border-2 border-gold/30 shadow-md hover:shadow-xl transition-all space-y-3 flex flex-col justify-between"
               >
                 <div className="space-y-2">
                   <div className="flex items-start justify-between gap-2">
