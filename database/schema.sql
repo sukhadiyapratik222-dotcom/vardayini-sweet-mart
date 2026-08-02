@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS products (
     tag VARCHAR(50) DEFAULT 'none', -- best_seller, new_arrival, premium, combo
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_products_active (is_active),
     FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
@@ -147,6 +148,7 @@ CREATE TABLE IF NOT EXISTS orders (
     time_slot VARCHAR(50),
     carrier_tracking_number VARCHAR(100),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_orders_status (status),
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE RESTRICT
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
@@ -238,7 +240,8 @@ CREATE TABLE IF NOT EXISTS spinwheel_entries (
     id INT AUTO_INCREMENT PRIMARY KEY,
     phone VARCHAR(15) NOT NULL,
     reward_code VARCHAR(50) NOT NULL,
-    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_spinwheel_phone (phone)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- 19. NEWSLETTER SUBSCRIBERS TABLE
@@ -247,17 +250,3 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
     email VARCHAR(150) UNIQUE NOT NULL,
     subscribed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
-
--- ============================================================
--- INDEXES FOR PERFORMANCE & FAST LOOKUPS
--- Note: UNIQUE columns (email, phone, slug, sku, order_number)
--- are automatically indexed by MySQL during CREATE TABLE.
--- ============================================================
-CREATE INDEX idx_products_category ON products (category_id);
-CREATE INDEX idx_products_active ON products (is_active);
-CREATE INDEX idx_variants_product ON product_variants (product_id);
-CREATE INDEX idx_orders_user ON orders (user_id);
-CREATE INDEX idx_orders_status ON orders (status);
-CREATE INDEX idx_cartitems_cart ON cart_items (cart_id);
-CREATE INDEX idx_reviews_product ON reviews (product_id);
-CREATE INDEX idx_spinwheel_phone ON spinwheel_entries (phone);
