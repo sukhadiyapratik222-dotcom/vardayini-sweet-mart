@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vardayini Sweet Mart - Customer Signup (Standalone Proof of Concept)</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0b1b3d;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background-color: #ffffff;
+      color: #333333;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      width: 100%;
+      max-width: 420px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #0b1b3d;
+      text-align: center;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cccccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #d4af37;
+      color: #0b1b3d;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #c59b27;
+    }
+    .message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 6px;
+      display: none;
+      font-size: 14px;
+    }
+    .message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+    .message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Create Account</h2>
+    <form id="signupForm">
+      <div class="form-group">
+        <label for="name">Full Name</label>
+        <input type="text" id="name" required placeholder="e.g. Pratik Sukhadiya">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input type="email" id="email" required placeholder="e.g. pratik@example.com">
+      </div>
+
+      <div class="form-group">
+        <label for="phone">Mobile Phone</label>
+        <input type="text" id="phone" required placeholder="e.g. 9876543210">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" required placeholder="******">
+      </div>
+
+      <button type="submit" id="submitBtn">Sign Up</button>
+    </form>
+
+    <div id="messageBox" class="message"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('signupForm');
+    const messageBox = document.getElementById('messageBox');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      const password = document.getElementById('password').value;
+
+      messageBox.className = 'message';
+      messageBox.style.display = 'none';
+
+      console.log('Sending signup request with payload:', { name, email, phone, password: '***' });
+
+      try {
+        const response = await fetch('http://localhost:5000/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ name, email, phone, password })
+        });
+
+        const data = await response.json();
+        console.log('Server response status:', response.status, 'Data:', data);
+
+        if (response.ok) {
+          messageBox.className = 'message success';
+          messageBox.innerHTML = `<strong>Success!</strong> Account created with User ID: <code>${data.userId}</code>`;
+          form.reset();
+        } else {
+          messageBox.className = 'message error';
+          messageBox.innerHTML = `<strong>Registration Failed:</strong> ${data.error || 'Unknown error'}`;
+        }
+      } catch (err) {
+        console.error('Fetch Error:', err);
+        messageBox.className = 'message error';
+        messageBox.innerHTML = `<strong>Network Error:</strong> Could not connect to backend server at http://localhost:5000`;
+      }
+    });
+  </script>
+</body>
+</html>

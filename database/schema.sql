@@ -6,7 +6,16 @@
 
 CREATE DATABASE IF NOT EXISTS vardayini_sweet_mart DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+SELECT id, name, email, phone
+FROM vardayini_sweet_mart.users
+WHERE
+    id = 'ea65573e-d738-402c-9198-38d7a3c8a385';
+
 USE vardayini_sweet_mart;
+
+DELETE FROM cart_items;
+
+DELETE FROM carts;
 
 -- 1. USERS TABLE
 CREATE TABLE IF NOT EXISTS users (

@@ -1,83 +1,62 @@
-================================================================================
-VARDAYINI SWEET MART — FULL STACK E-COMMERCE & ADMIN SYSTEM SETUP GUIDE
-================================================================================
+============================================================
+VARDAYINI SWEET MART - MINIMAL SIGNUP PROOF OF CONCEPT (POC)
+============================================================
 
-DIRECTORY STRUCTURE:
---------------------
-/frontend         - Customer storefront Next.js App (React + Tailwind + TypeScript)
-/admin            - Admin Dashboard Management Portal (/admin/products, /admin/login)
-/backend          - Node.js Express Backend API (TypeScript + Prisma + MySQL)
-/database         - DDL MySQL Database Schema file (schema.sql)
-/.env.example     - Sample Environment File with DB & JWT secret keys
+This is a standalone, 100% working proof-of-concept for user registration 
+connecting directly to your MySQL database.
 
-================================================================================
-STEP-BY-STEP INSTALLATION & DEPLOYMENT INSTRUCTIONS (VPS / SHARED HOSTING)
-================================================================================
+------------------------------------------------------------
+STEP 1: INSTALL BACKEND DEPENDENCIES
+------------------------------------------------------------
+Open PowerShell / Terminal in the `backend` folder and run:
 
-1. MYSQL DATABASE SETUP:
-------------------------
-  a. Open phpMyAdmin or MySQL Command Line Interface on your server.
-  b. Create a database named: vardayini_sweet_mart
-  c. Import the database schema file:
-     Import -> Choose File -> /database/schema.sql -> Go / Execute
+  cd backend
+  npm install express mysql2 bcryptjs cors dotenv
 
-2. BACKEND API SETUP & CONFIGURATION:
--------------------------------------
-  a. Navigate to the backend directory:
-     cd backend
+------------------------------------------------------------
+STEP 2: IMPORT THE MYSQL DATABASE SCHEMA
+------------------------------------------------------------
+Run this SQL in phpMyAdmin, MySQL Workbench, or MySQL CLI:
 
-  b. Install dependencies:
-     npm install
+  & "C:\Program Files\MySQL\MySQL Server 8.0\bin\mysql.exe" -u user -p123 < database/schema.sql
 
-  c. Create and configure your .env file:
-     Copy .env.example to .env:
-     
-     DB_HOST=127.0.0.1
-     DB_PORT=3306
-     DB_USER=root
-     DB_PASS=your_mysql_password
-     DB_NAME=vardayini_sweet_mart
-     DATABASE_URL="mysql://root:your_mysql_password@127.0.0.1:3306/vardayini_sweet_mart"
-     PORT=4000
-     JWT_SECRET=vardayini_super_secret_jwt_key_2026_production
-     NEXT_PUBLIC_API_URL=http://localhost:4000/api
+Or in phpMyAdmin / MySQL Workbench SQL window:
+  Open file: database/schema.sql and click EXECUTE.
 
-  d. Build and run the Backend API server:
-     npm run build
-     npm run start
-     (Or use PM2 for background process management: pm2 start dist/server.js --name "vardayini-backend")
+------------------------------------------------------------
+STEP 3: START THE EXPRESS BACKEND SERVER
+------------------------------------------------------------
+Inside the `backend` folder, run:
 
-3. FRONTEND & ADMIN DASHBOARD SETUP:
-------------------------------------
-  a. Open another terminal and navigate to the frontend directory:
-     cd frontend
+  node server.js
 
-  b. Install dependencies:
-     npm install
+You will see:
+  [DB] Connecting to MySQL database: vardayini_sweet_mart
+  [DB] DATABASE CONNECTED OK
+  ================================================
+  Server running on port http://localhost:5000
+  API Endpoint: http://localhost:5000/api/auth/register
+  ================================================
 
-  c. Create .env.local file:
-     NEXT_PUBLIC_API_URL=http://localhost:4000/api
+------------------------------------------------------------
+STEP 4: TEST THE SIGNUP FORM
+------------------------------------------------------------
+Open `frontend/signup.html` directly in your browser:
+Double-click `frontend/signup.html` or open in Chrome:
 
-  d. Build and start the Frontend & Admin Web Server:
-     npm run build
-     npm run start
-     (Or use PM2: pm2 start npm --name "vardayini-frontend" -- start)
+  file:///C:/Users/sukha/OneDrive/Desktop/dec 2/New folder (2)/new project/frontend/signup.html
 
-================================================================================
-ADMIN DASHBOARD LOGIN & CREDENTIALS:
-================================================================================
-- URL: http://localhost:3000/admin/login
-- Sign In or Register Admin Account:
-  Email: admin@vardayini.com
-  Password: adminpassword
-  Admin Secret Key (Sign Up mode): ADMIN123
+1. Enter Name: Test User
+2. Enter Email: testuser@gmail.com
+3. Enter Phone: 9876543210
+4. Enter Password: 123456
+5. Click [Sign Up]
 
-================================================================================
-SYSTEM BEHAVIOR CONFIRMED:
-================================================================================
-✓ Live Product Updates: Products created/edited in Admin reflect instantly on Storefront.
-✓ Inactive Product Guard: Products set to Inactive (isActive = false) are hidden immediately.
-✓ Out of Stock Guard: 0 stock variants display "Out of Stock" button badge & disable checkout.
-✓ Multi-Variant Pricing: Product cards display lowest variant price or price range.
-✓ Category Delete Guard: Blocks deletion of categories with attached products.
-================================================================================
+------------------------------------------------------------
+STEP 5: VERIFY IN MYSQL DATABASE DIRECTLY
+------------------------------------------------------------
+Run this query in phpMyAdmin or MySQL CLI to confirm data landed:
+
+  SELECT * FROM users ORDER BY id DESC LIMIT 5;
+
+You will see the new row with your hashed password!
