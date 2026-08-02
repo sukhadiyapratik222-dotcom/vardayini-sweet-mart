@@ -51,21 +51,23 @@ export default function Header() {
 
             {user ? (
               <>
-                <span className="text-gold-light font-medium hidden sm:inline truncate max-w-[80px]">{t.hello}, {user.name}</span>
+                <span className="text-gold-light font-medium truncate max-w-[100px]">{t.hello}, {user.name}</span>
                 {user.isAdmin ? (
-                  <Link href="/admin/products" className="hover:text-gold-bright transition font-semibold text-amber-300 hidden sm:inline">{t.adminPortal}</Link>
+                  <Link href="/admin/products" className="hover:text-gold-bright transition font-bold text-amber-300 px-1">{t.adminPortal}</Link>
                 ) : (
-                  <Link href="/account/profile" className="hover:text-gold-bright transition hidden sm:inline">{t.dashboard}</Link>
+                  <Link href="/account/profile" className="hover:text-gold-bright transition font-semibold px-1">{t.dashboard}</Link>
                 )}
-                <button onClick={logout} className="hover:text-gold-bright transition flex items-center gap-1 hidden sm:flex">
+                <button onClick={logout} className="hover:text-gold-bright transition flex items-center gap-1">
                   <LogOut size={13} /> {t.logout}
                 </button>
               </>
             ) : (
               <>
-                <Link href="/login" className="hover:text-gold-bright transition hidden sm:inline">{t.signIn}</Link>
-                <Link href="/signup" className="hover:text-gold-bright transition hidden sm:inline">{t.signUp}</Link>
-                <Link href="/admin/login" className="hover:text-gold-bright transition text-amber-300 font-semibold hidden sm:inline">{t.admin}</Link>
+                <Link href="/login" className="hover:text-gold-bright transition font-semibold px-1">{t.signIn}</Link>
+                <span className="text-gold-light/40">|</span>
+                <Link href="/signup" className="hover:text-gold-bright transition font-semibold px-1">{t.signUp}</Link>
+                <span className="text-gold-light/40">|</span>
+                <Link href="/admin/login" className="hover:text-gold-bright transition text-amber-300 font-extrabold px-1">{t.admin}</Link>
               </>
             )}
           </div>
