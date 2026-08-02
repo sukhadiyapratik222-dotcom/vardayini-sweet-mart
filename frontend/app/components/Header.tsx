@@ -94,8 +94,10 @@ export default function Header() {
 
           {/* Top mega-menu navigation */}
           <nav className="hidden xl:flex items-center gap-1 shrink-0">
-            {categoryKeys.map((key) => {
+            {/* Primary Main Categories: Sweets, Namkeen, Bakery */}
+            {["sweets", "namkeen", "bakery"].map((key) => {
               const cat = categories[key as keyof typeof categories];
+              if (!cat) return null;
               const hasSubcategories = cat.subcategories && cat.subcategories.length > 0;
 
               return (
@@ -130,6 +132,55 @@ export default function Header() {
                 </div>
               );
             })}
+
+            {/* "Our Special" Unified Dropdown Menu */}
+            <div
+              className="relative group"
+              onMouseEnter={() => setActiveMenu("our-special")}
+              onMouseLeave={() => setActiveMenu(null)}
+            >
+              <button
+                type="button"
+                className="px-3 py-2 text-sm font-extrabold text-gold-bright hover:text-white transition flex items-center gap-1 whitespace-nowrap"
+              >
+                <span>Our Special 🌟</span>
+                <ChevronDown size={14} className="text-gold group-hover:text-white" />
+              </button>
+
+              {/* Our Special Dropdown Items */}
+              <div className="absolute left-0 mt-0 w-60 bg-[#0B1B3D] border-2 border-gold/50 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <Link
+                  href="/categories/mukhwas"
+                  className="block px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5"
+                >
+                  🍃 Mukhwas
+                </Link>
+                <Link
+                  href="/categories/dry-fruits-nuts"
+                  className="block px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5"
+                >
+                  🥜 Dried Fruits & Nuts
+                </Link>
+                <Link
+                  href="/categories/premium-baklava"
+                  className="block px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5"
+                >
+                  🍯 Premium Baklava
+                </Link>
+                <Link
+                  href="/categories/corporate-gifts"
+                  className="block px-4 py-2.5 text-xs font-bold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5"
+                >
+                  🎁 Corporate Gifts
+                </Link>
+                <Link
+                  href="/categories/sweets/premium-packed"
+                  className="block px-4 py-2.5 text-xs font-bold text-gold-bright hover:bg-gold/20 transition"
+                >
+                  ✨ Festive Gift Boxes
+                </Link>
+              </div>
+            </div>
 
             {/* Outlets Link */}
             <Link
