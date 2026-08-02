@@ -14,6 +14,8 @@ interface Outlet {
   latitude?: number;
   longitude?: number;
   hours?: string;
+  imageUrl?: string;
+  mapEmbedUrl?: string;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
@@ -32,6 +34,8 @@ export default function AdminStoresPage() {
   const [phone, setPhone] = useState("+91 98765 43210");
   const [lat, setLat] = useState("21.1702");
   const [lng, setLng] = useState("72.8311");
+  const [imageUrl, setImageUrl] = useState("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800");
+  const [mapEmbedUrl, setMapEmbedUrl] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -73,6 +77,7 @@ export default function AdminStoresPage() {
           latitude: 21.1702,
           longitude: 72.8311,
           hours: "8:00 AM - 10:00 PM",
+          imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800",
         },
         {
           id: "store-surat-2",
@@ -84,17 +89,7 @@ export default function AdminStoresPage() {
           latitude: 21.2049,
           longitude: 72.8406,
           hours: "7:30 AM - 10:30 PM",
-        },
-        {
-          id: "store-ahmedabad-1",
-          name: "Vardayini Sweet Mart - Navrangpura",
-          address: "78 CG Road, Navrangpura",
-          city: "Ahmedabad",
-          pincode: "380009",
-          phone: "+91 98765 43212",
-          latitude: 23.0366,
-          longitude: 72.5612,
-          hours: "9:00 AM - 9:30 PM",
+          imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800",
         },
       ];
     }
@@ -112,6 +107,8 @@ export default function AdminStoresPage() {
     setPhone("+91 98765 43210");
     setLat("21.1702");
     setLng("72.8311");
+    setImageUrl("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800");
+    setMapEmbedUrl("");
     setShowModal(true);
   }
 
@@ -124,6 +121,8 @@ export default function AdminStoresPage() {
     setPhone(store.phone || "+91 98765 43210");
     setLat(String(store.latitude ?? "21.1702"));
     setLng(String(store.longitude ?? "72.8311"));
+    setImageUrl(store.imageUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800");
+    setMapEmbedUrl(store.mapEmbedUrl || "");
     setShowModal(true);
   }
 
@@ -140,6 +139,8 @@ export default function AdminStoresPage() {
       latitude: Number(lat),
       longitude: Number(lng),
       hours: "8:00 AM - 10:00 PM",
+      imageUrl: imageUrl.trim() || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800",
+      mapEmbedUrl: mapEmbedUrl.trim() || undefined,
     };
 
     let updatedStores: Outlet[] = [];
@@ -328,7 +329,7 @@ export default function AdminStoresPage() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Vardayini Sweet Mart - Adajan Outlet"
+                  placeholder="e.g. Vardayini Sweet Mart - Rupal Outlet"
                   className="w-full border border-gray-300 p-2.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-gold"
                 />
               </div>
@@ -376,12 +377,67 @@ export default function AdminStoresPage() {
                 />
               </div>
 
+              {/* Shop Background Photo URL */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">Shop Photo / Background Image URL</label>
+                <input
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-... or /images/store-banner.jpg"
+                  className="w-full border border-gray-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold"
+                />
+                <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-gray-500">
+                  <span>Quick sample photos:</span>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl("https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800")}
+                    className="text-amber-700 underline font-bold"
+                  >
+                    Modern Outlet
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl("https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800")}
+                    className="text-amber-700 underline font-bold"
+                  >
+                    Traditional Mart
+                  </button>
+                </div>
+              </div>
+
+              {/* Google Maps Location / Embed URL */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-gray-700">Google Maps Link / Search Location</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (name || address) {
+                        const searchQuery = `${name || "Vardayini Sweet Mart"}, ${address}, ${city} ${pincode}`;
+                        const gMapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(searchQuery)}`;
+                        window.open(gMapUrl, "_blank");
+                      }
+                    }}
+                    className="text-[11px] text-amber-700 hover:underline font-extrabold flex items-center gap-1"
+                  >
+                    <Compass size={12} /> Open in Google Maps ↗
+                  </button>
+                </div>
+                <input
+                  value={mapEmbedUrl}
+                  onChange={(e) => setMapEmbedUrl(e.target.value)}
+                  placeholder="Google Maps Embed URL or paste custom map link..."
+                  className="w-full border border-gray-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1">Latitude</label>
                   <input
                     value={lat}
                     onChange={(e) => setLat(e.target.value)}
+                    placeholder="e.g. 21.1702"
                     className="w-full border border-gray-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold"
                   />
                 </div>
@@ -390,7 +446,37 @@ export default function AdminStoresPage() {
                   <input
                     value={lng}
                     onChange={(e) => setLng(e.target.value)}
+                    placeholder="e.g. 72.8311"
                     className="w-full border border-gray-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold"
+                  />
+                </div>
+              </div>
+
+              {/* Live Preview Section inside Modal */}
+              <div className="p-3 bg-slate-900 rounded-2xl text-white space-y-2 border border-amber-500/30">
+                <div className="flex items-center justify-between text-[11px] font-bold text-amber-400">
+                  <span>Live Preview (Shop Background & Map)</span>
+                  <span>{city}</span>
+                </div>
+
+                {imageUrl && (
+                  <div className="h-24 rounded-xl overflow-hidden relative border border-amber-400/30 shadow-inner">
+                    <img src={imageUrl} alt="Storefront Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-2 flex flex-col justify-end">
+                      <span className="text-xs font-extrabold text-amber-300">{name || "Branch Name"}</span>
+                      <span className="text-[10px] text-gray-200">{address}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div className="h-28 rounded-xl overflow-hidden border border-amber-400/30">
+                  <iframe
+                    title="Google Map Preview"
+                    width="100%"
+                    height="100%"
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent((name || "") + " " + address + " " + city + " " + pincode)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
                   />
                 </div>
               </div>

@@ -17,6 +17,8 @@ interface PhysicalOutlet {
   latitude?: number | null;
   longitude?: number | null;
   hours?: string;
+  imageUrl?: string;
+  mapEmbedUrl?: string;
 }
 
 const defaultOutlets: PhysicalOutlet[] = [
@@ -30,6 +32,7 @@ const defaultOutlets: PhysicalOutlet[] = [
     latitude: 21.1702,
     longitude: 72.8311,
     hours: "8:00 AM - 10:00 PM",
+    imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800",
   },
   {
     id: "store-surat-2",
@@ -41,6 +44,7 @@ const defaultOutlets: PhysicalOutlet[] = [
     latitude: 21.2049,
     longitude: 72.8406,
     hours: "7:30 AM - 10:30 PM",
+    imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800",
   },
   {
     id: "store-ahmedabad-1",
@@ -52,6 +56,7 @@ const defaultOutlets: PhysicalOutlet[] = [
     latitude: 23.0366,
     longitude: 72.5612,
     hours: "9:00 AM - 9:30 PM",
+    imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800",
   },
   {
     id: "store-vadodara-1",
@@ -63,6 +68,7 @@ const defaultOutlets: PhysicalOutlet[] = [
     latitude: 22.3107,
     longitude: 73.1685,
     hours: "8:30 AM - 10:00 PM",
+    imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800",
   },
   {
     id: "store-delhi-1",
@@ -74,6 +80,7 @@ const defaultOutlets: PhysicalOutlet[] = [
     latitude: 28.6500,
     longitude: 77.2300,
     hours: "8:00 AM - 9:00 PM",
+    imageUrl: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800",
   },
 ];
 
@@ -260,52 +267,62 @@ export default function StoresPage() {
                   <div
                     key={outlet.id}
                     onClick={() => setSelectedOutlet(outlet)}
-                    className={`cursor-pointer rounded-2xl p-5 border transition space-y-3 ${
+                    className={`cursor-pointer rounded-2xl border transition overflow-hidden shadow-sm ${
                       isSelected
                         ? "bg-white border-2 border-gold shadow-md"
-                        : "bg-white/80 border-gray-200 hover:border-gold/50 shadow-sm"
+                        : "bg-white border-gray-200 hover:border-gold/50"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-[#0B1B3D] text-gold flex items-center justify-center font-bold text-xs flex-shrink-0 border border-gold/30">
-                          <Store size={16} />
-                        </div>
-                        <div>
-                          <h3 className="font-extrabold text-[#0B1B3D] text-sm leading-tight">{outlet.name}</h3>
-                          <span className="text-[10px] text-gold-dark font-bold">
-                            {outlet.city} • PIN {outlet.pincode}
+                    {/* Shop Photo Header Banner */}
+                    <div className="h-28 w-full relative overflow-hidden bg-slate-900">
+                      <img
+                        src={outlet.imageUrl || "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800"}
+                        alt={outlet.name}
+                        className="w-full h-full object-cover opacity-85 group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#0B1B3D] via-[#0B1B3D]/40 to-transparent p-3 flex flex-col justify-between">
+                        <div className="flex items-center justify-between">
+                          <span className="bg-[#0B1B3D]/90 text-gold text-[10px] font-black px-2.5 py-0.5 rounded-full border border-gold/40">
+                            {outlet.city}
                           </span>
+                          {isSelected && (
+                            <span className="bg-gold text-[#0B1B3D] text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1 shadow">
+                              <CheckCircle size={10} /> Active
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="font-extrabold text-white text-sm drop-shadow">{outlet.name}</h3>
+                      </div>
+                    </div>
+
+                    <div className="p-4 space-y-2.5">
+                      <div className="space-y-1 text-xs text-gray-600">
+                        <div className="flex items-start gap-2">
+                          <MapPin size={14} className="text-gold-dark flex-shrink-0 mt-0.5" />
+                          <span>{outlet.address}, {outlet.city} - {outlet.pincode}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Phone size={14} className="text-gold-dark flex-shrink-0" />
+                          <span className="font-semibold text-gray-800">{outlet.phone}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock size={14} className="text-gold-dark flex-shrink-0" />
+                          <span>Hours: {outlet.hours || "8:00 AM - 10:00 PM"}</span>
                         </div>
                       </div>
 
-                      {isSelected && (
-                        <span className="bg-gold text-[#0B1B3D] text-[10px] font-extrabold px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <CheckCircle size={10} /> Active Pin
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="space-y-1.5 text-xs text-gray-600 pl-1">
-                      <div className="flex items-start gap-2">
-                        <MapPin size={14} className="text-gold-dark flex-shrink-0 mt-0.5" />
-                        <span>{outlet.address}, {outlet.city} - {outlet.pincode}</span>
+                      <div className="pt-2 flex items-center justify-between border-t border-gray-100 text-[11px]">
+                        <span className="text-green-700 font-bold">✓ Fresh Sweets & In-Store Pickup</span>
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(outlet.name + ", " + outlet.address + ", " + outlet.city)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-gold-dark font-extrabold hover:underline flex items-center gap-1"
+                        >
+                          Google Maps ↗
+                        </a>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Phone size={14} className="text-gold-dark flex-shrink-0" />
-                        <span className="font-semibold text-gray-800">{outlet.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock size={14} className="text-gold-dark flex-shrink-0" />
-                        <span>Hours: {outlet.hours || "8:00 AM - 10:00 PM"}</span>
-                      </div>
-                    </div>
-
-                    <div className="pt-2 flex items-center justify-between border-t border-gray-100 text-[11px]">
-                      <span className="text-green-700 font-bold">✓ Fresh Sweets & In-Store Pickup</span>
-                      <span className="text-gold-dark font-bold hover:underline flex items-center gap-1">
-                        Map View →
-                      </span>
                     </div>
                   </div>
                 );
