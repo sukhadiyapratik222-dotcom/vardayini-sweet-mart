@@ -74,8 +74,9 @@ router.post("/register", async (req, res) => {
 // PUT /api/auth/profile
 router.put("/profile", async (req, res) => {
   try {
-    const { id, name, email, phone } = req.body;
+    const { id, name, email, phone, password } = req.body;
     const cleanPhone = phone ? String(phone).trim() : null;
+    const passwordHash = password && String(password).trim().length >= 6 ? bcrypt.hashSync(String(password).trim(), 10) : undefined;
 
     let user;
 
@@ -86,6 +87,7 @@ router.put("/profile", async (req, res) => {
           name: name ? String(name).trim() : undefined,
           email: email ? String(email).trim() : undefined,
           phone: cleanPhone || undefined,
+          passwordHash: passwordHash || undefined,
         },
       });
     } else if (email) {
@@ -94,6 +96,7 @@ router.put("/profile", async (req, res) => {
         data: {
           name: name ? String(name).trim() : undefined,
           phone: cleanPhone || undefined,
+          passwordHash: passwordHash || undefined,
         },
       });
     } else {
@@ -161,13 +164,16 @@ router.post("/admin/register", async (req, res) => {
 
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required." });
+  const { email, phone, password } = req.body;
+  const loginKey = String(email || phone || "").trim();
+  if (!loginKey || !password) {
+    return res.status(400).json({ error: "Email/phone and password are required." });
   }
 
   // 1. First check admins table
-  const admin = await prisma.admin.findUnique({ where: { email } });
+  const admin = await prisma.admin.findFirst({
+    where: { OR: [{ email: loginKey }, { phone: loginKey }] },
+  });
   if (admin) {
     const isPasswordValid = bcrypt.compareSync(password, admin.passwordHash) || password === admin.passwordHash;
     if (isPasswordValid) {
@@ -180,10 +186,12 @@ router.post("/login", async (req, res) => {
   }
 
   // 2. Check users table for customer login
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findFirst({
+    where: { OR: [{ email: loginKey }, { phone: loginKey }] },
+  });
   const isPasswordValid = user ? (bcrypt.compareSync(password, user.passwordHash) || password === user.passwordHash) : false;
   if (!user || !isPasswordValid) {
-    return res.status(401).json({ error: "Invalid email or password." });
+    return res.status(401).json({ error: "Invalid credentials or password." });
   }
 
   const token = jwt.sign({ userId: user.id, isAdmin: user.isAdmin }, secret, { expiresIn: "7d" });
