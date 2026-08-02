@@ -12,13 +12,14 @@ USE vardayini_sweet_mart;
 
 -- 1. USERS TABLE
 CREATE TABLE IF NOT EXISTS users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id VARCHAR(50) NOT NULL,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     phone VARCHAR(15) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('customer', 'admin', 'staff') DEFAULT 'customer',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    role VARCHAR(50) DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- 2. SAVED ADDRESSES TABLE
@@ -253,18 +254,19 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 
 -- 20. ADMINS TABLE (Dedicated table for Admin Control Room accounts)
 CREATE TABLE IF NOT EXISTS admins (
-    id INT AUTO_INCREMENT PRIMARY KEY,
+    id VARCHAR(50) NOT NULL,
     name VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     phone VARCHAR(15) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(50) DEFAULT 'admin',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
 
 -- ============================================================
 -- DEFAULT SEED ADMIN ACCOUNT IN ADMINS TABLE
 -- Email: admin@vardayinisweets.com | Password: admin1234
 -- ============================================================
-INSERT IGNORE INTO admins (name, email, phone, password_hash, role) 
-VALUES ('Admin Owner', 'admin@vardayinisweets.com', '+91 98765 43210', '$2a$10$w8T0M/p3.x1Wq234g56789uYp0W/xV1.9/W2r1.9', 'admin');
+INSERT IGNORE INTO admins (id, name, email, phone, password_hash, role) 
+VALUES ('admin-seed-1', 'Admin Owner', 'admin@vardayinisweets.com', '+91 98765 43210', '$2a$10$w8T0M/p3.x1Wq234g56789uYp0W/xV1.9/W2r1.9', 'admin');
