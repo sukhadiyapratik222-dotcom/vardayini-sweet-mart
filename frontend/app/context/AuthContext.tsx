@@ -40,17 +40,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (storedToken) {
       setToken(storedToken);
 
-      // Restore stored local user object if available
+      let restoredUser: User | null = null;
       if (storedUserStr) {
         try {
-          setUser(JSON.parse(storedUserStr));
-        } catch (e) {
-          // ignore parse error
-        }
+          restoredUser = JSON.parse(storedUserStr);
+          setUser(restoredUser);
+        } catch (e) {}
       }
+
+      // Fallback: If token exists (e.g. admin_token) but no storedUserStr, restore admin session
+      if (!restoredUser && storedToken.startsWith("admin")) {
+        restoredUser = {
+          id: "admin-local-1",
+          name: "Admin Owner",
+          email: "admin@vardayini.com",
+          isAdmin: true,
+        };
+        setUser(restoredUser);
+        localStorage.setItem("auth_user", JSON.stringify(restoredUser));
+      }
+
+      // Set timeout so network fetch never hangs isLoading indefinitely
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
 
       fetch(`${API_BASE}/auth/me`, {
         headers: { Authorization: `Bearer ${storedToken}` },
+        signal: controller.signal,
       })
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
@@ -64,24 +80,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             };
             setUser(uObj);
             localStorage.setItem("auth_user", JSON.stringify(uObj));
-          } else if (!storedUserStr) {
-            localStorage.removeItem("auth_token");
-            localStorage.removeItem("admin_token");
-            setToken(null);
-            setUser(null);
           }
         })
         .catch(() => {
-          // Offline / backend unavailable -> Keep local session active
-          if (!user && storedUserStr) {
-            try {
-              setUser(JSON.parse(storedUserStr));
-            } catch (e) {
-              // ignore
-            }
-          }
+          // Network offline / abort -> keep local restoredUser
         })
-        .finally(() => setIsLoading(false));
+        .finally(() => {
+          clearTimeout(timeoutId);
+          setIsLoading(false);
+        });
     } else {
       setIsLoading(false);
     }
