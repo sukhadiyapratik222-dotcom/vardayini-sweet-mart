@@ -25,8 +25,14 @@ interface SavedAddress {
 }
 
 export default function ProfileDashboardPage() {
-  const { user, login } = useAuth();
+  const { user, login, isLoading } = useAuth();
   const { addToCart, setIsOpen } = useCart();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      window.location.href = "/login";
+    }
+  }, [user, isLoading]);
 
   const [activeTab, setActiveTab] = useState<'profile' | 'addresses' | 'wishlist' | 'orders'>('profile');
 

@@ -108,9 +108,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("admin_token");
-    localStorage.removeItem("auth_user");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("admin_token");
+      localStorage.removeItem("auth_user");
+      window.location.href = "/";
+    }
   };
 
   return (
