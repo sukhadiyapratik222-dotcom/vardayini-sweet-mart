@@ -1,4 +1,4 @@
--- Active: 1785433203832@@127.0.0.1@3306@sweet_shop
+-- Active: 1785433203832@@127.0.0.1@3306@sweet_shopp
 -- Active: 1785433203832@@127.0.0.1@3306@sweet_shop
 -- ============================================================
 -- VARDAYINI SWEET MART - MYSQL 8+ DATABASE SCHEMA
@@ -252,8 +252,6 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 -- Note: UNIQUE columns (email, phone, slug, sku, order_number)
 -- are automatically indexed by MySQL during CREATE TABLE.
 -- ============================================================
-
--- Additional non-unique performance indexes
 CREATE INDEX idx_products_category ON products (category_id);
 CREATE INDEX idx_products_active ON products (is_active);
 CREATE INDEX idx_variants_product ON product_variants (product_id);
