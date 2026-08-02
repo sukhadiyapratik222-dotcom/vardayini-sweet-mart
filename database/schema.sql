@@ -1,4 +1,5 @@
--- Active: 1785433203832@@127.0.0.1@3306@sweet_shopp
+-- Active: 1785433203832@@127.0.0.1@3306@sweet_shop
+
 -- Active: 1785433203832@@127.0.0.1@3306@sweet_shop
 -- ============================================================
 -- VARDAYINI SWEET MART - MYSQL 8+ DATABASE SCHEMA
