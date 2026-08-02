@@ -89,17 +89,14 @@ export default function HomePage() {
   const namkeenProducts = allProducts.filter((p) => p.category === "namkeen" || p.categorySlug === "gujarati" || p.categorySlug === "sev");
 
   return (
-    <main className="min-h-screen bg-white text-gray-900 relative overflow-hidden">
-      {/* Decorative floral corner motifs across the full page */}
-      <CornerMotif position="all" size={170} />
-
+    <main className="min-h-screen bg-white text-gray-900">
       {/* Sticky Header with Logo, Search, Wishlist, Cart & Mega Menu */}
       <Header />
 
       {/* Scrolling Promo Ticker */}
       <PromoTicker />
 
-      {/* Hero Banner Carousel */}
+      {/* Hero Banner - Full Width */}
       <HeroCarousel />
 
       {/* Horizontal Product Sliders Driven by Product Tag Field */}
