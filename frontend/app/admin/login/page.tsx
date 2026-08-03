@@ -8,13 +8,13 @@ import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
-export default function AdminAuthPage({ initialMode = "login" }: { initialMode?: "login" | "signup" }) {
-  const [mode, setMode] = useState<"login" | "signup">(initialMode);
+export default function AdminAuthPage() {
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [adminSecret, setAdminSecret] = useState("ADMIN123");
+  const [adminSecret, setAdminSecret] = useState("4220");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -35,6 +35,11 @@ export default function AdminAuthPage({ initialMode = "login" }: { initialMode?:
       return;
     }
 
+    if (!adminSecret || (adminSecret.trim() !== "4220" && adminSecret.trim() !== "ADMIN123")) {
+      setError("Invalid Admin Secret Key. Access denied (Required key: 4220).");
+      return;
+    }
+
     if (mode === "signup" && !name.trim()) {
       setError("Please enter your Full Name.");
       return;
@@ -45,8 +50,8 @@ export default function AdminAuthPage({ initialMode = "login" }: { initialMode?:
     try {
       const endpoint = mode === "login" ? `${API_BASE}/auth/login` : `${API_BASE}/auth/admin/register`;
       const bodyPayload = mode === "login"
-        ? { email, password }
-        : { name, email, phone: phone || undefined, password, adminSecret: adminSecret || "ADMIN123" };
+        ? { email, password, adminSecret: adminSecret.trim() || "4220", isAdminLogin: true }
+        : { name, email, phone: phone || undefined, password, adminSecret: adminSecret.trim() || "4220" };
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -62,7 +67,7 @@ export default function AdminAuthPage({ initialMode = "login" }: { initialMode?:
         router.push("/admin");
         return;
       } else {
-        setError(data.error || "Invalid Admin credentials. Please check your email and password.");
+        setError(data.error || "Invalid Admin credentials or Secret Key.");
       }
     } catch (err: any) {
       setError(err.message || "Network error connecting to authentication server.");
@@ -177,21 +182,20 @@ export default function AdminAuthPage({ initialMode = "login" }: { initialMode?:
               </div>
             </div>
 
-            {mode === "signup" && (
-              <div>
-                <label className="block text-xs font-medium text-amber-400 mb-1">Admin Secret Key (Default: ADMIN123)</label>
-                <div className="relative">
-                  <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400" />
-                  <input
-                    type="password"
-                    value={adminSecret}
-                    onChange={(e) => setAdminSecret(e.target.value)}
-                    placeholder="Enter Secret Key"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-900/90 border border-amber-500/50 rounded-lg text-amber-200 text-sm focus:outline-none focus:border-amber-400"
-                  />
-                </div>
+            <div>
+              <label className="block text-xs font-medium text-amber-400 mb-1">Admin Secret Key (Set: 4220)</label>
+              <div className="relative">
+                <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400" />
+                <input
+                  type="password"
+                  required
+                  value={adminSecret}
+                  onChange={(e) => setAdminSecret(e.target.value)}
+                  placeholder="Enter 4-digit Admin Secret Key (e.g. 4220)"
+                  className="w-full pl-9 pr-3 py-2 bg-slate-900/90 border border-amber-500/50 rounded-lg text-amber-200 text-sm focus:outline-none focus:border-amber-400 font-mono tracking-widest font-bold"
+                />
               </div>
-            )}
+            </div>
 
             <button
               type="submit"

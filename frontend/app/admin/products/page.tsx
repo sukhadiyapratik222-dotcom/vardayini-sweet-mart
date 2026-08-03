@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import AdminLayout from "../AdminLayout";
+import { products as initialDefaultProducts } from "../../data";
 import {
   Plus,
   Trash2,
@@ -78,37 +79,40 @@ export default function AdminProductsPage() {
     setLoading(true);
     let list: Product[] = [];
 
-    // 1. First: load from localStorage (admin-added products)
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem("admin_products_catalog");
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            list = parsed;
-          }
-        } catch (e) {}
+    // 1. Try API first
+    try {
+      const res = await fetch(`${API_BASE}/admin/products`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          list = data;
+        }
+      }
+    } catch (err) {}
+
+    // 2. Try localStorage if API returns empty
+    if (!list || list.length === 0) {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("admin_products_catalog");
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              list = parsed;
+            }
+          } catch (e) {}
+        }
       }
     }
 
-    // 2. If localStorage empty, try API
+    // 3. Fallback to initial storefront catalog from data.ts
     if (!list || list.length === 0) {
-      try {
-        const res = await fetch(`${API_BASE}/admin/products`);
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data) && data.length > 0) {
-            list = data;
-            // Save API data to localStorage for offline use
-            if (typeof window !== "undefined") {
-              localStorage.setItem("admin_products_catalog", JSON.stringify(data));
-            }
-          }
-        }
-      } catch (err) {}
+      list = initialDefaultProducts;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("admin_products_catalog", JSON.stringify(initialDefaultProducts));
+      }
     }
 
-    // 3. No products found at all — show empty list (NOT fake demo data)
     setProducts(list);
     setLoading(false);
   }

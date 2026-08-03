@@ -96,14 +96,16 @@ export default function HomePage() {
       {/* Scrolling Promo Ticker */}
       <PromoTicker />
 
-      {/* Hero Banner - Full Width */}
-      <HeroCarousel />
+      {/* Hero Banner */}
+      <div className="w-full px-3 py-1">
+        <HeroCarousel />
+      </div>
 
       {/* Horizontal Product Sliders Driven by Product Tag Field */}
-      <div className="space-y-4 max-w-7xl mx-auto">
+      <div className="space-y-4">
         {/* 1. Best Sellers Slider (Auto-pulled by tag: best_seller) */}
         <ProductSlider
-          title={t.bestSellersTitle || "Best Sellers 🔥"}
+          title="Best Sellers"
           subtitle="Customer favorite sweets & savories ordered most this week"
           products={bestSellers.length > 0 ? bestSellers : allProducts.slice(0, 4)}
           categoryLink="/categories"
@@ -111,7 +113,7 @@ export default function HomePage() {
 
         {/* 2. New Arrivals Slider (Auto-pulled by tag: new_arrival) */}
         <ProductSlider
-          title={t.newArrivalsTitle || "New Arrivals ✨"}
+          title="New Arrivals"
           subtitle="Freshly prepared sweets and oven-roasted snacks just added"
           products={newArrivals.length > 0 ? newArrivals : allProducts.slice(1, 5)}
           categoryLink="/categories"
@@ -119,7 +121,7 @@ export default function HomePage() {
 
         {/* 3. Premium Sweets Slider (Auto-pulled by tag: premium) */}
         <ProductSlider
-          title={t.premiumSweetsTitle || "Premium Sweets 👑"}
+          title="Premium Sweets"
           subtitle="Handcrafted Kaju Katli, Mawa Penda & Pure Desi Ghee delicacies"
           products={premiumSweets.length > 0 ? premiumSweets : allProducts.slice(0, 4)}
           categoryLink="/categories/sweets"
@@ -127,7 +129,7 @@ export default function HomePage() {
 
         {/* 4. Combos & Gift Packs Slider (Auto-pulled by tag: combo) */}
         <ProductSlider
-          title="Festive Combos & Special Gift Boxes 🎁"
+          title="Festive Gift Boxes"
           subtitle="Handpicked combinations of sweets, dry fruits & savories for all occasions"
           products={combos.length > 0 ? combos : allProducts.slice(2, 6)}
           categoryLink="/categories/corporate-gift-boxes"
@@ -135,35 +137,56 @@ export default function HomePage() {
 
         {/* 5. Namkeen & Savories Spotlight */}
         <ProductSlider
-          title={t.namkeenTitle || "Namkeen & Savories"}
+          title="Namkeen Savories"
           subtitle="Authentic Gujarati Ratlami Sev, Khakhra, and crunchy mixtures"
           products={namkeenProducts.length > 0 ? namkeenProducts : allProducts.slice(0, 4)}
           categoryLink="/categories/namkeen"
         />
       </div>
 
-      {/* Promo Special Offer Banner */}
-      <section className="px-4 sm:px-6 lg:px-8 py-10 max-w-7xl mx-auto">
-        <div className="bg-gradient-to-r from-[#0D226B] via-[#0B2580] to-[#07122A] border-2 border-gold/50 rounded-3xl p-8 sm:p-12 text-white shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
-          <CornerMotif position="all" size={110} />
-          <div className="relative z-10 max-w-xl">
-            <span className="text-gold-light font-black text-xs uppercase tracking-widest block mb-2">{t.comboOfferTag}</span>
-            <h2 className="text-2xl sm:text-4xl font-black mb-3 text-gold-light">{t.comboOfferTitle}</h2>
-            <p className="text-gray-200 mb-6 text-sm sm:text-base leading-relaxed">
-              {t.comboOfferSubtitle}
-            </p>
-            <Link href="/categories/corporate-gift-boxes" className="inline-block bg-gradient-to-r from-[#F5E5A3] via-[#D4AF37] to-[#AA7C11] text-[#0B1B3D] px-7 py-3.5 rounded-xl font-extrabold hover:brightness-110 transition shadow-lg border border-gold">
-              {t.exploreCombos}
-            </Link>
+      {/* Side-by-Side Promo Banners matching reference layout */}
+      <section className="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Banner 1 */}
+          <div className="bg-[#F4F4F4] rounded-xl p-6 sm:p-8 flex items-center justify-between gap-4 overflow-hidden relative group">
+            <div className="space-y-2 max-w-[60%]">
+              <span className="text-xs sm:text-sm font-medium text-gray-500 block">Up To 20% Off</span>
+              <h3 className="text-xl sm:text-3xl font-black text-gray-900 leading-tight">Festive Sweet Boxes</h3>
+              <Link
+                href="/categories/sweets"
+                className="inline-block pt-2 text-xs sm:text-sm font-bold text-gray-900 uppercase tracking-wide border-b-2 border-gray-900 hover:text-amber-600 hover:border-amber-600 transition"
+              >
+                SHOP NOW
+              </Link>
+            </div>
+            <div className="w-32 sm:w-44 h-32 sm:h-40 flex-shrink-0 relative overflow-hidden rounded-lg">
+              <img
+                src="/images/sweet-10.jpg"
+                alt="Festive Sweet Boxes"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            </div>
           </div>
 
-          <div className="relative z-10 w-full md:w-80 h-44 rounded-2xl overflow-hidden border-2 border-gold/50 shadow-2xl bg-black/40 flex-shrink-0">
-            <CornerMotif position="bottom-corners" size={60} />
-            <img
-              src="https://uploads-ssl.webflow.com/5ffcd643561bc26ed27a87a1/6005c64f2dff8a196637b467_ezgif.com-gif-maker.gif"
-              alt="Customer Special Offer Animation"
-              className="w-full h-full object-cover rounded-xl"
-            />
+          {/* Banner 2 */}
+          <div className="bg-[#F4F4F4] rounded-xl p-6 sm:p-8 flex items-center justify-between gap-4 overflow-hidden relative group">
+            <div className="space-y-2 max-w-[60%]">
+              <span className="text-xs sm:text-sm font-medium text-gray-500 block">Special Offer</span>
+              <h3 className="text-xl sm:text-3xl font-black text-gray-900 leading-tight">Authentic Namkeen</h3>
+              <Link
+                href="/categories/namkeen"
+                className="inline-block pt-2 text-xs sm:text-sm font-bold text-gray-900 uppercase tracking-wide border-b-2 border-gray-900 hover:text-amber-600 hover:border-amber-600 transition"
+              >
+                SHOP NOW
+              </Link>
+            </div>
+            <div className="w-32 sm:w-44 h-32 sm:h-40 flex-shrink-0 relative overflow-hidden rounded-lg">
+              <img
+                src="/images/sweet-3.jpg"
+                alt="Authentic Namkeen"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            </div>
           </div>
         </div>
       </section>

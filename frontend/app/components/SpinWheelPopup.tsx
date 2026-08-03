@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { Gift, X, Sparkles, CheckCircle2, Phone, Copy, ArrowRight } from "lucide-react";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
@@ -27,20 +28,40 @@ export default function SpinWheelPopup() {
   const [copied, setCopied] = useState(false);
 
   const { applyCoupon, setIsOpen: openCartDrawer } = useCart();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Automatically trigger popup after 5 seconds if on storefront and not closed/spun before
-    if (pathname?.startsWith("/admin")) return;
+    // Hide completely on Admin, Account, Login, and Signup pages
+    if (pathname?.startsWith("/admin") || pathname?.startsWith("/account") || pathname === "/login" || pathname === "/signup") return;
 
-    const hasSpunToday = localStorage.getItem("spin_wheel_spun_today");
-    if (!hasSpunToday) {
-      const timer = setTimeout(() => setIsOpen(true), 5000);
+    // ONLY auto-trigger popup for LOGGED-IN users on their first login
+    if (!user) return;
+
+    // Auto-fill phone if available for logged-in user (digits only)
+    if (user.phone && !phone) {
+      const cleanDigits = user.phone.replace(/\D/g, "").slice(0, 10);
+      if (cleanDigits) setPhone(cleanDigits);
+    }
+
+    const userKey = `spin_wheel_seen_${user.id}`;
+    const isFirstLoginTrigger = typeof window !== "undefined" && sessionStorage.getItem("trigger_first_login_spin_wheel");
+    const hasSeenUserPopup = typeof window !== "undefined" && localStorage.getItem(userKey);
+
+    // Show popup ONCE when user logs in for the first time on our site
+    if (isFirstLoginTrigger || !hasSeenUserPopup) {
+      const timer = setTimeout(() => {
+        setIsOpen(true);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(userKey, "true");
+          sessionStorage.removeItem("trigger_first_login_spin_wheel");
+        }
+      }, 600);
       return () => clearTimeout(timer);
     }
-  }, [pathname]);
+  }, [pathname, user, phone]);
 
-  // Hide completely on Admin pages
-  if (pathname?.startsWith("/admin")) {
+  // Hide completely on Admin, Account, Login, and Signup pages
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/account") || pathname === "/login" || pathname === "/signup") {
     return null;
   }
 
@@ -228,9 +249,12 @@ export default function SpinWheelPopup() {
                   <Phone size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
                     required
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                     placeholder="Enter 10-Digit Phone Number..."
                     className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-300 focus:border-gold outline-none text-xs font-bold bg-white"
                   />

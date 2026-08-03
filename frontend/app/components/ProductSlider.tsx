@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Heart, ShoppingCart, Star, Check } from 'lucide-react';
 import { Product } from '../data';
@@ -24,20 +24,37 @@ export default function ProductSlider({
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
+  const [isPaused, setIsPaused] = useState(false);
+  const sliderRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
   const { addToCart, setIsOpen } = useCart();
 
-  const scroll = (direction: 'left' | 'right') => {
-    const container = document.getElementById(`slider-${title.replace(/\s+/g, '-')}`);
-    if (container) {
-      const scrollAmount = 320;
-      if (direction === 'left') {
-        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
-        setScrollPosition(scrollPosition - scrollAmount);
+  // True infinite loop: auto-scroll every 5s, silently reset at halfway point
+  useEffect(() => {
+    if (isPaused) return;
+    const interval = setInterval(() => {
+      const container = sliderRef.current;
+      if (!container) return;
+      const half = container.scrollWidth / 2;
+      // If we've scrolled past the first copy, silently jump back to start
+      if (container.scrollLeft >= half - 10) {
+        container.style.scrollBehavior = 'auto';
+        container.scrollLeft = 0;
+        // Re-enable smooth scroll after reset
+        requestAnimationFrame(() => {
+          container.style.scrollBehavior = 'smooth';
+        });
       } else {
-        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
-        setScrollPosition(scrollPosition + scrollAmount);
+        container.scrollBy({ left: 270, behavior: 'smooth' });
       }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    const container = sliderRef.current;
+    if (container) {
+      container.scrollBy({ left: direction === 'left' ? -320 : 320, behavior: 'smooth' });
     }
   };
 
@@ -70,33 +87,31 @@ export default function ProductSlider({
   return (
     <section className="py-8 sm:py-10">
       {/* Header */}
-      <div className="mb-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <h2 className="text-xl sm:text-3xl font-black text-[#0B1B3D] flex items-center gap-2.5">
-              <span className="h-6 w-1.5 bg-gold rounded-full inline-block flex-shrink-0"></span>
-              <span className="leading-tight">{title}</span>
-            </h2>
-            {subtitle && <p className="mt-1 text-gray-600 text-xs sm:text-sm font-medium line-clamp-2">{subtitle}</p>}
-          </div>
-          {categoryLink && (
-            <Link
-              href={categoryLink}
-              className="flex-shrink-0 text-xs sm:text-sm font-bold text-[#0B1B3D] hover:text-gold-dark transition border-b-2 border-gold/40 pb-0.5 whitespace-nowrap mt-1"
-            >
-              {t.viewAll} →
-            </Link>
-          )}
-        </div>
+      <div className="mb-6 text-center">
+        <h2 className="text-2xl sm:text-4xl font-black">
+          {(() => {
+            const words = title.replace(/[🔥✨👑🎁]/g, '').trim().split(' ');
+            const first = words[0];
+            const rest = words.slice(1).join(' ');
+            return (
+              <>
+                <span style={{ color: '#1a1a1a' }}>{first} </span>
+                <span style={{ color: '#e07b27' }}>{rest}</span>
+              </>
+            );
+          })()}
+        </h2>
       </div>
 
       {/* Slider Container */}
-      <div className="relative px-4 sm:px-6 lg:px-8">
+      <div className="relative">
         {/* Slider */}
         <div
-          id={`slider-${title.replace(/\s+/g, '-')}`}
-          className="flex gap-4 overflow-x-auto scroll-smooth pb-4 pt-1"
+          ref={sliderRef}
+          className="flex gap-3 overflow-x-auto scroll-smooth pb-4 pt-1 px-4"
           style={{ scrollBehavior: 'smooth', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
         >
           {products.length === 0 && (
             // Skeleton loader for empty state
@@ -113,7 +128,8 @@ export default function ProductSlider({
               </div>
             ))
           )}
-          {products.length > 0 && products.map((product) => {
+          {/* Render products TWICE for seamless infinite loop */}
+          {products.length > 0 && [...products, ...products].map((product, loopIndex) => {
             const selectedWeight = selectedVariants[product.id];
             const variant = selectedWeight ? product.variants.find((v) => v.weight === selectedWeight) : undefined;
             const totalStock = product.variants.reduce((sum, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
@@ -127,104 +143,59 @@ export default function ProductSlider({
             const isAdded = addedItems[product.id];
 
             return (
-              <div
-                key={product.id}
-                className="flex-shrink-0 w-52 sm:w-64 md:w-72 group"
-              >
-                <article className="overflow-hidden rounded-2xl border-2 border-gold/20 bg-white shadow-sm transition-all duration-300 hover:shadow-xl hover:border-gold/60 h-full flex flex-col">
+              <div key={`${product.id}-${loopIndex}`} className="flex-shrink-0 w-44 sm:w-52 md:w-60 group">
+                <article className="flex flex-col transition-all duration-300 h-full">
+
                   {/* Image Container */}
-                  <div className="relative h-52 overflow-hidden bg-gray-50">
+                  <div className="relative w-full rounded-lg overflow-hidden bg-gray-100 aspect-square flex items-center justify-center">
                     <img
                       src={(product as any).image || (product as any).primaryImage || (product as any).imageUrls?.[0] || (product as any).productImages?.[0]?.imageUrl || '/images/sweet-1.jpg'}
                       alt={product.name}
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
-                      }}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/images/sweet-1.jpg'; }}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-
                     {/* Badges */}
-                    <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end z-10">
-                      {isOutOfStock ? (
-                        <span className="bg-red-600 text-white px-2.5 py-1 rounded-md text-[10px] font-extrabold shadow-md border border-red-600">
-                          Out of Stock
-                        </span>
-                      ) : (
-                        <>
-                          {product.isBestSeller && (
-                            <span className="bg-[#0B1B3D] text-gold px-2.5 py-1 rounded-md text-[10px] font-extrabold shadow-md border border-gold/40">
-                              {t.bestSellerBadge}
-                            </span>
-                          )}
-                          {product.isNew && (
-                            <span className="bg-gold text-[#0B1B3D] px-2.5 py-1 rounded-md text-[10px] font-black shadow-md">
-                              {t.newBadge}
-                            </span>
-                          )}
-                          {product.isCombo && (
-                            <span className="bg-amber-600 text-white px-2.5 py-1 rounded-md text-[10px] font-black shadow-md">
-                              COMBO
-                            </span>
-                          )}
-                        </>
-                      )}
+                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end z-10">
+                      {isOutOfStock && <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">Out of Stock</span>}
+                      {!isOutOfStock && product.isBestSeller && <span className="bg-[#1a3a6b] text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold">Best Seller</span>}
+                      {!isOutOfStock && product.isNew && <span className="bg-amber-400 text-[#1a3a6b] px-2 py-0.5 rounded text-[10px] font-black">NEW</span>}
                     </div>
-
-                    {/* Wishlist Button */}
-                    <button
-                      onClick={() => toggleWishlist(product.id)}
-                      className="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-white transition z-10"
-                      aria-label="Wishlist"
-                    >
-                      <Heart
-                        size={16}
-                        className={`transition ${
-                          wishlist.has(product.id) ? 'fill-[#0B1B3D] text-[#0B1B3D]' : 'text-gray-400'
-                        }`}
-                      />
+                    {/* Wishlist */}
+                    <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 left-2 bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow hover:bg-white transition z-10" aria-label="Wishlist">
+                      <Heart size={14} className={wishlist.has(product.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'} />
                     </button>
                   </div>
 
-                  {/* Content */}
-                  <div className="p-4 space-y-3 flex-grow flex flex-col bg-white">
-                    {/* Title */}
-                    <Link href={`/products/${product.slug}`} className="block">
-                      <h3 className="text-sm font-bold text-gray-900 line-clamp-2 hover:text-[#0B1B3D] transition min-h-[40px]">
-                        {product.name}
-                      </h3>
-                    </Link>
-
-                    {/* Rating */}
-                    <div className="flex items-center gap-1">
-                      <div className="flex gap-0.5">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            size={14}
-                            className={`${
-                              i < Math.floor(product.rating)
-                                ? 'fill-amber-400 text-amber-400'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-xs text-gray-500 font-bold ml-1">★ {product.rating}</span>
-                      <span className="text-xs text-gray-400 font-medium">({product.reviews})</span>
+                  {/* Clean Minimal Text Details directly below image box */}
+                  <div className="pt-2.5 flex flex-col gap-1 flex-grow">
+                    {/* Stars */}
+                    <div className="flex items-center gap-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={13} className={i < Math.floor(product.rating) ? 'fill-amber-400 text-amber-400' : 'text-gray-300 fill-gray-300'} />
+                      ))}
                     </div>
 
-                    {/* Weight Variants Chips */}
-                    <div className="flex flex-wrap gap-1.5 pt-1">
+                    {/* Product Title */}
+                    <Link href={`/products/${product.slug}`}>
+                      <h3 className="text-sm font-semibold text-gray-900 hover:text-[#1a3a6b] transition line-clamp-1">{product.name}</h3>
+                    </Link>
+
+                    {/* Price */}
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-sm font-bold text-gray-900">{displayPrice}</span>
+                      {variant?.discountedPrice && <span className="text-xs text-gray-400 line-through">₹{variant.price.toLocaleString('en-IN')}</span>}
+                    </div>
+
+                    {/* Weight Chips */}
+                    <div className="flex flex-wrap gap-1 mt-0.5">
                       {product.variants.map((v) => (
                         <button
                           key={v.weight}
-                          onClick={() =>
-                            setSelectedVariants({ ...selectedVariants, [product.id]: v.weight })
-                          }
-                          className={`px-2.5 py-1 text-xs font-extrabold rounded-lg border transition ${
+                          onClick={() => setSelectedVariants({ ...selectedVariants, [product.id]: v.weight })}
+                          className={`px-2 py-0.5 text-[11px] font-medium rounded border transition ${
                             selectedWeight === v.weight
-                              ? 'bg-[#0B1B3D] text-gold border-[#0B1B3D] shadow-sm'
-                              : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gold'
+                              ? 'bg-gray-900 text-white border-gray-900'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'
                           }`}
                         >
                           {v.weight}
@@ -232,48 +203,17 @@ export default function ProductSlider({
                       ))}
                     </div>
 
-                    {/* Price display per variant */}
-                    <div className="flex items-baseline gap-2 pt-1">
-                      <span className="text-xl font-black text-[#0B1B3D]">
-                        {displayPrice}
-                      </span>
-                      {variant?.discountedPrice && (
-                        <span className="text-xs text-gray-400 line-through font-semibold">
-                          ₹{variant.price.toLocaleString('en-IN')}
-                        </span>
-                      )}
-                      {variant && (Number((variant as any).stockQty ?? (variant as any).stock ?? 0)) <= 5 && (Number((variant as any).stockQty ?? (variant as any).stock ?? 0)) > 0 && (
-                        <span className="text-[10px] text-red-600 font-bold ml-auto">
-                          Only {(variant as any).stockQty ?? (variant as any).stock} left
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Add to Cart Button */}
+                    {/* Add to Cart */}
                     <button
                       disabled={isOutOfStock}
                       onClick={() => handleAddToCart(product, selectedWeight || product.variants[0].weight)}
-                      className={`w-full px-4 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm transition flex items-center justify-center gap-2 mt-auto shadow-sm border ${
-                        isOutOfStock
-                          ? 'bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed'
-                          : isAdded
-                          ? 'bg-green-700 text-white border-green-700'
-                          : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/40'
+                      className={`mt-auto w-full py-2 rounded text-xs font-bold uppercase tracking-wide transition flex items-center justify-center gap-1 ${
+                        isOutOfStock ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                        : isAdded ? 'bg-green-600 text-white'
+                        : 'bg-gray-900 text-white hover:bg-gray-800'
                       }`}
                     >
-                      {isOutOfStock ? (
-                        <span>Out of Stock</span>
-                      ) : isAdded ? (
-                        <>
-                          <Check size={16} />
-                          <span>Added to Cart!</span>
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart size={16} />
-                          <span>{t.addToCart}</span>
-                        </>
-                      )}
+                      {isOutOfStock ? 'Out of Stock' : isAdded ? <><Check size={14} /> Added</> : 'Add to Cart'}
                     </button>
                   </div>
                 </article>

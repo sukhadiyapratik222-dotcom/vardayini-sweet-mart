@@ -32,55 +32,18 @@ export default function AdminCustomersPage() {
     let list: CustomerUser[] = [];
 
     try {
-      const res = await fetch(`${API_BASE}/admin/customers`);
+      const token = typeof window !== "undefined" ? (localStorage.getItem("admin_token") || localStorage.getItem("token")) : null;
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(`${API_BASE}/admin/customers`, { headers });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) list = data;
+        if (Array.isArray(data)) list = data;
       }
     } catch (e) {}
-
-    if (list.length === 0) {
-      list = [
-        {
-          id: "u-1",
-          name: "Pratik Sukhadiya",
-          email: "pratik@example.com",
-          phone: "+91 98765 43210",
-          createdAt: "2026-05-12",
-          totalOrders: 3,
-          totalSpent: 4200,
-          orders: [
-            { orderId: "VSM-849201", date: "2026-07-30", total: 1250, status: "Packed" },
-            { orderId: "VSM-619203", date: "2026-06-15", total: 2950, status: "Delivered" },
-          ],
-        },
-        {
-          id: "u-2",
-          name: "Ramesh Patel",
-          email: "ramesh@example.com",
-          phone: "+91 98765 11223",
-          createdAt: "2026-06-01",
-          totalOrders: 2,
-          totalSpent: 2950,
-          orders: [
-            { orderId: "VSM-719304", date: "2026-07-28", total: 2100, status: "Shipped" },
-            { orderId: "VSM-501923", date: "2026-06-20", total: 850, status: "Delivered" },
-          ],
-        },
-        {
-          id: "u-3",
-          name: "Anjali Shah",
-          email: "anjali@example.com",
-          phone: "+91 98250 99887",
-          createdAt: "2026-07-04",
-          totalOrders: 1,
-          totalSpent: 850,
-          orders: [
-            { orderId: "VSM-481920", date: "2026-07-10", total: 850, status: "Delivered" },
-          ],
-        },
-      ];
-    }
 
     setCustomers(list);
     setLoading(false);
@@ -88,9 +51,9 @@ export default function AdminCustomersPage() {
 
   const filtered = customers.filter(
     (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.phone.includes(searchQuery)
+      c.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      c.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (c.phone && c.phone.includes(searchQuery))
   );
 
   return (
@@ -105,7 +68,7 @@ export default function AdminCustomersPage() {
               <span>Customer Relationship Directory</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white">Customer User Directory</h1>
-            <p className="text-xs text-gray-300 mt-1">View registered customer profiles, total spend, and per-user order history.</p>
+            <p className="text-xs text-gray-300 mt-1">Real-time database records of registered customer profiles, total spend, and order history.</p>
           </div>
 
           <button
@@ -129,7 +92,7 @@ export default function AdminCustomersPage() {
               className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-300 text-xs outline-none focus:ring-2 focus:ring-gold bg-white"
             />
           </div>
-          <span className="text-xs font-extrabold text-[#0B1B3D]">Total Registered Users: {customers.length}</span>
+          <span className="text-xs font-extrabold text-[#0B1B3D]">Total Registered Database Users: {customers.length}</span>
         </div>
 
         {/* Customers Table */}
@@ -140,6 +103,7 @@ export default function AdminCustomersPage() {
                 <tr>
                   <th className="p-4">Customer Name</th>
                   <th className="p-4">Contact Info</th>
+                  <th className="p-4">Account Status</th>
                   <th className="p-4">Registered Date</th>
                   <th className="p-4">Orders Placed</th>
                   <th className="p-4">Total Amount Spent</th>
@@ -147,40 +111,55 @@ export default function AdminCustomersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map((user) => (
-                  <tr key={user.id} className="hover:bg-amber-50/40 transition">
-                    <td className="p-4 font-black text-sm text-[#0B1B3D]">
-                      {user.name}
-                    </td>
-
-                    <td className="p-4">
-                      <p className="font-bold text-[#0B1B3D]">{user.email}</p>
-                      <p className="text-[10px] text-gray-500 font-semibold">{user.phone}</p>
-                    </td>
-
-                    <td className="p-4 font-semibold text-gray-600">
-                      {user.createdAt}
-                    </td>
-
-                    <td className="p-4 font-black text-[#0B1B3D]">
-                      {user.totalOrders} Orders
-                    </td>
-
-                    <td className="p-4 font-black text-green-700">
-                      ₹{user.totalSpent.toLocaleString("en-IN")}
-                    </td>
-
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => setSelectedCustomer(user)}
-                        className="bg-amber-50 hover:bg-gold/20 text-[#0B1B3D] border border-gold/40 px-3 py-1.5 rounded-xl font-bold text-[11px] transition flex items-center gap-1 mx-auto"
-                      >
-                        <Eye size={13} />
-                        <span>View Orders</span>
-                      </button>
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-gray-500 font-semibold">
+                      No customer users found in database matching your filter.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filtered.map((user) => (
+                    <tr key={user.id} className="hover:bg-amber-50/40 transition">
+                      <td className="p-4 font-black text-sm text-[#0B1B3D]">
+                        {user.name}
+                      </td>
+
+                      <td className="p-4">
+                        <p className="font-bold text-[#0B1B3D]">{user.email}</p>
+                        <p className="text-[10px] text-gray-500 font-semibold">{user.phone || "No phone added"}</p>
+                      </td>
+
+                      <td className="p-4">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                          <CheckCircle2 size={11} />
+                          <span>Active</span>
+                        </span>
+                      </td>
+
+                      <td className="p-4 font-semibold text-gray-600">
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" }) : "Recent"}
+                      </td>
+
+                      <td className="p-4 font-black text-[#0B1B3D]">
+                        {user.totalOrders || 0} Orders
+                      </td>
+
+                      <td className="p-4 font-black text-green-700">
+                        ₹{(user.totalSpent || 0).toLocaleString("en-IN")}
+                      </td>
+
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => setSelectedCustomer(user)}
+                          className="bg-amber-50 hover:bg-gold/20 text-[#0B1B3D] border border-gold/40 px-3 py-1.5 rounded-xl font-bold text-[11px] transition flex items-center gap-1 mx-auto"
+                        >
+                          <Eye size={13} />
+                          <span>View Orders</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

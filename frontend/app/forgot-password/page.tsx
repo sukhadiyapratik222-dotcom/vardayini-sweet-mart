@@ -11,7 +11,7 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [identifier, setIdentifier] = useState("");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -19,21 +19,39 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleRequestOtp = (e: React.FormEvent) => {
+  const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
+  const handleRequestOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!identifier.trim()) {
-      setError("Please enter your registered Email address or Phone number.");
+    if (!email.trim() || !email.includes("@")) {
+      setError("Please enter a valid registered Email address.");
       return;
     }
+
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const res = await fetch(`${API_BASE}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), identifier: email.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "No account found with this email address.");
+        return;
+      }
       setStep(2);
-    }, 800);
+    } catch (err) {
+      // Offline fallback
+      setStep(2);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleResetPassword = (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -53,10 +71,29 @@ export default function ForgotPasswordPage() {
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          identifier: email.trim(),
+          otp,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setStep(3);
+      } else {
+        setError(data.error || "Failed to update password. Please check your details.");
+      }
+    } catch (err) {
+      setError("Network error. Please make sure backend server is running.");
+    } finally {
       setLoading(false);
-      setStep(3);
-    }, 1000);
+    }
   };
 
   return (
@@ -74,11 +111,11 @@ export default function ForgotPasswordPage() {
               </div>
               <h1 className="text-2xl font-black tracking-tight text-gold">Reset Password</h1>
               <p className="text-xs text-gray-300 mt-1">
-                {step === 1 ? "Enter your email or phone number to receive reset OTP" : step === 2 ? "Enter OTP code and your new password" : "Password successfully updated!"}
+                {step === 1 ? "Enter your registered email address to receive reset OTP" : step === 2 ? "Enter OTP code sent to your email and new password" : "Password successfully updated!"}
               </p>
             </div>
 
-            {/* Step 1: Identifier Input */}
+            {/* Step 1: Email Input */}
             {step === 1 && (
               <form onSubmit={handleRequestOtp} className="p-6 sm:p-8 space-y-4">
                 {error && (
@@ -88,14 +125,15 @@ export default function ForgotPasswordPage() {
                 )}
 
                 <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1">Registered Email or Phone Number</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1">Registered Email Address</label>
                   <div className="relative">
                     <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
+                      type="email"
                       required
-                      value={identifier}
-                      onChange={(e) => setIdentifier(e.target.value)}
-                      placeholder="e.g. customer@example.com or +91 98765 43210"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="e.g. customer@example.com"
                       className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:border-gold text-xs text-gray-800 font-semibold"
                     />
                   </div>
@@ -106,7 +144,7 @@ export default function ForgotPasswordPage() {
                   disabled={loading}
                   className="w-full bg-[#0B1B3D] text-gold hover:bg-[#162C5B] font-black py-3 rounded-xl transition flex items-center justify-center gap-2 border border-gold/30 text-xs shadow-md disabled:opacity-50"
                 >
-                  {loading ? "Sending OTP..." : "Send Password Reset OTP"}
+                  {loading ? "Sending Email OTP..." : "Send Password Reset OTP"}
                   {!loading && <ArrowRight size={16} />}
                 </button>
 
@@ -128,7 +166,7 @@ export default function ForgotPasswordPage() {
                 )}
 
                 <div className="p-3 rounded-xl bg-green-50 border border-green-200 text-green-800 text-xs font-bold">
-                  ✓ Reset OTP sent to {identifier}. (Demo OTP: 1234)
+                  ✓ Reset OTP sent to email {email}. (Demo OTP: 1234)
                 </div>
 
                 <div>

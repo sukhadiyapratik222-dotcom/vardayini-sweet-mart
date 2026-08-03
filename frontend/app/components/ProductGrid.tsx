@@ -1,141 +1,192 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Heart, ShoppingCart, Star } from 'lucide-react';
+import { Heart, Star, Check } from 'lucide-react';
 import { Product } from '../data';
 import { useLanguage } from '../context/LanguageContext';
+import { useCart } from '../context/CartContext';
 
 export default function ProductGrid({ products }: { products: Product[] }) {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+  const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
   const { t } = useLanguage();
+  const { addToCart, setIsOpen } = useCart();
 
-  const getMinPrice = (product: Product) => {
-    return Math.min(...product.variants.map((v) => v.discountedPrice || v.price));
-  };
-
-  const getMaxPrice = (product: Product) => {
-    return Math.max(...product.variants.map((v) => v.price));
-  };
-
-  const getPriceDisplay = (product: Product) => {
-    const minPrice = getMinPrice(product);
-    const maxPrice = getMaxPrice(product);
-
-    if (minPrice === maxPrice) {
-      return `₹${minPrice.toLocaleString('en-IN')}`;
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("user_wishlist_ids");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) setWishlist(new Set(parsed));
+        } catch (e) {}
+      }
     }
-    return `₹${minPrice.toLocaleString('en-IN')}–₹${maxPrice.toLocaleString('en-IN')}`;
-  };
 
-  const toggleWishlist = (productId: string) => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (token) {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+      fetch(`${API_BASE}/wishlist`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (Array.isArray(data)) {
+            const ids = data.map((item: any) => String(item.productId || item.product?.id || item.id));
+            setWishlist(new Set(ids));
+            if (typeof window !== "undefined") {
+              localStorage.setItem("user_wishlist_ids", JSON.stringify(ids));
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  const toggleWishlist = async (productId: string) => {
     const newWishlist = new Set(wishlist);
-    if (newWishlist.has(productId)) {
-      newWishlist.delete(productId);
-    } else {
+    const isLiking = !newWishlist.has(productId);
+
+    if (isLiking) {
       newWishlist.add(productId);
+    } else {
+      newWishlist.delete(productId);
     }
+
     setWishlist(newWishlist);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("user_wishlist_ids", JSON.stringify(Array.from(newWishlist)));
+    }
+
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (token) {
+      const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+      try {
+        if (isLiking) {
+          await fetch(`${API_BASE}/wishlist`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ productId }),
+          });
+        } else {
+          await fetch(`${API_BASE}/wishlist/${productId}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+      } catch (err) {}
+    }
+  };
+
+  const handleAddToCart = async (product: Product, selectedWeight: string) => {
+    const variant = product.variants.find((v) => v.weight === selectedWeight) || product.variants[0];
+    const targetVariantId = variant.id || `${product.id}-${variant.weight}`;
+    await addToCart(targetVariantId, 1);
+    setAddedItems((prev) => ({ ...prev, [product.id]: true }));
+    setTimeout(() => {
+      setAddedItems((prev) => ({ ...prev, [product.id]: false }));
+    }, 2000);
+    if (setIsOpen) setIsOpen(true);
   };
 
   return (
-    <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="mt-6 grid gap-6 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
       {products.map((product) => {
         const selectedWeight = selectedVariants[product.id];
         const variant = selectedWeight ? product.variants.find((v) => v.weight === selectedWeight) : undefined;
         const totalStock = product.variants.reduce((sum, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
         const isOutOfStock = totalStock <= 0;
+        const isAdded = addedItems[product.id];
+
+        const minPrice = Math.min(...product.variants.map((v) => v.discountedPrice || v.price));
+        const maxPrice = Math.max(...product.variants.map((v) => v.price));
+        const priceDisplay = variant
+          ? `₹${(variant.discountedPrice || variant.price).toLocaleString('en-IN')}`
+          : minPrice === maxPrice
+          ? `₹${minPrice.toLocaleString('en-IN')}`
+          : `₹${minPrice.toLocaleString('en-IN')} – ₹${maxPrice.toLocaleString('en-IN')}`;
 
         return (
           <article
             key={product.id}
-            className="group overflow-hidden rounded-xl border border-gold/20 bg-[#0B1B3D]/5 shadow-sm transition-all duration-300 hover:shadow-xl hover:border-gold/60 flex flex-col bg-white"
+            className="group flex flex-col transition-all duration-300"
           >
             {/* Image Container */}
-            <div className="relative h-52 overflow-hidden bg-gray-50">
+            <div className="relative w-full rounded-lg overflow-hidden bg-gray-100 aspect-square flex items-center justify-center">
               <img
                 src={(product as any).image || (product as any).primaryImage || (product as any).imageUrls?.[0] || (product as any).productImages?.[0]?.imageUrl || '/images/sweet-1.jpg'}
                 alt={product.name}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
-                }}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/images/sweet-1.jpg'; }}
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
 
               {/* Badges */}
-              <div className="absolute top-2.5 right-2.5 flex flex-col gap-1 items-end">
-                {isOutOfStock ? (
-                  <span className="bg-red-600 text-white px-2.5 py-1 rounded-md text-[11px] font-bold shadow">
-                    Out of Stock
-                  </span>
-                ) : (
-                  <>
-                    {product.isBestSeller && (
-                      <span className="bg-[#0B1B3D] text-gold px-2.5 py-1 rounded-md text-[11px] font-bold shadow border border-gold/40">
-                        {t.bestSellerBadge}
-                      </span>
-                    )}
-                    {product.isNew && (
-                      <span className="bg-gold text-[#0B1B3D] px-2.5 py-1 rounded-md text-[11px] font-extrabold shadow">
-                        {t.newBadge}
-                      </span>
-                    )}
-                  </>
+              <div className="absolute top-3 right-3 flex flex-col gap-1 items-end z-10">
+                {isOutOfStock && (
+                  <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold shadow">Out of Stock</span>
+                )}
+                {!isOutOfStock && product.isBestSeller && (
+                  <span className="bg-[#1a3a6b] text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold shadow">Best Seller</span>
+                )}
+                {!isOutOfStock && product.isNew && (
+                  <span className="bg-amber-400 text-[#1a3a6b] px-2 py-0.5 rounded text-[10px] font-black shadow">NEW</span>
                 )}
               </div>
 
               {/* Wishlist Button */}
               <button
                 onClick={() => toggleWishlist(product.id)}
-                className="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-md hover:bg-white transition"
+                className="absolute top-3 left-3 bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow hover:bg-white transition z-10"
+                aria-label="Wishlist"
               >
-                <Heart
-                  size={17}
-                  className={`transition ${
-                    wishlist.has(product.id) ? 'fill-[#0B1B3D] text-[#0B1B3D]' : 'text-gray-400'
-                  }`}
-                />
+                <Heart size={14} className={wishlist.has(product.id) ? 'fill-red-500 text-red-500' : 'text-gray-400'} />
               </button>
             </div>
 
-            {/* Content */}
-            <div className="p-4 space-y-3 flex-grow flex flex-col bg-white">
-              {/* Title */}
-              <Link href={`/products/${product.slug}`} className="block">
-                <h3 className="text-sm font-bold text-gray-900 line-clamp-2 hover:text-[#0B1B3D] transition">
+            {/* Clean Minimal Text Details directly below image box */}
+            <div className="pt-3 flex flex-col gap-1">
+              {/* Stars */}
+              <div className="flex items-center gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star
+                    key={i}
+                    size={13}
+                    className={i < Math.floor(product.rating) ? 'fill-amber-400 text-amber-400' : 'text-gray-300 fill-gray-300'}
+                  />
+                ))}
+              </div>
+
+              {/* Product Title */}
+              <Link href={`/products/${product.slug}`}>
+                <h3 className="text-sm font-semibold text-gray-900 hover:text-[#1a3a6b] transition line-clamp-1">
                   {product.name}
                 </h3>
               </Link>
 
-              {/* Rating */}
-              <div className="flex items-center gap-1">
-                <div className="flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      size={14}
-                      className={`${
-                        i < Math.floor(product.rating)
-                          ? 'fill-amber-400 text-amber-400'
-                          : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs text-gray-500 font-medium">({product.reviews})</span>
+              {/* Price */}
+              <div className="flex items-baseline gap-2">
+                <span className="text-sm font-bold text-gray-900">{priceDisplay}</span>
+                {variant?.discountedPrice && (
+                  <span className="text-xs text-gray-400 line-through">₹{variant.price.toLocaleString('en-IN')}</span>
+                )}
               </div>
 
-              {/* Weight Variants Chips */}
-              <div className="flex flex-wrap gap-1">
+              {/* Weight Chips */}
+              <div className="flex flex-wrap gap-1 mt-1">
                 {product.variants.map((v) => (
                   <button
                     key={v.weight}
                     onClick={() => setSelectedVariants({ ...selectedVariants, [product.id]: v.weight })}
-                    className={`px-2 py-1 text-xs font-semibold rounded-md border transition ${
+                    className={`px-2 py-0.5 text-[11px] font-medium rounded border transition ${
                       selectedWeight === v.weight
-                        ? 'bg-[#0B1B3D] text-gold border-[#0B1B3D]'
-                        : 'bg-gray-50 text-gray-700 border-gray-200 hover:border-gold'
+                        ? 'bg-gray-900 text-white border-gray-900'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-900'
                     }`}
                   >
                     {v.weight}
@@ -143,29 +194,19 @@ export default function ProductGrid({ products }: { products: Product[] }) {
                 ))}
               </div>
 
-              {/* Price */}
-              <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-xl font-extrabold text-[#0B1B3D]">
-                  {variant ? `₹${(variant.discountedPrice || variant.price).toLocaleString('en-IN')}` : getPriceDisplay(product)}
-                </span>
-                {variant?.discountedPrice && (
-                  <span className="text-xs text-gray-400 line-through font-medium">
-                    ₹{variant.price.toLocaleString('en-IN')}
-                  </span>
-                )}
-              </div>
-
               {/* Add to Cart Button */}
               <button
                 disabled={isOutOfStock}
-                className={`w-full px-4 py-2.5 rounded-lg font-bold text-sm transition flex items-center justify-center gap-2 mt-auto shadow-sm border ${
+                onClick={() => handleAddToCart(product, selectedWeight || product.variants[0].weight)}
+                className={`mt-2 w-full py-2 rounded text-xs font-bold uppercase tracking-wide transition flex items-center justify-center gap-1 ${
                   isOutOfStock
-                    ? 'bg-gray-200 text-gray-500 border-gray-200 cursor-not-allowed'
-                    : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/30'
+                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    : isAdded
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-900 text-white hover:bg-gray-800'
                 }`}
               >
-                <ShoppingCart size={16} />
-                {isOutOfStock ? 'Out of Stock' : t.addToCart}
+                {isOutOfStock ? 'Out of Stock' : isAdded ? <><Check size={14} /> Added</> : 'Add to Cart'}
               </button>
             </div>
           </article>
@@ -174,5 +215,3 @@ export default function ProductGrid({ products }: { products: Product[] }) {
     </div>
   );
 }
-
-

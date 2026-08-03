@@ -8,10 +8,6 @@ CREATE DATABASE IF NOT EXISTS sweet_shop DEFAULT CHARACTER SET utf8mb4 COLLATE u
 
 USE sweet_shop;
 
-DELETE FROM cart_items;
-
-DELETE FROM carts;
-
 -- 1. USERS TABLE
 CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(50) NOT NULL,
@@ -20,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(15) UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role VARCHAR(50) DEFAULT 'customer',
+    is_admin TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;

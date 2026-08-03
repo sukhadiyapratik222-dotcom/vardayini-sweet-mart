@@ -116,8 +116,16 @@ router.post("/orders/:id/refund", async (req, res) => {
 // 3. Coupon Management Endpoints
 router.get("/coupons", async (req, res) => {
   try {
-    const coupons = await prisma.coupon.findMany();
-    res.json(coupons);
+    const dbCoupons = await prisma.coupon.findMany();
+    const formatted = dbCoupons.map((c) => ({
+      id: c.id,
+      code: c.code,
+      discountPercent: Number(c.discountValue || 10),
+      minPurchase: Number(c.minOrderValue || 0),
+      isActive: true,
+      expiryDate: c.expiryDate ? c.expiryDate.toISOString().slice(0, 10) : "2026-12-31",
+    }));
+    res.json(formatted);
   } catch (error) {
     res.json([
       { id: 'c1', code: 'SWEET10', discountPercent: 10, minPurchase: 500, isActive: true },
@@ -129,16 +137,31 @@ router.get("/coupons", async (req, res) => {
 router.post("/coupons", async (req, res) => {
   try {
     const { code, discountPercent, minPurchase } = req.body;
-    const coupon = await prisma.coupon.create({
-      data: {
-        code,
+    const cleanCode = String(code || "").trim().toUpperCase();
+
+    const coupon = await prisma.coupon.upsert({
+      where: { code: cleanCode },
+      create: {
+        code: cleanCode,
         discountType: "PERCENTAGE",
         discountValue: Number(discountPercent || 10),
-        minOrderAmount: Number(minPurchase || 500),
-        isActive: true,
-      } as any,
+        minOrderValue: Number(minPurchase || 0),
+        usageLimit: 100,
+      },
+      update: {
+        discountValue: Number(discountPercent || 10),
+        minOrderValue: Number(minPurchase || 0),
+      },
     });
-    res.status(201).json(coupon);
+
+    res.status(201).json({
+      id: coupon.id,
+      code: coupon.code,
+      discountPercent: Number(coupon.discountValue),
+      minPurchase: Number(coupon.minOrderValue),
+      isActive: true,
+      expiryDate: "2026-12-31",
+    });
   } catch (error) {
     res.json({ id: `c-${Date.now()}`, code: req.body.code, discountPercent: req.body.discountPercent, minPurchase: req.body.minPurchase, isActive: true });
   }
@@ -168,14 +191,27 @@ router.get("/stores", async (req, res) => {
 router.get("/customers", async (req, res) => {
   try {
     const users = await prisma.user.findMany({
-      include: { orders: true },
+      orderBy: { createdAt: "desc" },
+      include: { orders: { include: { items: true } } },
     });
-    res.json(users);
+
+    const formatted = users.map((u) => {
+      const totalSpent = u.orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone,
+        createdAt: u.createdAt,
+        totalOrders: u.orders.length,
+        totalSpent,
+        orders: u.orders,
+      };
+    });
+
+    res.json(formatted);
   } catch (error) {
-    res.json([
-      { id: 'u1', name: 'Pratik Sukhadiya', email: 'pratik@example.com', phone: '+91 98765 43210', totalOrders: 3, totalSpent: 4200 },
-      { id: 'u2', name: 'Ramesh Patel', email: 'ramesh@example.com', phone: '+91 98765 11223', totalOrders: 1, totalSpent: 850 },
-    ]);
+    res.json([]);
   }
 });
 

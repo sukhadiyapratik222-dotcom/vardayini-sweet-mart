@@ -123,9 +123,9 @@ router.post("/admin/register", async (req, res) => {
     return res.status(400).json({ error: "Email and password are required." });
   }
 
-  const expectedSecret = process.env.ADMIN_SECRET || "ADMIN123";
-  if (adminSecret && adminSecret !== expectedSecret && adminSecret !== "ADMIN123") {
-    return res.status(403).json({ error: "Invalid Admin Secret Key." });
+  const expectedSecret = process.env.ADMIN_SECRET || "4220";
+  if (adminSecret && adminSecret !== expectedSecret && adminSecret !== "4220" && adminSecret !== "ADMIN123") {
+    return res.status(403).json({ error: "Invalid Admin Secret Key (use key: 4220)." });
   }
 
   const passwordHash = bcrypt.hashSync(password, 10);
@@ -164,10 +164,19 @@ router.post("/admin/register", async (req, res) => {
 
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
-  const { email, phone, password } = req.body;
+  const { email, phone, password, adminSecret, isAdminLogin } = req.body;
   const loginKey = String(email || phone || "").trim();
   if (!loginKey || !password) {
     return res.status(400).json({ error: "Email/phone and password are required." });
+  }
+
+  const expectedSecret = process.env.ADMIN_SECRET || "4220";
+
+  // If Admin Login attempt, enforce adminSecret key validation
+  if (isAdminLogin || adminSecret) {
+    if (adminSecret && adminSecret !== expectedSecret && adminSecret !== "4220" && adminSecret !== "ADMIN123") {
+      return res.status(403).json({ error: "Invalid Admin Secret Key. Access denied (use key: 4220)." });
+    }
   }
 
   // 1. First check admins table
@@ -282,22 +291,34 @@ router.post("/otp/verify", async (req, res) => {
 
 // POST /api/auth/forgot-password
 router.post("/forgot-password", async (req, res) => {
-  const { identifier } = req.body;
-  if (!identifier) {
-    return res.status(400).json({ error: "Registered email or phone number is required." });
+  const { identifier, email } = req.body;
+  const targetEmail = email || identifier;
+  if (!targetEmail) {
+    return res.status(400).json({ error: "Registered email address is required." });
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      OR: [{ email: targetEmail }, { phone: targetEmail }],
+    },
+  });
+
+  if (!user) {
+    return res.status(404).json({ error: "No account found with this email address. Please check your email or sign up." });
   }
 
   res.json({
-    message: `Password reset OTP sent to ${identifier}.`,
+    message: `Password reset OTP sent to ${targetEmail}.`,
     demoOtp: "1234",
   });
 });
 
 // POST /api/auth/reset-password
 router.post("/reset-password", async (req, res) => {
-  const { identifier, otp, newPassword } = req.body;
-  if (!identifier || !otp || !newPassword) {
-    return res.status(400).json({ error: "Identifier, OTP, and new password are required." });
+  const { identifier, email, otp, newPassword } = req.body;
+  const targetEmail = email || identifier;
+  if (!targetEmail || !otp || !newPassword) {
+    return res.status(400).json({ error: "Email, OTP, and new password are required." });
   }
 
   if (otp !== "1234" && otp !== "0000") {
@@ -306,17 +327,19 @@ router.post("/reset-password", async (req, res) => {
 
   const user = await prisma.user.findFirst({
     where: {
-      OR: [{ email: identifier }, { phone: identifier }],
+      OR: [{ email: targetEmail }, { phone: targetEmail }],
     },
   });
 
-  if (user) {
-    const passwordHash = bcrypt.hashSync(newPassword, 10);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { passwordHash },
-    });
+  if (!user) {
+    return res.status(404).json({ error: "No account found with this email address." });
   }
+
+  const passwordHash = bcrypt.hashSync(newPassword, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { passwordHash },
+  });
 
   res.json({ message: "Password reset successful! You can now log in with your new password." });
 });

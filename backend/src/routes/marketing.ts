@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { prisma } from "../prisma";
 
 const router = Router();
 
@@ -7,7 +8,7 @@ const spinHistory = new Map<string, { prize: string; couponCode: string; timesta
 const newsletterSubscribers = new Set<string>();
 
 // POST /api/spinwheel/play {phone}
-router.post("/spinwheel/play", (req, res) => {
+router.post("/spinwheel/play", async (req, res) => {
   const { phone } = req.body;
   if (!phone || String(phone).trim().length < 10) {
     return res.status(400).json({ error: "Please enter a valid 10-digit mobile phone number." });
@@ -46,6 +47,21 @@ router.post("/spinwheel/play", (req, res) => {
     couponCode,
     timestamp: now,
   });
+
+  // Save coupon directly to database
+  try {
+    await prisma.coupon.upsert({
+      where: { code: couponCode },
+      create: {
+        code: couponCode,
+        discountType: "PERCENTAGE",
+        discountValue: Number(prizeObj.discountPercent || 10),
+        minOrderValue: 0,
+        usageLimit: 1,
+      },
+      update: {},
+    });
+  } catch (err) {}
 
   res.json({
     success: true,

@@ -102,6 +102,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("admin_token", newToken);
     } else {
       localStorage.setItem("auth_token", newToken);
+      if (typeof window !== "undefined") {
+        const userKey = `spin_wheel_seen_${newUser.id}`;
+        if (!localStorage.getItem(userKey)) {
+          sessionStorage.setItem("trigger_first_login_spin_wheel", "true");
+        }
+      }
     }
   };
 

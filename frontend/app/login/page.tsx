@@ -68,7 +68,7 @@ export default function UserLoginPage() {
 
       if (data.token && data.user) {
         login(data.token, data.user);
-        router.push("/account/profile");
+        router.push("/");
       }
     } catch (err) {
       if (otp === "1234" || otp === "0000" || otp.length === 4) {
@@ -81,7 +81,7 @@ export default function UserLoginPage() {
           isAdmin: false,
         };
         login(mockToken, mockUser);
-        router.push("/account/profile");
+        router.push("/");
       } else {
         setError("Invalid OTP code. Use 1234.");
       }
@@ -112,7 +112,7 @@ export default function UserLoginPage() {
 
       if (data.token && data.user) {
         login(data.token, data.user);
-        router.push("/account/profile");
+        router.push("/");
       } else {
         setError("Invalid response from server.");
       }
@@ -126,7 +126,7 @@ export default function UserLoginPage() {
         isAdmin: false,
       };
       login(mockToken, mockUser);
-      router.push("/account/profile");
+      router.push("/");
     } finally {
       setLoading(false);
     }
@@ -248,10 +248,13 @@ export default function UserLoginPage() {
                       <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={10}
                         required
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        placeholder="+91 98765 43210"
+                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        placeholder="10-digit mobile number"
                         className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-300 focus:outline-none focus:border-gold text-xs text-gray-800"
                       />
                     </div>
