@@ -28,7 +28,9 @@ import {
   RotateCcw,
 } from "lucide-react";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { getApiBaseUrl } from "../../utils/apiConfig";
+
+const API_BASE = getApiBaseUrl();
 
 type Product = any;
 

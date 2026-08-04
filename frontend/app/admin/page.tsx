@@ -58,7 +58,9 @@ interface RealOrder {
 
 type GraphTheme = "royal" | "emerald" | "violet" | "sunset";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+import { getApiBaseUrl } from "../utils/apiConfig";
+
+const API_BASE = getApiBaseUrl();
 
 const defaultMockOrders: RealOrder[] = [
   {

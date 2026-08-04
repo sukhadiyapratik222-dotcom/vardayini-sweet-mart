@@ -13,7 +13,9 @@ interface Coupon {
   expiryDate?: string;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { getApiBaseUrl } from "../../utils/apiConfig";
+
+const API_BASE = getApiBaseUrl();
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);

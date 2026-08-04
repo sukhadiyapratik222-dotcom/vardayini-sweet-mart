@@ -6,7 +6,9 @@ import Link from "next/link";
 import { ShieldCheck, Mail, Lock, User, Key, ArrowRight } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { getApiBaseUrl } from "../../utils/apiConfig";
+
+const API_BASE = getApiBaseUrl();
 
 export default function AdminAuthPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");

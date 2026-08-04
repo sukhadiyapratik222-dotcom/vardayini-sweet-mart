@@ -41,7 +41,9 @@ interface Order {
   items: OrderItem[];
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { getApiBaseUrl } from "../../utils/apiConfig";
+
+const API_BASE = getApiBaseUrl();
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
