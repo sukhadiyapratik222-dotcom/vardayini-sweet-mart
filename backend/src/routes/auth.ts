@@ -118,96 +118,106 @@ router.put("/profile", async (req, res) => {
 
 // POST /api/auth/admin/register
 router.post("/admin/register", async (req, res) => {
-  const { name, email, phone, password, adminSecret } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: "Email and password are required." });
-  }
+  try {
+    const { name, email, phone, password, adminSecret } = req.body;
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required." });
+    }
 
-  const expectedSecret = process.env.ADMIN_SECRET || "4220";
-  if (adminSecret && adminSecret !== expectedSecret && adminSecret !== "4220" && adminSecret !== "ADMIN123") {
-    return res.status(403).json({ error: "Invalid Admin Secret Key (use key: 4220)." });
-  }
+    const expectedSecret = process.env.ADMIN_SECRET || "4220";
+    if (adminSecret && adminSecret !== expectedSecret && adminSecret !== "4220" && adminSecret !== "ADMIN123") {
+      return res.status(403).json({ error: "Invalid Admin Secret Key (use key: 4220)." });
+    }
 
-  const passwordHash = bcrypt.hashSync(password, 10);
-  const displayName = name || email.split("@")[0] || "Admin Owner";
+    const passwordHash = bcrypt.hashSync(password, 10);
+    const displayName = name || email.split("@")[0] || "Admin Owner";
 
-  const existing = await prisma.admin.findUnique({ where: { email } });
-  let admin;
+    const existing = await prisma.admin.findUnique({ where: { email } });
+    let admin;
 
-  if (existing) {
-    admin = await prisma.admin.update({
-      where: { email },
-      data: {
-        name: displayName,
-        passwordHash,
-        phone: phone || existing.phone,
-      },
+    if (existing) {
+      admin = await prisma.admin.update({
+        where: { email },
+        data: {
+          name: displayName,
+          passwordHash,
+          phone: phone || existing.phone,
+        },
+      });
+    } else {
+      admin = await prisma.admin.create({
+        data: {
+          name: displayName,
+          email,
+          phone: phone || undefined,
+          passwordHash,
+          role: "admin",
+        },
+      });
+    }
+
+    const token = jwt.sign({ userId: admin.id, isAdmin: true }, secret, { expiresIn: "7d" });
+    res.json({
+      user: { id: admin.id, name: admin.name, email: admin.email, phone: admin.phone, isAdmin: true },
+      token,
     });
-  } else {
-    admin = await prisma.admin.create({
-      data: {
-        name: displayName,
-        email,
-        phone: phone || undefined,
-        passwordHash,
-        role: "admin",
-      },
-    });
+  } catch (error: any) {
+    console.error("Admin Register Error:", error);
+    res.status(500).json({ error: error.message || "Failed to register admin account." });
   }
-
-  const token = jwt.sign({ userId: admin.id, isAdmin: true }, secret, { expiresIn: "7d" });
-  res.json({
-    user: { id: admin.id, name: admin.name, email: admin.email, phone: admin.phone, isAdmin: true },
-    token,
-  });
 });
 
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
-  const { email, phone, password, adminSecret, isAdminLogin } = req.body;
-  const loginKey = String(email || phone || "").trim();
-  if (!loginKey || !password) {
-    return res.status(400).json({ error: "Email/phone and password are required." });
-  }
-
-  const expectedSecret = process.env.ADMIN_SECRET || "4220";
-
-  // If Admin Login attempt, enforce adminSecret key validation
-  if (isAdminLogin || adminSecret) {
-    if (adminSecret && adminSecret !== expectedSecret && adminSecret !== "4220" && adminSecret !== "ADMIN123") {
-      return res.status(403).json({ error: "Invalid Admin Secret Key. Access denied (use key: 4220)." });
+  try {
+    const { email, phone, password, adminSecret, isAdminLogin } = req.body;
+    const loginKey = String(email || phone || "").trim();
+    if (!loginKey || !password) {
+      return res.status(400).json({ error: "Email/phone and password are required." });
     }
-  }
 
-  // 1. First check admins table
-  const admin = await prisma.admin.findFirst({
-    where: { OR: [{ email: loginKey }, { phone: loginKey }] },
-  });
-  if (admin) {
-    const isPasswordValid = bcrypt.compareSync(password, admin.passwordHash) || password === admin.passwordHash;
-    if (isPasswordValid) {
-      const token = jwt.sign({ userId: admin.id, isAdmin: true }, secret, { expiresIn: "7d" });
-      return res.json({
-        user: { id: admin.id, name: admin.name, email: admin.email, phone: admin.phone, isAdmin: true },
-        token,
-      });
+    const expectedSecret = process.env.ADMIN_SECRET || "4220";
+
+    // If Admin Login attempt, enforce adminSecret key validation
+    if (isAdminLogin || adminSecret) {
+      if (adminSecret && adminSecret !== expectedSecret && adminSecret !== "4220" && adminSecret !== "ADMIN123") {
+        return res.status(403).json({ error: "Invalid Admin Secret Key. Access denied (use key: 4220)." });
+      }
     }
-  }
 
-  // 2. Check users table for customer login
-  const user = await prisma.user.findFirst({
-    where: { OR: [{ email: loginKey }, { phone: loginKey }] },
-  });
-  const isPasswordValid = user ? (bcrypt.compareSync(password, user.passwordHash) || password === user.passwordHash) : false;
-  if (!user || !isPasswordValid) {
-    return res.status(401).json({ error: "Invalid credentials or password." });
-  }
+    // 1. First check admins table
+    const admin = await prisma.admin.findFirst({
+      where: { OR: [{ email: loginKey }, { phone: loginKey }] },
+    });
+    if (admin) {
+      const isPasswordValid = bcrypt.compareSync(password, admin.passwordHash) || password === admin.passwordHash;
+      if (isPasswordValid) {
+        const token = jwt.sign({ userId: admin.id, isAdmin: true }, secret, { expiresIn: "7d" });
+        return res.json({
+          user: { id: admin.id, name: admin.name, email: admin.email, phone: admin.phone, isAdmin: true },
+          token,
+        });
+      }
+    }
 
-  const token = jwt.sign({ userId: user.id, isAdmin: user.isAdmin }, secret, { expiresIn: "7d" });
-  res.json({
-    user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: user.isAdmin },
-    token
-  });
+    // 2. Check users table for customer login
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ email: loginKey }, { phone: loginKey }] },
+    });
+    const isPasswordValid = user ? (bcrypt.compareSync(password, user.passwordHash) || password === user.passwordHash) : false;
+    if (!user || !isPasswordValid) {
+      return res.status(401).json({ error: "Invalid credentials or password." });
+    }
+
+    const token = jwt.sign({ userId: user.id, isAdmin: user.isAdmin }, secret, { expiresIn: "7d" });
+    res.json({
+      user: { id: user.id, name: user.name, email: user.email, phone: user.phone, isAdmin: user.isAdmin },
+      token
+    });
+  } catch (error: any) {
+    console.error("Login Error:", error);
+    res.status(500).json({ error: error.message || "Failed to log in." });
+  }
 });
 
 // GET /api/auth/me

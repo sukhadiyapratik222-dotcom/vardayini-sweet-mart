@@ -48,6 +48,7 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
       setLoading(true);
       let apiProductsList: any[] = [];
       let apiTotalCount = 0;
+      let apiFetchedSuccess = false;
 
       try {
         const response = await productService.getAll({
@@ -61,9 +62,10 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
           weight: selectedWeights.length > 0 ? selectedWeights.join(',') : undefined,
         });
 
-        if (response.products && response.products.length > 0) {
+        if (response && Array.isArray(response.products)) {
           apiProductsList = response.products;
-          apiTotalCount = response.total;
+          apiTotalCount = response.total || response.products.length;
+          apiFetchedSuccess = true;
         }
       } catch (e) {
         // Fallback to local dataset
@@ -82,49 +84,52 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
         }
       }
 
-      // Combine admin custom products with local products dataset
-      const combinedPool = [...adminProducts, ...localProducts];
+      const poolSource = apiFetchedSuccess ? [...apiProductsList, ...adminProducts] : [...adminProducts, ...localProducts];
 
-      // Remove duplicates by slug
+      // Remove duplicates by normalized name and slug
       const uniqueMap = new Map();
-      combinedPool.forEach((p) => {
-        const key = p.slug || p.id;
-        if (!uniqueMap.has(key)) {
-          uniqueMap.set(key, p);
+      const seenNames = new Set();
+
+      poolSource.forEach((p) => {
+        const nameKey = (p.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
+        const slugKey = (p.slug || String(p.id)).toLowerCase().trim();
+
+        if (nameKey && !seenNames.has(nameKey) && !uniqueMap.has(slugKey)) {
+          seenNames.add(nameKey);
+          uniqueMap.set(slugKey, p);
         }
       });
 
-      let filtered = Array.from(uniqueMap.values());
-
-      // If backend API returned products, merge them as well
-      if (apiProductsList.length > 0) {
-        apiProductsList.forEach((p) => {
-          const key = p.slug || p.id;
-          if (!uniqueMap.has(key)) {
-            uniqueMap.set(key, p);
-          }
-        });
-        filtered = Array.from(uniqueMap.values());
-      }
+      let filtered = Array.from(uniqueMap.values()).filter((p: any) => p.isActive !== false);
 
       // Filter by Category
       if (category) {
         const catLower = category.toLowerCase().trim();
+        const normalizeCat = (slug: string) => {
+          if (slug === 'corporate-gifts' || slug === 'corporate-gift-boxes') return 'corporate-gift-boxes';
+          if (slug === 'dry-fruits-nuts' || slug === 'dry-fruits' || slug === 'dry-fruits-and-nuts') return 'dry-fruits-nuts';
+          if (slug === 'premium-baklava' || slug === 'baklava') return 'premium-baklava';
+          return slug;
+        };
+
+        const targetCat = normalizeCat(catLower);
+
         filtered = filtered.filter((p: any) => {
-          const pCatSlug = (p.categorySlug || p.category?.slug || (typeof p.category === 'string' ? p.category : '') || '').toLowerCase().trim();
-          const pSubCat = (p.subcategory || '').toLowerCase().trim();
-          const pCatName = (p.category?.name || '').toLowerCase().trim();
+          const pCatSlug = normalizeCat(p.categorySlug || p.category?.slug || (typeof p.category === 'string' ? p.category : '') || '');
+          const pSubCat = normalizeCat(p.subcategory || '');
 
-          const matchesDirect =
-            pCatSlug === catLower ||
-            pSubCat === catLower ||
-            pCatSlug.includes(catLower) ||
-            pCatName.includes(catLower) ||
-            catLower.includes(pCatSlug);
+          // 1. Direct match on subcategory or category slug
+          if (pSubCat === targetCat || pCatSlug === targetCat) return true;
 
-          const matchesTree = categories[category as keyof typeof categories]?.subcategories?.some((s) => s.slug === category);
+          // 2. Parent category match
+          const parentCategoryObj = categories[catLower as keyof typeof categories] || categories[targetCat as keyof typeof categories];
+          if (parentCategoryObj && parentCategoryObj.subcategories) {
+            const subSlugs = parentCategoryObj.subcategories.map((s: any) => normalizeCat(s.slug));
+            if (subSlugs.includes(pSubCat) || pCatSlug === targetCat) return true;
+          }
 
-          return matchesDirect || matchesTree;
+          // 3. Fallback match
+          return pCatSlug === targetCat || pSubCat === targetCat || pCatSlug === catLower || pSubCat === catLower;
         });
       }
 

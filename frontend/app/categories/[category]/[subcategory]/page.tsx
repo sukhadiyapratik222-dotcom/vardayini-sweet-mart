@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Header from '../../../components/Header';
 import ProductGrid from '../../../components/ProductGrid';
-import { products, categories } from '../../../data';
-import { ChevronRight, Filter, ShoppingBag, Layers, ArrowRight } from 'lucide-react';
+import { products as localProducts, categories } from '../../../data';
+import { ChevronRight, Filter, ShoppingBag, Layers, RefreshCw } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export default function SubcategoryPage({
   params
@@ -14,9 +16,61 @@ export default function SubcategoryPage({
   params: { category: string; subcategory: string }
 }) {
   const { category: categorySlug, subcategory: subcategorySlug } = params;
+  const [allProducts, setAllProducts] = useState<any[]>(localProducts);
+  const [loading, setLoading] = useState(true);
   const [selectedWeight, setSelectedWeight] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('popularity');
   const { t } = useLanguage();
+
+  // Fetch full catalog (MySQL DB + Admin localStorage + Local data)
+  useEffect(() => {
+    async function loadCatalog() {
+      setLoading(true);
+
+      try {
+        const res = await fetch(`${API_BASE}/products?limit=100`);
+        if (res.ok) {
+          const data = await res.json();
+          const apiProducts = Array.isArray(data.products) ? data.products : (Array.isArray(data) ? data : []);
+
+          let adminProducts: any[] = [];
+          if (typeof window !== "undefined") {
+            const cachedCatalog = localStorage.getItem("admin_products_catalog");
+            if (cachedCatalog) {
+              try {
+                adminProducts = JSON.parse(cachedCatalog);
+              } catch (e) {}
+            }
+          }
+
+          const combinedPool = [...apiProducts, ...adminProducts];
+          const uniqueMap = new Map();
+          const seenNames = new Set();
+
+          combinedPool.forEach((p) => {
+            const nameKey = (p.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
+            const slugKey = (p.slug || String(p.id)).toLowerCase().trim();
+
+            if (nameKey && !seenNames.has(nameKey) && !uniqueMap.has(slugKey)) {
+              seenNames.add(nameKey);
+              uniqueMap.set(slugKey, p);
+            }
+          });
+
+          const activeOnly = Array.from(uniqueMap.values()).filter((p: any) => p.isActive !== false);
+          setAllProducts(activeOnly);
+          setLoading(false);
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback ONLY if backend API is completely offline
+      setAllProducts(localProducts.filter((p: any) => p.isActive !== false));
+      setLoading(false);
+    }
+
+    loadCatalog();
+  }, []);
 
   // Find parent category and subcategory info
   const parentCatObj = Object.values(categories).find(c => c.slug === categorySlug);
@@ -27,22 +81,19 @@ export default function SubcategoryPage({
 
   // Filter products by category & subcategory
   const filteredProducts = useMemo(() => {
-    let result = products.filter(
+    let result = allProducts.filter(
       (p) =>
-        p.category === categorySlug ||
         p.subcategory === subcategorySlug ||
-        p.category === subcategorySlug
+        p.categorySlug === subcategorySlug ||
+        p.category === subcategorySlug ||
+        p.category === categorySlug ||
+        p.categorySlug === categorySlug
     );
-
-    // If no exact subcategory match, show products from parent category as fallback
-    if (result.length === 0) {
-      result = products.filter((p) => p.category === categorySlug);
-    }
 
     // Weight filter
     if (selectedWeight !== 'all') {
       result = result.filter((p) =>
-        p.variants.some((v) => v.weight === selectedWeight)
+        (p.variants || []).some((v: any) => (v.weight || v.weightLabel) === selectedWeight)
       );
     }
 
@@ -50,21 +101,21 @@ export default function SubcategoryPage({
     if (sortBy === 'price_low') {
       result.sort(
         (a, b) =>
-          Math.min(...a.variants.map((v) => v.discountedPrice || v.price)) -
-          Math.min(...b.variants.map((v) => v.discountedPrice || v.price))
+          Math.min(...(a.variants || [{ price: 100 }]).map((v: any) => v.discountedPrice || v.price)) -
+          Math.min(...(b.variants || [{ price: 100 }]).map((v: any) => v.discountedPrice || v.price))
       );
     } else if (sortBy === 'price_high') {
       result.sort(
         (a, b) =>
-          Math.max(...b.variants.map((v) => v.price)) -
-          Math.max(...a.variants.map((v) => v.price))
+          Math.max(...(b.variants || [{ price: 100 }]).map((v: any) => v.price)) -
+          Math.max(...(a.variants || [{ price: 100 }]).map((v: any) => v.price))
       );
     } else if (sortBy === 'rating') {
-      result.sort((a, b) => b.rating - a.rating);
+      result.sort((a, b) => Number(b.ratingAvg || b.rating || 4.8) - Number(a.ratingAvg || a.rating || 4.8));
     }
 
     return result;
-  }, [categorySlug, subcategorySlug, selectedWeight, sortBy]);
+  }, [allProducts, categorySlug, subcategorySlug, selectedWeight, sortBy]);
 
   return (
     <div className="min-h-screen bg-[#FAF7F0] flex flex-col">
@@ -119,13 +170,11 @@ export default function SubcategoryPage({
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8 items-start">
           
-          {/* Left Sidebar Category Menu & Filters (Visible on md and larger) */}
+          {/* Left Sidebar Category Menu & Filters */}
           <aside className="hidden md:block md:col-span-1 space-y-6 md:sticky md:top-24">
             
-            {/* Category Banner Card - Left Side Menu */}
+            {/* Category Banner Card */}
             <div className="bg-[#0B1B3D] border-2 border-gold/40 rounded-2xl p-6 shadow-xl text-white relative overflow-hidden">
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-gold/10 rounded-full blur-2xl pointer-events-none"></div>
-
               <div className="relative z-10">
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gold/20 border border-gold/40 text-gold text-[10px] font-bold uppercase tracking-wider mb-3">
                   <Layers size={12} />
@@ -160,7 +209,7 @@ export default function SubcategoryPage({
                             }`}
                           >
                             <span>{sub.name}</span>
-                            <ArrowRight size={12} className={isActive ? 'text-[#0B1B3D]' : 'opacity-60'} />
+                            <ChevronRight size={14} className={isActive ? 'text-[#0B1B3D]' : 'opacity-60'} />
                           </Link>
                         );
                       })}
@@ -259,7 +308,12 @@ export default function SubcategoryPage({
             </div>
 
             {/* Product Grid */}
-            {filteredProducts.length > 0 ? (
+            {loading ? (
+              <div className="bg-white rounded-2xl p-12 text-center border border-gold/20 shadow-sm text-xs font-bold text-gray-500 flex items-center justify-center gap-2">
+                <RefreshCw size={18} className="animate-spin text-gold-dark" />
+                <span>Loading products...</span>
+              </div>
+            ) : filteredProducts.length > 0 ? (
               <ProductGrid products={filteredProducts} />
             ) : (
               <div className="bg-white rounded-2xl p-12 text-center border border-gold/20 shadow-sm">
@@ -285,4 +339,3 @@ export default function SubcategoryPage({
     </div>
   );
 }
-

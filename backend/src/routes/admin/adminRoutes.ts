@@ -65,28 +65,17 @@ router.get("/orders", async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
       orderBy: { createdAt: "desc" },
-      include: { user: true, items: { include: { productVariant: { include: { product: true } } } } },
+      include: {
+        user: true,
+        items: { include: { productVariant: { include: { product: true } } } },
+        address: true,
+      },
     });
+
     res.json(orders);
-  } catch (error) {
-    res.json([
-      {
-        id: 'VSM-849201',
-        totalAmount: 1250,
-        status: 'Packed',
-        createdAt: new Date().toISOString(),
-        paymentStatus: 'PAID',
-        user: { name: 'Pratik Sukhadiya', email: 'pratik@example.com', phone: '+91 98765 43210' },
-      },
-      {
-        id: 'VSM-719304',
-        totalAmount: 2100,
-        status: 'Shipped',
-        createdAt: new Date(Date.now() - 86400000).toISOString(),
-        paymentStatus: 'PAID',
-        user: { name: 'Ramesh Patel', email: 'ramesh@example.com', phone: '+91 98765 11223' },
-      },
-    ]);
+  } catch (error: any) {
+    console.error("Get Admin Orders Error:", error);
+    res.status(500).json({ error: "Failed to fetch real orders from database" });
   }
 });
 

@@ -75,21 +75,52 @@ const defaultCategoryTree = [
   },
 ];
 
-// GET /api/categories - Returns nested category tree
+// GET /api/categories - Returns category tree (combining DB categories & defaults)
 router.get("/", async (req, res) => {
   try {
-    const categories = await prisma.category.findMany({
-      where: { parentId: null },
-      include: { children: true },
+    const dbCategories = await prisma.category.findMany({
+      include: { children: true, parent: true },
+      orderBy: { name: "asc" },
     });
 
-    if (!categories || categories.length === 0) {
+    if (!dbCategories || dbCategories.length === 0) {
       return res.json(defaultCategoryTree);
     }
 
-    res.json(categories);
+    res.json(dbCategories);
   } catch (error) {
     res.json(defaultCategoryTree);
+  }
+});
+
+// POST /api/categories - Create a new category in MySQL database
+router.post("/", async (req, res) => {
+  try {
+    const { name, slug, parentId, description } = req.body;
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ error: "Category name is required" });
+    }
+
+    const cleanName = String(name).trim();
+    const finalSlug = (slug || cleanName.toLowerCase()).replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+    const existing = await prisma.category.findUnique({ where: { slug: finalSlug } });
+    if (existing) {
+      return res.json(existing);
+    }
+
+    const newCat = await prisma.category.create({
+      data: {
+        name: cleanName,
+        slug: finalSlug,
+        ...(parentId ? { parentId: Number(parentId) } : {}),
+      },
+      include: { children: true },
+    });
+
+    res.status(201).json(newCat);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Failed to create category" });
   }
 });
 
@@ -116,12 +147,14 @@ router.get("/:slug", async (req, res) => {
   }
 });
 
-// DELETE /api/categories/:id - Block deletion if category has products (Rule 5)
+// DELETE /api/categories/:id - Block deletion if category has products
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
+  const targetId = Number(id);
+
   try {
     const productsCount = await prisma.product.count({
-      where: { categoryId: id }
+      where: { categoryId: Number.isNaN(targetId) ? -1 : targetId }
     });
 
     if (productsCount > 0) {
@@ -130,7 +163,7 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    await prisma.category.delete({ where: { id } });
+    await prisma.category.delete({ where: { id: Number.isNaN(targetId) ? -1 : targetId } });
     res.json({ message: "Category deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete category" });

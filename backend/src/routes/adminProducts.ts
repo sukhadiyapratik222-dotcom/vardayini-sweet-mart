@@ -21,6 +21,8 @@ router.get("/", async (req, res) => {
 
     const formatted = products.map((p) => ({
       ...p,
+      categorySlug: p.category?.slug || "",
+      subcategory: p.category?.slug || "",
       images: (p.productImages ?? []).map((img: any) => img.imageUrl),
       primaryImage: p.productImages?.[0]?.imageUrl || "/images/sweet-1.jpg",
       totalStock: (p.variants ?? []).reduce((sum: number, v: any) => sum + (v.stockQty ?? 0), 0),
@@ -32,12 +34,42 @@ router.get("/", async (req, res) => {
   }
 });
 
+// Helper to generate guaranteed unique SKU
+function generateUniqueSku(rawSku: string | undefined, index: number): string {
+  const timestamp = Date.now().toString().slice(-6);
+  const rand = Math.floor(Math.random() * 1000);
+  if (rawSku && !["SKU-250G", "SKU-500G", "KK-250", "KK-500", "MP-250", "DF-250"].includes(rawSku)) {
+    return `${rawSku.trim()}-${timestamp}-${rand}`;
+  }
+  return `SKU-${timestamp}-${index}-${rand}`;
+}
+
 // POST /api/admin/products - Create a new product with variants & images
 router.post("/", async (req, res) => {
   try {
     const { name, slug, description, categorySlug, tag, isActive, variants, imageUrls } = req.body;
     if (!name || !slug || !categorySlug || !variants?.length) {
       return res.status(400).json({ error: "Name, slug, categorySlug, and variants are required." });
+    }
+
+    // Validate duplicate product by name
+    const existingByName = await prisma.product.findFirst({
+      where: {
+        name: { equals: name.trim() }
+      }
+    });
+
+    if (existingByName) {
+      return res.status(400).json({
+        error: `Product "${name.trim()}" already exists in the catalog. Modify the existing product instead of creating a duplicate.`
+      });
+    }
+
+    // Ensure unique slug
+    let finalSlug = slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+    const existingSlug = await prisma.product.findUnique({ where: { slug: finalSlug } });
+    if (existingSlug) {
+      finalSlug = `${finalSlug}-${Date.now().toString().slice(-4)}`;
     }
 
     let category = await prisma.category.findUnique({ where: { slug: categorySlug } });
@@ -51,12 +83,12 @@ router.post("/", async (req, res) => {
     const product = await prisma.product.create({
       data: {
         name,
-        slug,
+        slug: finalSlug,
         description: description || "",
         categoryId: category.id,
         tag: tag || "none",
         isActive: isActive ?? true,
-        productImages: Array.isArray(imageUrls)
+        productImages: Array.isArray(imageUrls) && imageUrls.length > 0
           ? {
               create: imageUrls
                 .filter((imageUrl: string) => Boolean(imageUrl))
@@ -66,22 +98,34 @@ router.post("/", async (req, res) => {
                   sortOrder: index,
                 })),
             }
-          : undefined,
+          : {
+              create: [{ imageUrl: "/images/sweet-1.jpg", altText: name, sortOrder: 0 }]
+            },
         variants: {
-          create: variants.map((variant: any) => ({
+          create: variants.map((variant: any, idx: number) => ({
             weightLabel: variant.weightLabel || "500g",
             price: Number(variant.price || 250),
             discountedPrice: variant.discountedPrice ? Number(variant.discountedPrice) : null,
             stockQty: Number(variant.stockQty ?? 20),
-            sku: variant.sku || `SKU-${Date.now().toString().slice(-4)}`,
+            sku: generateUniqueSku(variant.sku, idx),
           })),
         },
       },
       include: { category: true, variants: true, productImages: true },
     });
 
-    res.status(201).json(product);
+    const formattedProduct = {
+      ...product,
+      categorySlug: category.slug,
+      subcategory: category.slug,
+      images: (product.productImages ?? []).map((img: any) => img.imageUrl),
+      primaryImage: product.productImages?.[0]?.imageUrl || "/images/sweet-1.jpg",
+      totalStock: (product.variants ?? []).reduce((sum: number, v: any) => sum + (v.stockQty ?? 0), 0),
+    };
+
+    res.status(201).json(formattedProduct);
   } catch (error: any) {
+    console.error("Error creating product:", error);
     res.status(500).json({ error: error.message || "Failed to create product." });
   }
 });
@@ -128,7 +172,7 @@ router.put("/:id", async (req, res) => {
       include: { category: true, variants: true, productImages: true },
     });
 
-    if (Array.isArray(imageUrls)) {
+    if (Array.isArray(imageUrls) && imageUrls.length > 0) {
       await prisma.productImage.deleteMany({ where: { productId: product.id } });
       await prisma.productImage.createMany({
         data: imageUrls
@@ -145,18 +189,32 @@ router.put("/:id", async (req, res) => {
     if (Array.isArray(variants) && variants.length > 0) {
       await prisma.productVariant.deleteMany({ where: { productId: product.id } });
       await prisma.productVariant.createMany({
-        data: variants.map((variant: any) => ({
+        data: variants.map((variant: any, idx: number) => ({
           productId: product.id,
           weightLabel: variant.weightLabel || "500g",
           price: Number(variant.price || 250),
           discountedPrice: variant.discountedPrice ? Number(variant.discountedPrice) : null,
           stockQty: Number(variant.stockQty ?? 20),
-          sku: variant.sku || `SKU-${Date.now().toString().slice(-4)}`,
+          sku: generateUniqueSku(variant.sku, idx),
         })),
       });
     }
 
-    res.json(product);
+    const updatedProduct = await prisma.product.findUnique({
+      where: { id: product.id },
+      include: { category: true, variants: true, productImages: true },
+    });
+
+    const formatted = {
+      ...updatedProduct,
+      categorySlug: updatedProduct?.category?.slug || "",
+      subcategory: updatedProduct?.category?.slug || "",
+      images: (updatedProduct?.productImages ?? []).map((img: any) => img.imageUrl),
+      primaryImage: updatedProduct?.productImages?.[0]?.imageUrl || "/images/sweet-1.jpg",
+      totalStock: (updatedProduct?.variants ?? []).reduce((sum: number, v: any) => sum + (v.stockQty ?? 0), 0),
+    };
+
+    res.json(formatted);
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Failed to update product." });
   }
@@ -178,9 +236,16 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ error: "Product not found." });
     }
 
+    // Delete child records first to satisfy MySQL foreign key constraints
+    await prisma.productImage.deleteMany({ where: { productId: existing.id } });
+    await prisma.productVariant.deleteMany({ where: { productId: existing.id } });
+
+    // Finally delete product from MySQL database
     await prisma.product.delete({ where: { id: existing.id } });
-    res.json({ success: true, message: `Product "${existing.name}" deleted.`, id: existing.id });
+
+    res.json({ success: true, message: `Product "${existing.name}" permanently deleted.`, id: existing.id });
   } catch (error: any) {
+    console.error("Error deleting product:", error);
     res.status(500).json({ error: error.message || "Failed to delete product." });
   }
 });
@@ -203,108 +268,6 @@ router.put("/:id/stock", async (req, res) => {
     res.json({ success: true, message: "Stock updated", id: targetId, stockQty });
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Failed to update stock." });
-  }
-});
-
-// POST /api/admin/products/:id/images - Upload additional image URL
-router.post("/:id/images", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const targetId = Number(id);
-    const { imageUrl, altText } = req.body;
-
-    if (!imageUrl) {
-      return res.status(400).json({ error: "imageUrl is required" });
-    }
-
-    const image = await prisma.productImage.create({
-      data: {
-        productId: targetId,
-        imageUrl,
-        altText: altText || "Product photo",
-        sortOrder: 0,
-      },
-    });
-
-    res.status(201).json(image);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to add product image." });
-  }
-});
-
-// DELETE /api/admin/products/:id/images/:imageId - Remove an image
-router.delete("/:id/images/:imageId", async (req, res) => {
-  try {
-    const { imageId } = req.params;
-    await prisma.productImage.delete({ where: { id: Number(imageId) } });
-    res.json({ success: true, message: "Product image deleted." });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to delete image." });
-  }
-});
-
-// Category Management Routes:
-// POST /api/admin/categories - Add new category
-router.post("/categories", async (req, res) => {
-  try {
-    const { name, slug, parentId } = req.body;
-    if (!name || !slug) {
-      return res.status(400).json({ error: "Category name and slug are required." });
-    }
-
-    const category = await prisma.category.create({
-      data: {
-        name,
-        slug,
-        parentId: parentId ? Number(parentId) : null,
-      },
-    });
-
-    res.status(201).json(category);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to create category." });
-  }
-});
-
-// PUT /api/admin/categories/:id - Update category
-router.put("/categories/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { name, slug, parentId } = req.body;
-
-    const category = await prisma.category.update({
-      where: { id: Number(id) },
-      data: {
-        ...(name ? { name } : {}),
-        ...(slug ? { slug } : {}),
-        ...(parentId !== undefined ? { parentId: parentId ? Number(parentId) : null } : {}),
-      },
-    });
-
-    res.json(category);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to update category." });
-  }
-});
-
-// DELETE /api/admin/categories/:id - Delete category
-router.delete("/categories/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const catId = Number(id);
-
-    // Check if category has associated products
-    const productCount = await prisma.product.count({ where: { categoryId: catId } });
-    if (productCount > 0) {
-      return res.status(400).json({
-        error: `Cannot delete category: Contains ${productCount} active products. Please reassign or delete associated products first.`
-      });
-    }
-
-    await prisma.category.delete({ where: { id: catId } });
-    res.json({ success: true, message: "Category deleted successfully.", id: catId });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message || "Failed to delete category." });
   }
 });
 

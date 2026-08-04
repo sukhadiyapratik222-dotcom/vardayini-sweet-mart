@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Heart, ShoppingCart, Star, Check } from 'lucide-react';
 import { Product } from '../data';
@@ -28,6 +28,21 @@ export default function ProductSlider({
   const sliderRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
   const { addToCart, setIsOpen } = useCart();
+
+  // Deduplicate input products by normalized name/slug
+  const uniqueProducts = useMemo(() => {
+    const map = new Map();
+    (products || []).forEach((p) => {
+      const key = (p.slug || String(p.id) || p.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
+      if (key && !map.has(key)) {
+        map.set(key, p);
+      }
+    });
+    return Array.from(map.values());
+  }, [products]);
+
+  // Only duplicate for infinite carousel loop if there are 4+ unique products
+  const displayProducts = uniqueProducts.length >= 4 ? [...uniqueProducts, ...uniqueProducts] : uniqueProducts;
 
   // True infinite loop: auto-scroll every 5s, silently reset at halfway point
   useEffect(() => {
@@ -72,7 +87,7 @@ export default function ProductSlider({
     const variant = product.variants.find((v) => v.weight === selectedWeight) || product.variants[0];
     const targetVariantId = variant.id || `${product.id}-${variant.weight}`;
 
-    await addToCart(targetVariantId, 1);
+    await addToCart(targetVariantId, 1, product);
 
     setAddedItems((prev) => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
@@ -128,8 +143,8 @@ export default function ProductSlider({
               </div>
             ))
           )}
-          {/* Render products TWICE for seamless infinite loop */}
-          {products.length > 0 && [...products, ...products].map((product, loopIndex) => {
+          {/* Render unique products (only duplicate for infinite loop when 4+ items exist) */}
+          {displayProducts.length > 0 && displayProducts.map((product, loopIndex) => {
             const selectedWeight = selectedVariants[product.id];
             const variant = selectedWeight ? product.variants.find((v) => v.weight === selectedWeight) : undefined;
             const totalStock = product.variants.reduce((sum, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);

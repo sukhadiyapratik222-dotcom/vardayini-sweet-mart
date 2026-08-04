@@ -81,7 +81,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
 
   const handleAddToCart = async () => {
     const targetVariantId = selectedVariant?.id || `${product.id}-${selectedVariant?.weightLabel || 'default'}`;
-    await addToCart(targetVariantId, quantity);
+    await addToCart(targetVariantId, quantity, product);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
     if (setIsOpen) setIsOpen(true);
@@ -89,7 +89,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
 
   const handleBuyNow = async () => {
     const targetVariantId = selectedVariant?.id || `${product.id}-${selectedVariant?.weightLabel || 'default'}`;
-    await addToCart(targetVariantId, quantity);
+    await addToCart(targetVariantId, quantity, product);
     router.push('/cart');
   };
 

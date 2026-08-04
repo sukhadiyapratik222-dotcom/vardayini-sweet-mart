@@ -1,166 +1,131 @@
 import { Router } from "express";
+import jwt from "jsonwebtoken";
 import { prisma } from "../prisma";
-import { authenticate } from "../middleware/auth";
 
 const router = Router();
+const secret = process.env.JWT_SECRET || "supersecretkey";
 
-// POST /api/orders (creates order, locks stock, initiates payment)
-router.post("/", authenticate, async (req, res) => {
-  const userId = req.userId;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-
-  const { items, address, deliveryDate, timeSlot, paymentMethod, couponCode } = req.body;
-  if (!items || !items.length) {
-    return res.status(400).json({ error: "Order must contain at least one item." });
+function getOptionalUserId(req: any): string | null {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+  if (!token) return null;
+  try {
+    const payload = jwt.verify(token, secret) as { userId: string };
+    return payload.userId || null;
+  } catch (e) {
+    return null;
   }
+}
+
+// POST /api/orders (Creates real order in database)
+router.post("/", async (req, res) => {
+  let userId = getOptionalUserId(req);
+  const { fullName, email, phone, address, deliveryDate, timeSlot, paymentMethod, items, total, subtotal } = req.body;
 
   try {
-    // 1. Verify stock & calculate subtotal
-    let subtotal = 0;
-    const itemsToCreate = [];
+    // If guest user or no userId provided, find/create user record in database
+    if (!userId) {
+      const userEmail = email ? String(email).trim() : phone ? `${String(phone).trim()}@customer.local` : `guest_${Date.now()}@customer.local`;
+      const userName = fullName ? String(fullName).trim() : "Valued Customer";
+      const cleanPhone = phone ? String(phone).trim() : null;
 
-    for (const item of items) {
-      const variantId = item.productVariantId || item.variantId || item.id;
-      const quantity = Math.max(1, Number(item.quantity || 1));
-      const price = Number(item.price || item.discountedPrice || 250);
-
-      subtotal += price * quantity;
-
-      // Lock stock by decrementing in database if available
-      try {
-        await (prisma as any).productVariant.update({
-          where: { id: variantId },
-          data: { stockQty: { decrement: quantity } },
-        });
-      } catch (e) {
-        // Continue if variant ID is synthetic or demo
-      }
-
-      itemsToCreate.push({
-        productVariantId: variantId,
-        quantity,
-        priceAtPurchase: price,
-        name: item.name || "Vardayini Sweet Item",
-        weight: item.weight || item.weightLabel || "500g",
-      });
-    }
-
-    // 2. Calculate discounts & delivery charges
-    const discount = couponCode === "SWEET10" ? Math.round(subtotal * 0.1) : subtotal >= 5000 ? Math.round(subtotal * 0.05) : 0;
-    const deliveryFee = subtotal >= 1000 ? 0 : 100;
-    const total = subtotal - discount + deliveryFee;
-
-    const orderId = `VSM-${Math.floor(100000 + Math.random() * 900000)}`;
-    const razorpayOrderId = `order_rzp_${Date.now()}`;
-
-    // 3. Save order record
-    let order;
-    try {
-      order = await (prisma as any).order.create({
-        data: {
-          userId,
-          orderNumber: orderId,
-          subtotal,
-          discount,
-          deliveryFee,
-          total,
-          status: "Placed",
-          paymentStatus: paymentMethod === "COD" ? "PAID" : "PENDING",
-          paymentMethod: paymentMethod || "UPI",
-          deliveryDate: deliveryDate || "Tomorrow",
-          timeSlot: timeSlot || "Morning Slot",
-          address: typeof address === "string" ? address : JSON.stringify(address || {}),
+      let existingUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            { email: userEmail },
+            ...(cleanPhone ? [{ phone: cleanPhone }] : []),
+          ],
         },
       });
-    } catch (e) {
-      order = {
-        id: orderId,
-        orderId,
-        subtotal,
-        discount,
-        deliveryFee,
-        total,
-        status: "Placed",
-        paymentStatus: paymentMethod === "COD" ? "PAID" : "PENDING",
-        paymentMethod: paymentMethod || "UPI",
-        deliveryDate: deliveryDate || "Tomorrow",
-        timeSlot: timeSlot || "Morning Slot",
-        address: typeof address === "string" ? address : JSON.stringify(address || {}),
-        createdAt: new Date().toISOString(),
-      };
+
+      if (!existingUser) {
+        existingUser = await prisma.user.create({
+          data: {
+            name: userName,
+            email: userEmail,
+            phone: cleanPhone,
+            passwordHash: "guest_checkout",
+            role: "customer",
+          },
+        });
+      }
+      userId = existingUser.id;
     }
 
-    res.status(201).json({
-      order,
-      razorpay: {
-        orderId: razorpayOrderId,
-        amount: total * 100, // Amount in paise
-        currency: "INR",
+    const orderId = req.body.orderId || `VSM-${Math.floor(100000 + Math.random() * 900000)}`;
+    const finalTotal = Number(total || subtotal || 0);
+    const finalSubtotal = Number(subtotal || total || 0);
+
+    const order = await prisma.order.create({
+      data: {
+        userId,
+        orderNumber: orderId,
+        subtotal: finalSubtotal,
+        discount: 0,
+        deliveryFee: 0,
+        total: finalTotal,
+        status: "Placed",
+        paymentStatus: paymentMethod === "COD" ? "PAID" : "PAID",
       },
     });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create order." });
+
+    res.status(201).json({
+      success: true,
+      message: "Real order stored in database successfully",
+      order: {
+        ...order,
+        orderId: order.orderNumber,
+        fullName: fullName || "Customer",
+        phone: phone || "",
+        email: email || "",
+        address: typeof address === "string" ? address : JSON.stringify(address || {}),
+        deliveryDate: deliveryDate || "Tomorrow",
+        timeSlot: timeSlot || "Morning Slot",
+        paymentMethod: paymentMethod || "UPI",
+        items: items || [],
+      },
+    });
+  } catch (error: any) {
+    console.error("Create Order Error:", error);
+    res.status(500).json({ error: error.message || "Failed to save order to database." });
   }
 });
 
-// GET /api/orders (user's order list)
-router.get("/", authenticate, async (req, res) => {
-  const userId = req.userId;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+// GET /api/orders (user's order list from database)
+router.get("/", async (req, res) => {
+  const userId = getOptionalUserId(req);
+  if (!userId) return res.json([]);
 
   try {
-    const orders = await (prisma as any).order.findMany({
+    const orders = await prisma.order.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
     });
     res.json(orders);
   } catch (error) {
-    res.json([
-      {
-        id: "VSM-849201",
-        orderId: "VSM-849201",
-        date: new Date().toISOString(),
-        status: "Packed",
-        total: 1250,
-        paymentStatus: "PAID",
-        paymentMethod: "UPI",
-        deliveryDate: "Tomorrow",
-        timeSlot: "Morning Slot",
-      },
-    ]);
+    res.json([]);
   }
 });
 
 // GET /api/orders/:id (get order by ID or orderNumber)
-router.get("/:id", authenticate, async (req, res) => {
+router.get("/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const order = await (prisma as any).order.findFirst({
+    const order = await prisma.order.findFirst({
       where: {
         OR: [{ id }, { orderNumber: id }],
       },
+      include: { user: true },
     });
 
     if (!order) {
-      return res.status(404).json({ error: "Order not found" });
+      return res.status(404).json({ error: "Order not found in database." });
     }
 
     res.json(order);
   } catch (error) {
-    res.json({
-      id,
-      orderId: id,
-      date: new Date().toISOString(),
-      status: "Packed",
-      total: 1250,
-      paymentStatus: "PAID",
-      paymentMethod: "UPI",
-      deliveryDate: "Tomorrow",
-      timeSlot: "Morning Slot",
-      carrier: "BlueDart Express",
-      trackingNumber: "AWB9849201IN",
-    });
+    res.status(500).json({ error: "Database error fetching order." });
   }
 });
 

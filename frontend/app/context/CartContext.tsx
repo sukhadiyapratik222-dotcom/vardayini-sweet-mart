@@ -130,6 +130,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const fetchCart = async () => {
+    let loadedItems: CartItem[] = [];
+
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -139,51 +141,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        if (data.items && data.items.length > 0) {
-          setCart(calculateCart(data.items, appliedCoupon));
-          setLoading(false);
-          return;
+        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+          loadedItems = data.items;
         }
       }
     } catch (error) {
       // API offline
     }
 
-    // Fallback local cart initialization
-    if (typeof window !== 'undefined') {
+    // Local cart initialization from localStorage
+    if (loadedItems.length === 0 && typeof window !== 'undefined') {
       try {
         const stored = localStorage.getItem('vardayini_cart');
         if (stored) {
           const parsed = JSON.parse(stored) as CartItem[];
-          setLocalItems(parsed);
-          setCart(calculateCart(parsed, appliedCoupon));
-          setLoading(false);
-          return;
+          if (Array.isArray(parsed)) {
+            // Filter out old pre-populated demo items
+            loadedItems = parsed.filter(item => {
+              const name = item.productVariant?.product?.name || '';
+              const isOldDemo = item.id === 'cart-item-1' ||
+                                item.productVariantId === 'sweet-1-500g' ||
+                                (name === 'Royal Kaju Katli' && item.productVariant?.price === 850 && item.id === 'cart-item-1') ||
+                                (name === 'Sugarless Anjeer Khajur Barfi' && item.quantity === 7) ||
+                                (name === 'Vardayini Special Sweets' && item.productVariantId === 'sweet-1-500g');
+              return !isOldDemo;
+            });
+            localStorage.setItem('vardayini_cart', JSON.stringify(loadedItems));
+          }
         }
       } catch (e) {}
     }
 
-    // Default sample item if completely empty
-    const initialItem: CartItem = {
-      id: 'cart-item-1',
-      productVariantId: 'sweet-1-500g',
-      quantity: 1,
-      productVariant: {
-        id: 'sweet-1-500g',
-        weightLabel: '500g',
-        price: 850,
-        discountedPrice: 799,
-        product: {
-          id: 'sweet-1',
-          name: 'Royal Kaju Katli',
-          slug: 'royal-kaju-katli',
-          imageUrls: ['/images/sweet-1.jpg'],
-        },
-      },
-    };
-
-    setLocalItems([initialItem]);
-    setCart(calculateCart([initialItem], appliedCoupon));
+    // Start with ONLY user-added items (empty if customer hasn't added items yet)
+    setLocalItems(loadedItems);
+    setCart(calculateCart(loadedItems, appliedCoupon));
     setLoading(false);
   };
 
@@ -195,12 +186,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCart(calculateCart(items, couponCode));
   };
 
-  const addToCart = async (productVariantId: string, quantity: number) => {
+  const addToCart = async (productVariantId: string, quantity: number = 1, productData?: any) => {
     trackAddToCart({
       id: productVariantId,
-      name: "Sweet Product Item",
+      name: productData?.name || "Sweet Product Item",
       quantity,
     });
+
     try {
       setLoading(true);
       const response = await fetch(`${API_BASE}/cart/items`, {
@@ -212,28 +204,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        setCart(calculateCart(data.items, appliedCoupon));
-        setLoading(false);
-        return;
+        if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+          setCart(calculateCart(data.items, appliedCoupon));
+          setLoading(false);
+          return;
+        }
       }
     } catch (error) {
       // Local fallback
     }
 
     // Local cart addition logic
-    let updated = [...localItems];
-    const existingIdx = updated.findIndex((i) => i.productVariantId === productVariantId || i.id === productVariantId);
+    let matchedProduct: any = productData || null;
+    let matchedVariant: any = null;
 
-    if (existingIdx >= 0) {
-      updated[existingIdx].quantity += quantity;
-    } else {
-      // Construct item from local dataset if possible
-      let matchedProduct: any = null;
-      let matchedVariant: any = null;
+    if (matchedProduct && matchedProduct.variants && Array.isArray(matchedProduct.variants)) {
+      matchedVariant = matchedProduct.variants.find((v: any) =>
+        v.id === productVariantId || `${matchedProduct.id}-${v.weight}` === productVariantId
+      ) || matchedProduct.variants[0];
+    }
 
+    // Search in localProducts if matchedProduct is not set
+    if (!matchedProduct) {
       for (const p of localProducts) {
+        if (p.id === productVariantId || p.slug === productVariantId) {
+          matchedProduct = p;
+          matchedVariant = p.variants[0];
+          break;
+        }
         for (const v of p.variants) {
-          if (v.id === productVariantId || `${p.id}-${v.weight}` === productVariantId) {
+          if (v.id === productVariantId || `${p.id}-${v.weight}` === productVariantId || v.sku === productVariantId) {
             matchedProduct = p;
             matchedVariant = v;
             break;
@@ -241,21 +241,54 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
         if (matchedProduct) break;
       }
+    }
 
+    // Fallback search by string match in localProducts
+    if (!matchedProduct && typeof productVariantId === 'string') {
+      const lower = productVariantId.toLowerCase();
+      matchedProduct = localProducts.find(p =>
+        p.slug.toLowerCase().includes(lower) ||
+        p.name.toLowerCase().includes(lower) ||
+        lower.includes(p.slug.toLowerCase()) ||
+        lower.includes(p.name.toLowerCase())
+      );
+      if (matchedProduct) {
+        matchedVariant = matchedProduct.variants[0];
+      }
+    }
+
+    // Extract exact title, image, price, weight
+    const itemTitle = matchedProduct?.name || productData?.name || 'Vardayini Sweets Item';
+    const itemSlug = matchedProduct?.slug || productData?.slug || 'sweet-item';
+    const itemImage = matchedProduct?.image || matchedProduct?.primaryImage || matchedProduct?.imageUrls?.[0] || productData?.image || '/images/sweet-1.jpg';
+    const itemWeight = matchedVariant?.weight || matchedVariant?.weightLabel || '500g';
+    const itemPrice = Number(matchedVariant?.price || productData?.price || 500);
+    const itemDiscountedPrice = Number(matchedVariant?.discountedPrice || matchedVariant?.price || productData?.discountedPrice || productData?.price || itemPrice);
+
+    let updated = [...localItems];
+    const existingIdx = updated.findIndex((i) =>
+      i.productVariantId === productVariantId ||
+      i.id === productVariantId ||
+      i.productVariant?.product?.name === itemTitle
+    );
+
+    if (existingIdx >= 0) {
+      updated[existingIdx].quantity += quantity;
+    } else {
       const newItem: CartItem = {
         id: `item-${Date.now()}`,
         productVariantId,
         quantity,
         productVariant: {
           id: productVariantId,
-          weightLabel: matchedVariant?.weight || '500g',
-          price: matchedVariant?.price || 500,
-          discountedPrice: matchedVariant?.discountedPrice || matchedVariant?.price || 450,
+          weightLabel: itemWeight,
+          price: itemPrice,
+          discountedPrice: itemDiscountedPrice,
           product: {
-            id: matchedProduct?.id || 'prod',
-            name: matchedProduct?.name || 'Vardayini Special Sweets',
-            slug: matchedProduct?.slug || 'special-sweets',
-            imageUrls: [matchedProduct?.image || '/images/sweet-1.jpg'],
+            id: matchedProduct?.id || productData?.id || `prod-${Date.now()}`,
+            name: itemTitle,
+            slug: itemSlug,
+            imageUrls: [itemImage],
           },
         },
       };
@@ -278,9 +311,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        setCart(calculateCart(data.items, appliedCoupon));
-        setLoading(false);
-        return;
+        if (data.items && Array.isArray(data.items)) {
+          setCart(calculateCart(data.items, appliedCoupon));
+          setLoading(false);
+          return;
+        }
       }
     } catch (error) {
       // Local fallback
@@ -303,9 +338,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        setCart(calculateCart(data.items, appliedCoupon));
-        setLoading(false);
-        return;
+        if (data.items && Array.isArray(data.items)) {
+          setCart(calculateCart(data.items, appliedCoupon));
+          setLoading(false);
+          return;
+        }
       }
     } catch (error) {
       // Local fallback
@@ -362,4 +399,3 @@ export function useCart() {
   }
   return context;
 }
-

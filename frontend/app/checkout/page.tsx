@@ -11,6 +11,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useCart } from '../context/CartContext';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { cart } = useCart();
@@ -38,7 +40,7 @@ export default function CheckoutPage() {
   // Order processing state
   const [isPlacing, setIsPlacing] = useState(false);
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsPlacing(true);
 
@@ -49,17 +51,30 @@ export default function CheckoutPage() {
       date: new Date().toISOString(),
       fullName,
       phone,
+      email: "pratik@example.com",
       address: `${addressLine}, ${landmark ? landmark + ', ' : ''}${city}, ${state} - ${pincode}`,
       deliveryDate,
       timeSlot,
       paymentMethod,
+      subtotal: cart?.subtotal || 1250,
       total: cart?.total || 1250,
       items: cart?.items || []
     };
 
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') || localStorage.getItem('admin_token') : null;
+      await fetch(`${API_BASE}/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(orderDetails),
+      });
+    } catch (err) {}
+
     if (typeof window !== 'undefined') {
       localStorage.setItem('latest_order', JSON.stringify(orderDetails));
-      // Add to mock orders history
       const existingOrders = JSON.parse(localStorage.getItem('my_orders') || '[]');
       localStorage.setItem('my_orders', JSON.stringify([orderDetails, ...existingOrders]));
     }
@@ -67,7 +82,7 @@ export default function CheckoutPage() {
     setTimeout(() => {
       setIsPlacing(false);
       router.push(`/checkout/confirmation?orderId=${orderId}`);
-    }, 1500);
+    }, 1000);
   };
 
   return (

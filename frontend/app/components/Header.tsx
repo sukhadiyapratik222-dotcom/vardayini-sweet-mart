@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { categories } from '../data';
 import { ChevronDown, ShoppingCart, User, Heart, Menu, X, Globe, LogOut, Store } from 'lucide-react';
@@ -11,12 +11,63 @@ import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 import { Language } from '../lib/translations';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+
 export default function Header() {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const { cart } = useCart();
+  const [customCategories, setCustomCategories] = useState<Array<{ name: string; slug: string }>>([]);
+
+  useEffect(() => {
+    async function loadCustomCats() {
+      let dbCats: any[] = [];
+      try {
+        const res = await fetch(`${API_BASE}/categories`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            dbCats = data;
+          }
+        }
+      } catch (e) {}
+
+      let localCats: any[] = [];
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem("admin_custom_categories");
+        if (stored) {
+          try {
+            localCats = JSON.parse(stored);
+          } catch (e) {}
+        }
+      }
+
+      const defaultSlugs = new Set([
+        "sweets", "namkeen", "bakery", "mukhwas", "dry-fruits-nuts",
+        "premium-baklava", "corporate-gift-boxes", "corporate-gifts",
+        "kaju-sweets", "mawa-sweets", "penda", "sugarless", "indian-ghee",
+        "sev", "khakhra", "mixture", "roasted", "gujarati", "farali", "millet"
+      ]);
+
+      const extraCats: Array<{ name: string; slug: string }> = [];
+      const seen = new Set();
+
+      [...dbCats, ...localCats].forEach((c) => {
+        const name = c.name || "";
+        const slug = c.slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        if (name && slug && !defaultSlugs.has(slug) && !seen.has(slug)) {
+          seen.add(slug);
+          extraCats.push({ name, slug });
+        }
+      });
+
+      setCustomCategories(extraCats);
+    }
+
+    loadCustomCats();
+  }, []);
 
   const toggleMenu = (categoryKey: string) => {
     setActiveMenu(activeMenu === categoryKey ? null : categoryKey);
@@ -136,9 +187,18 @@ export default function Header() {
             <Link href="/categories/premium-baklava" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
               Premium Baklava
             </Link>
-            <Link href="/categories/corporate-gifts" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
+            <Link href="/categories/corporate-gift-boxes" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
               Corporate Gifts
             </Link>
+            {customCategories.map((c) => (
+              <Link
+                key={c.slug}
+                href={`/categories/${c.slug}`}
+                className="px-2 py-1.5 text-xs font-bold text-gold-bright hover:text-white transition whitespace-nowrap"
+              >
+                {c.name}
+              </Link>
+            ))}
             <Link href="/stores" className="px-2 py-1.5 text-xs font-extrabold text-gold-bright hover:text-white transition whitespace-nowrap">
               ⚡ Instant Delivery
             </Link>

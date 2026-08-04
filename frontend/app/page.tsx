@@ -53,40 +53,76 @@ export default function HomePage() {
     }
 
     async function loadCatalogProducts() {
-      let adminProducts: any[] = [];
-      if (typeof window !== "undefined") {
-        const cachedCatalog = localStorage.getItem("admin_products_catalog");
-        if (cachedCatalog) {
-          try {
-            adminProducts = JSON.parse(cachedCatalog);
-          } catch (e) {}
-        }
-      }
+      try {
+        const res = await fetch(`${API_BASE}/products?limit=100`);
+        if (res.ok) {
+          const data = await res.json();
+          const apiProducts = Array.isArray(data.products) ? data.products : (Array.isArray(data) ? data : []);
 
-      const combinedPool = [...adminProducts, ...localProducts];
-      const uniqueMap = new Map();
-      combinedPool.forEach((p) => {
-        const key = p.slug || p.id;
-        if (!uniqueMap.has(key)) {
-          uniqueMap.set(key, p);
-        }
-      });
+          let adminProducts: any[] = [];
+          if (typeof window !== "undefined") {
+            const cachedCatalog = localStorage.getItem("admin_products_catalog");
+            if (cachedCatalog) {
+              try {
+                adminProducts = JSON.parse(cachedCatalog);
+              } catch (e) {}
+            }
+          }
 
-      // Instantly filter out any product marked Inactive (isActive === false)
-      const activeOnly = Array.from(uniqueMap.values()).filter((p: any) => p.isActive !== false);
-      setAllProducts(activeOnly);
+          const combinedPool = [...apiProducts, ...adminProducts];
+          const uniqueMap = new Map();
+          const seenNames = new Set();
+
+          combinedPool.forEach((p) => {
+            const nameKey = (p.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
+            const slugKey = (p.slug || String(p.id)).toLowerCase().trim();
+
+            if (nameKey && !seenNames.has(nameKey) && !uniqueMap.has(slugKey)) {
+              seenNames.add(nameKey);
+              uniqueMap.set(slugKey, p);
+            }
+          });
+
+          // Instantly filter out any product marked Inactive (isActive === false)
+          const activeOnly = Array.from(uniqueMap.values()).filter((p: any) => p.isActive !== false);
+          setAllProducts(activeOnly);
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback ONLY if backend API server is completely unreachable
+      setAllProducts(localProducts.filter((p: any) => p.isActive !== false));
     }
 
     loadOutlets();
     loadCatalogProducts();
   }, []);
 
-  // Auto-pull products by tag field (Best Sellers, New Arrivals, Premium, Combos)
+  // Auto-pull products strictly by their category & subcategory classification
   const bestSellers = allProducts.filter((p) => p.tag === "best_seller" || p.isBestSeller);
   const newArrivals = allProducts.filter((p) => p.tag === "new_arrival" || p.isNew);
-  const premiumSweets = allProducts.filter((p) => p.tag === "premium" || p.isPremium || p.category === "sweets" || p.categorySlug === "kaju-sweets");
-  const combos = allProducts.filter((p) => p.tag === "combo" || p.isCombo || p.category === "corporate-gift-boxes");
-  const namkeenProducts = allProducts.filter((p) => p.category === "namkeen" || p.categorySlug === "gujarati" || p.categorySlug === "sev");
+
+  const sweetsSlugs = ["sweets", "kaju-sweets", "mawa-sweets", "penda", "sugarless", "indian-ghee", "premium-packed"];
+  const namkeenSlugs = ["namkeen", "sev", "khakhra", "mixture", "gujarati", "farali", "millet", "chips-puris", "roasted"];
+  const comboSlugs = ["corporate-gift-boxes", "corporate-gifts", "combo"];
+
+  const premiumSweets = allProducts.filter((p) => {
+    const cat = (p.categorySlug || p.category?.slug || (typeof p.category === 'string' ? p.category : '') || '').toLowerCase();
+    const sub = (p.subcategory || '').toLowerCase();
+    return sweetsSlugs.includes(cat) || sweetsSlugs.includes(sub);
+  });
+
+  const combos = allProducts.filter((p) => {
+    const cat = (p.categorySlug || p.category?.slug || (typeof p.category === 'string' ? p.category : '') || '').toLowerCase();
+    const sub = (p.subcategory || '').toLowerCase();
+    return comboSlugs.includes(cat) || comboSlugs.includes(sub) || p.tag === "combo";
+  });
+
+  const namkeenProducts = allProducts.filter((p) => {
+    const cat = (p.categorySlug || p.category?.slug || (typeof p.category === 'string' ? p.category : '') || '').toLowerCase();
+    const sub = (p.subcategory || '').toLowerCase();
+    return namkeenSlugs.includes(cat) || namkeenSlugs.includes(sub);
+  });
 
   return (
     <main className="min-h-screen bg-white text-gray-900">

@@ -4,45 +4,94 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding Vardayini Sweet Mart Database Catalog...");
+  console.log("Seeding Vardayini Sweet Mart Database Catalog with Subcategories...");
 
-  // 1. Categories
+  // 1. Parent Categories
   const catSweets = await prisma.category.upsert({
     where: { slug: "sweets" },
     create: { name: "Sweets", slug: "sweets" },
-    update: {},
+    update: { name: "Sweets" },
   });
 
   const catNamkeen = await prisma.category.upsert({
     where: { slug: "namkeen" },
     create: { name: "Namkeen", slug: "namkeen" },
-    update: {},
+    update: { name: "Namkeen" },
   });
 
   const catDryFruits = await prisma.category.upsert({
     where: { slug: "dry-fruits-nuts" },
     create: { name: "Dried Fruits & Nuts", slug: "dry-fruits-nuts" },
-    update: {},
+    update: { name: "Dried Fruits & Nuts" },
   });
 
   const catBaklava = await prisma.category.upsert({
     where: { slug: "premium-baklava" },
     create: { name: "Premium Baklava", slug: "premium-baklava" },
-    update: {},
+    update: { name: "Premium Baklava" },
   });
 
   const catCorporate = await prisma.category.upsert({
     where: { slug: "corporate-gift-boxes" },
     create: { name: "Corporate Gifts", slug: "corporate-gift-boxes" },
-    update: {},
+    update: { name: "Corporate Gifts" },
   });
 
-  // 2. Products List
+  // 2. Subcategories
+  const catKaju = await prisma.category.upsert({
+    where: { slug: "kaju-sweets" },
+    create: { name: "Kaju Sweets", slug: "kaju-sweets", parentId: catSweets.id },
+    update: { parentId: catSweets.id },
+  });
+
+  const catMawa = await prisma.category.upsert({
+    where: { slug: "mawa-sweets" },
+    create: { name: "Mawa Sweets", slug: "mawa-sweets", parentId: catSweets.id },
+    update: { parentId: catSweets.id },
+  });
+
+  const catPenda = await prisma.category.upsert({
+    where: { slug: "penda" },
+    create: { name: "Penda", slug: "penda", parentId: catSweets.id },
+    update: { parentId: catSweets.id },
+  });
+
+  const catSugarless = await prisma.category.upsert({
+    where: { slug: "sugarless" },
+    create: { name: "Sugarless", slug: "sugarless", parentId: catSweets.id },
+    update: { parentId: catSweets.id },
+  });
+
+  const catGhee = await prisma.category.upsert({
+    where: { slug: "indian-ghee" },
+    create: { name: "Indian Ghee", slug: "indian-ghee", parentId: catSweets.id },
+    update: { parentId: catSweets.id },
+  });
+
+  const catMixture = await prisma.category.upsert({
+    where: { slug: "mixture" },
+    create: { name: "Mixture", slug: "mixture", parentId: catNamkeen.id },
+    update: { parentId: catNamkeen.id },
+  });
+
+  const catKhakhra = await prisma.category.upsert({
+    where: { slug: "khakhra" },
+    create: { name: "Khakhra", slug: "khakhra", parentId: catNamkeen.id },
+    update: { parentId: catNamkeen.id },
+  });
+
+  const catSev = await prisma.category.upsert({
+    where: { slug: "sev" },
+    create: { name: "Sev", slug: "sev", parentId: catNamkeen.id },
+    update: { parentId: catNamkeen.id },
+  });
+
+  // 3. Products List with Exact Subcategory IDs
   const productsData = [
     {
       name: "kaju katri 1111",
       slug: "kjuuuu",
-      categoryId: catSweets.id,
+      categoryId: catKaju.id,
       description: "Special Kaju Katri 1111 prepared with premium cashew nuts and pure ghee.",
       ratingAvg: 4.9,
       ratingCount: 186,
@@ -55,7 +104,7 @@ async function main() {
     {
       name: "Kaju Katli Premium Pure Ghee",
       slug: "kaju-katli-premium",
-      categoryId: catSweets.id,
+      categoryId: catKaju.id,
       description: "Pure cashew sweets made with finest cashews and silver foil",
       ratingAvg: 4.9,
       ratingCount: 186,
@@ -70,7 +119,7 @@ async function main() {
     {
       name: "Mysore Pak Deluxe Pure Desi Ghee",
       slug: "mysore-pak-deluxe",
-      categoryId: catSweets.id,
+      categoryId: catGhee.id,
       description: "Melt-in-mouth traditional Mysore Pak crafted with pure desi ghee",
       ratingAvg: 4.8,
       ratingCount: 112,
@@ -85,7 +134,7 @@ async function main() {
     {
       name: "Royal Gujarati Mixture & Samosa Combo",
       slug: "samosa-namkeen-combo",
-      categoryId: catNamkeen.id,
+      categoryId: catMixture.id,
       description: "Crispy min-samosas paired with authentic spicy Gujarati namkeen mixture",
       ratingAvg: 4.7,
       ratingCount: 144,
@@ -115,7 +164,7 @@ async function main() {
     {
       name: "Kesar Mawa Penda",
       slug: "kesar-mawa-penda",
-      categoryId: catSweets.id,
+      categoryId: catPenda.id,
       description: "Soft saffron enriched mawa penda garnished with pistachios",
       ratingAvg: 4.6,
       ratingCount: 87,
@@ -130,7 +179,7 @@ async function main() {
     {
       name: "Sugarless Anjeer Khajur Barfi",
       slug: "sugarless-anjeer-khajur-barfi",
-      categoryId: catSweets.id,
+      categoryId: catSugarless.id,
       description: "100% natural sugarless sweet made from dates, figs, and crunchy nuts",
       ratingAvg: 4.8,
       ratingCount: 95,
@@ -145,7 +194,7 @@ async function main() {
     {
       name: "Crispy Methi & Masala Khakhra Pack",
       slug: "crispy-methi-masala-khakhra",
-      categoryId: catNamkeen.id,
+      categoryId: catKhakhra.id,
       description: "Authentic roasted whole wheat khakhra with fenugreek and Gujarati spices",
       ratingAvg: 4.7,
       ratingCount: 165,
@@ -160,7 +209,7 @@ async function main() {
     {
       name: "Ratlami & Thin Nylon Sev Pack",
       slug: "ratlami-nylon-sev-pack",
-      categoryId: catNamkeen.id,
+      categoryId: catSev.id,
       description: "Spicy Ratlami sev blended with fine crunchy nylon sev",
       ratingAvg: 4.8,
       ratingCount: 198,
@@ -226,22 +275,13 @@ async function main() {
       });
       console.log(`Created product: ${item.name}`);
     } else {
-      console.log(`Product already exists: ${item.name}`);
+      await prisma.product.update({
+        where: { id: existing.id },
+        data: { categoryId: item.categoryId },
+      });
+      console.log(`Updated product category for: ${item.name}`);
     }
   }
-
-  // Admin User
-  await prisma.admin.upsert({
-    where: { email: "admin@vardayini.com" },
-    create: {
-      name: "pratik",
-      email: "admin@vardayini.com",
-      phone: "+91 98765 43210",
-      passwordHash: bcrypt.hashSync("ADMIN123", 10),
-      role: "admin",
-    },
-    update: { name: "pratik", role: "admin" },
-  });
 
   console.log("Database catalog seeding complete!");
 }

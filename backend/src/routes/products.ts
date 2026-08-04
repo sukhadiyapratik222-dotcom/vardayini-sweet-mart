@@ -89,6 +89,8 @@ const formatProduct = (product: any) => {
 
   return {
     ...product,
+    categorySlug: product.category?.slug || "",
+    subcategory: product.category?.slug || "",
     image: primaryImg,
     primaryImage: primaryImg,
     imageUrls: imageUrlsList,
@@ -140,17 +142,20 @@ router.get("/", async (req, res) => {
   } = req.query;
 
   let products: any[] = [];
+  let dbQuerySuccess = false;
 
   try {
-    const catStr = category ? String(category).trim() : "";
+    const catStr = category ? String(category).trim().toLowerCase() : "";
+    const targetCat = (catStr === 'corporate-gifts' || catStr === 'corporate-gift-boxes') ? 'corporate-gift-boxes' : catStr;
+
     products = await prisma.product.findMany({
       where: {
         isActive: true,
-        ...(catStr
+        ...(targetCat
           ? {
               OR: [
-                { category: { slug: catStr } },
-                { category: { name: { contains: catStr.replace(/-/g, " ") } } }
+                { category: { slug: targetCat } },
+                { category: { parent: { slug: targetCat } } }
               ]
             }
           : {}),
@@ -164,14 +169,17 @@ router.get("/", async (req, res) => {
           : {})
       },
       include: {
-        category: true,
+        category: {
+          include: { parent: true }
+        },
         variants: true,
         productImages: true
       }
     });
+    dbQuerySuccess = true;
   } catch (err) {}
 
-  if (!products || products.length === 0) {
+  if (!dbQuerySuccess) {
     products = defaultFallbackProducts;
     if (category) {
       const c = String(category).toLowerCase().replace(/-/g, " ");
