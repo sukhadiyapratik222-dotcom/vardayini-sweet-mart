@@ -51,7 +51,9 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+import { getApiBaseUrl } from "../utils/apiConfig";
+
+const API_BASE = getApiBaseUrl();
 
 const FREE_DELIVERY_THRESHOLD = 1000;
 const BULK_DISCOUNT_THRESHOLD = 5000;
