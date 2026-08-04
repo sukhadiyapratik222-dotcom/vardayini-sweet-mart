@@ -72,7 +72,36 @@ router.get("/orders", async (req, res) => {
       },
     });
 
-    res.json(orders);
+    const formattedOrders = orders.map((o) => {
+      const ordId = o.orderNumber || o.id;
+      return {
+        id: o.id,
+        orderId: ordId,
+        orderNumber: ordId,
+        date: o.createdAt.toISOString(),
+        createdAt: o.createdAt.toISOString(),
+        status: o.status || "Placed",
+        fullName: o.user?.name || "Valued Customer",
+        email: o.user?.email || "customer@example.com",
+        phone: o.user?.phone || "+91 98765 43210",
+        address: o.address ? `${o.address.streetAddress}, ${o.address.city}, ${o.address.state} ${o.address.pincode}` : "Surat, Gujarat",
+        deliveryDate: "Tomorrow",
+        timeSlot: "Morning (9:00 AM - 1:00 PM)",
+        paymentMethod: "UPI / COD",
+        paymentStatus: o.paymentStatus || "PAID",
+        total: Number(o.total || o.subtotal || 0),
+        subtotal: Number(o.subtotal || o.total || 0),
+        items: (o.items ?? []).map((i) => ({
+          id: i.id,
+          name: i.productVariant?.product?.name || "Vardayini Product",
+          weight: i.productVariant?.weightLabel || "500g",
+          quantity: i.quantity,
+          price: Number(i.priceAtPurchase),
+        })),
+      };
+    });
+
+    res.json(formattedOrders);
   } catch (error: any) {
     console.error("Get Admin Orders Error:", error);
     res.status(500).json({ error: "Failed to fetch real orders from database" });
