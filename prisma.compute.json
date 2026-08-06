@@ -1,0 +1,25 @@
+{
+  "region": "us-west-1",
+  "apps": {
+    "premnimithaas-backend": {
+      "name": "premnimithaas-backend",
+      "root": "backend",
+      "framework": "bun",
+      "entry": "src/index.ts",
+      "httpPort": 3000,
+      "build": {
+        "command": "npm run build",
+        "outputDirectory": "."
+      }
+    },
+    "vardayinin-sweet-mart-frontend": {
+      "name": "vardayinin-sweet-mart-frontend",
+      "root": "frontend",
+      "framework": "nextjs",
+      "httpPort": 3000,
+      "build": {
+        "command": "npm run build"
+      }
+    }
+  }
+}
