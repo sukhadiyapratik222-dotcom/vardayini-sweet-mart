@@ -8,11 +8,14 @@ export interface CartItem {
   id: string;
   productVariantId: string;
   quantity: number;
+  stockQty?: number;
+  maxStock?: number;
   productVariant?: {
     id: string;
     weightLabel: string;
     price: number;
     discountedPrice?: number;
+    stockQty?: number;
     product?: {
       id: string;
       name: string;
@@ -56,7 +59,7 @@ import { getApiBaseUrl } from "../utils/apiConfig";
 const API_BASE = getApiBaseUrl();
 
 const FREE_DELIVERY_THRESHOLD = 1000;
-const BULK_DISCOUNT_THRESHOLD = 5000;
+const BULK_DISCOUNT_THRESHOLD = 4200;
 const BULK_DISCOUNT_PERCENT = 5;
 
 const VALID_COUPONS: Record<string, number> = {
@@ -97,13 +100,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
 
     let couponPercent = 0;
-    if (couponCode && VALID_COUPONS[couponCode.toUpperCase()]) {
-      couponPercent = VALID_COUPONS[couponCode.toUpperCase()];
+    let validCouponCode = couponCode;
+
+    if (couponCode) {
+      const cleanCode = couponCode.toUpperCase();
+      if (cleanCode.startsWith('BULK') || cleanCode.includes('BULK')) {
+        if (subtotal < BULK_DISCOUNT_THRESHOLD) {
+          validCouponCode = null;
+          couponPercent = 0;
+        } else {
+          couponPercent = 5;
+        }
+      } else if (VALID_COUPONS[cleanCode]) {
+        couponPercent = VALID_COUPONS[cleanCode];
+      }
     }
 
     const couponDiscountAmount = (subtotal * couponPercent) / 100;
     const bulkDiscountAmount = subtotal >= BULK_DISCOUNT_THRESHOLD ? (subtotal * BULK_DISCOUNT_PERCENT) / 100 : 0;
-    const discountAmount = couponDiscountAmount + bulkDiscountAmount;
+    
+    // Avoid double counting bulk discount if BULK coupon is applied
+    const discountAmount = validCouponCode?.includes('BULK')
+      ? couponDiscountAmount
+      : couponDiscountAmount + bulkDiscountAmount;
+
     const discountPercent = subtotal > 0 ? Math.round((discountAmount / subtotal) * 100) : 0;
 
     const deliveryFee = subtotal >= FREE_DELIVERY_THRESHOLD || itemCount === 0 ? 0 : 100;
@@ -114,7 +134,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       subtotal,
       discountAmount,
       discountPercent,
-      appliedCoupon: couponCode,
+      appliedCoupon: validCouponCode,
       couponDiscountAmount,
       bulkDiscountAmount,
       deliveryFee,
@@ -185,7 +205,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('vardayini_cart', JSON.stringify(items));
     }
-    setCart(calculateCart(items, couponCode));
+    const newCart = calculateCart(items, couponCode);
+    if (appliedCoupon && newCart.appliedCoupon === null) {
+      setAppliedCoupon(null);
+    }
+    setCart(newCart);
   };
 
   const addToCart = async (productVariantId: string, quantity: number = 1, productData?: any) => {
@@ -259,13 +283,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Extract exact title, image, price, weight
+    // Extract exact title, image, price, weight, stock
     const itemTitle = matchedProduct?.name || productData?.name || 'Vardayini Sweets Item';
     const itemSlug = matchedProduct?.slug || productData?.slug || 'sweet-item';
     const itemImage = matchedProduct?.image || matchedProduct?.primaryImage || matchedProduct?.imageUrls?.[0] || productData?.image || '/images/sweet-1.jpg';
     const itemWeight = matchedVariant?.weight || matchedVariant?.weightLabel || '500g';
     const itemPrice = Number(matchedVariant?.price || productData?.price || 500);
     const itemDiscountedPrice = Number(matchedVariant?.discountedPrice || matchedVariant?.price || productData?.discountedPrice || productData?.price || itemPrice);
+    const itemStock = Math.max(1, Number(matchedVariant?.stockQty ?? matchedVariant?.stock ?? productData?.stockQty ?? 50));
 
     let updated = [...localItems];
     const existingIdx = updated.findIndex((i) =>
@@ -275,17 +300,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
 
     if (existingIdx >= 0) {
-      updated[existingIdx].quantity += quantity;
+      const nextQty = Math.min(itemStock, updated[existingIdx].quantity + quantity);
+      updated[existingIdx].quantity = nextQty;
+      updated[existingIdx].stockQty = itemStock;
+      updated[existingIdx].maxStock = itemStock;
     } else {
       const newItem: CartItem = {
         id: `item-${Date.now()}`,
         productVariantId,
-        quantity,
+        quantity: Math.min(itemStock, quantity),
+        stockQty: itemStock,
+        maxStock: itemStock,
         productVariant: {
           id: productVariantId,
           weightLabel: itemWeight,
           price: itemPrice,
           discountedPrice: itemDiscountedPrice,
+          stockQty: itemStock,
           product: {
             id: matchedProduct?.id || productData?.id || `prod-${Date.now()}`,
             name: itemTitle,
@@ -323,8 +354,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // Local fallback
     }
 
+    const itemToUpdate = localItems.find((i) => i.id === itemId);
+    const maxStock = (itemToUpdate as any)?.stockQty ?? (itemToUpdate as any)?.maxStock ?? itemToUpdate?.productVariant?.stockQty ?? 50;
+    const cappedQty = Math.min(maxStock, Math.max(1, quantity));
+
     const updated = localItems.map((item) =>
-      item.id === itemId ? { ...item, quantity: Math.max(1, quantity) } : item
+      item.id === itemId ? { ...item, quantity: cappedQty, stockQty: maxStock, maxStock } : item
     );
     saveLocalItems(updated);
     setLoading(false);
@@ -357,16 +392,55 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const applyCoupon = (code: string) => {
     const cleanCode = code.trim().toUpperCase();
-    if (VALID_COUPONS[cleanCode]) {
+    const currentSubtotal = cart?.subtotal || 0;
+
+    if (cleanCode.startsWith('BULK') || cleanCode.includes('BULK')) {
+      if (currentSubtotal < BULK_DISCOUNT_THRESHOLD) {
+        const remaining = Math.max(0, BULK_DISCOUNT_THRESHOLD - currentSubtotal);
+        return {
+          success: false,
+          message: `Minimum order subtotal of ₹${BULK_DISCOUNT_THRESHOLD.toLocaleString('en-IN')} required for 5% Bulk Offer. Add ₹${remaining.toLocaleString('en-IN')} more to unlock!`
+        };
+      }
+      VALID_COUPONS[cleanCode] = 5;
       setAppliedCoupon(cleanCode);
       setCart(calculateCart(localItems, cleanCode));
-      return { success: true, message: `Coupon '${cleanCode}' applied! You get ${VALID_COUPONS[cleanCode]}% OFF.` };
+      return { success: true, message: `🎉 Bulk Offer Coupon '${cleanCode}' applied! You get 5% OFF on your order.` };
     }
-    return { success: false, message: `Invalid coupon code. Try SWEET10 or FESTIVE5.` };
+
+    if (VALID_COUPONS[cleanCode]) {
+      const discount = VALID_COUPONS[cleanCode];
+      setAppliedCoupon(cleanCode);
+      setCart(calculateCart(localItems, cleanCode));
+      return { success: true, message: `🎉 Coupon '${cleanCode}' applied! You get ${discount}% OFF.` };
+    }
+
+    if (
+      cleanCode.startsWith('SPIN') ||
+      cleanCode.startsWith('WIN') ||
+      cleanCode.startsWith('SWEET') ||
+      cleanCode.startsWith('FESTIVE') ||
+      cleanCode.startsWith('GIFT')
+    ) {
+      let discountPercent = 10;
+      if (cleanCode.includes('15')) discountPercent = 15;
+      else if (cleanCode.includes('5')) discountPercent = 5;
+      else if (cleanCode.includes('20')) discountPercent = 20;
+
+      VALID_COUPONS[cleanCode] = discountPercent;
+      setAppliedCoupon(cleanCode);
+      setCart(calculateCart(localItems, cleanCode));
+      return { success: true, message: `🎉 Spin & Win Coupon '${cleanCode}' validated & applied! You get ${discountPercent}% OFF.` };
+    }
+
+    return { success: false, message: `❌ Invalid coupon code '${cleanCode}'. Please check and try again.` };
   };
 
   const removeCoupon = () => {
     setAppliedCoupon(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('vardayini_applied_coupon');
+    }
     setCart(calculateCart(localItems, null));
   };
 

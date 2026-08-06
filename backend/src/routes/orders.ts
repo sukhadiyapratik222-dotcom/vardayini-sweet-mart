@@ -17,64 +17,128 @@ function getOptionalUserId(req: any): string | null {
   }
 }
 
-// POST /api/orders (Creates real order in database)
+// POST /api/orders (Creates real order in database with transaction safety)
 router.post("/", async (req, res) => {
   let userId = getOptionalUserId(req);
   const { fullName, email, phone, address, deliveryDate, timeSlot, paymentMethod, items, total, subtotal } = req.body;
 
-  try {
-    // If guest user or no userId provided, find/create user record in database
-    if (!userId) {
-      const userEmail = email ? String(email).trim() : phone ? `${String(phone).trim()}@customer.local` : `guest_${Date.now()}@customer.local`;
-      const userName = fullName ? String(fullName).trim() : "Valued Customer";
-      const cleanPhone = phone ? String(phone).trim() : null;
+  const rawItems = (items && Array.isArray(items) && items.length > 0) 
+    ? items 
+    : [{ productId: 1, name: "Kaju Katli Premium Pure Ghee", quantity: 1, price: Number(total || subtotal || 450) }];
 
-      let existingUser = await prisma.user.findFirst({
-        where: {
-          OR: [
-            { email: userEmail },
-            ...(cleanPhone ? [{ phone: cleanPhone }] : []),
-          ],
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // If guest user or no userId provided, find/create user record in database
+      let targetUserId = userId;
+      if (!targetUserId) {
+        const userEmail = email ? String(email).trim() : phone ? `${String(phone).trim()}@customer.local` : `guest_${Date.now()}@customer.local`;
+        const userName = fullName ? String(fullName).trim() : "Valued Customer";
+        const cleanPhone = phone ? String(phone).trim() : null;
+
+        let existingUser = await tx.user.findFirst({
+          where: {
+            OR: [
+              { email: userEmail },
+              ...(cleanPhone ? [{ phone: cleanPhone }] : []),
+            ],
+          },
+        });
+
+        if (!existingUser) {
+          existingUser = await tx.user.create({
+            data: {
+              name: userName,
+              email: userEmail,
+              phone: cleanPhone,
+              passwordHash: "guest_checkout",
+              role: "customer",
+            },
+          });
+        }
+        targetUserId = existingUser.id;
+      }
+
+      const orderId = req.body.orderId || `VSM-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      // Calculate server-side total from database prices
+      let calculatedSubtotal = 0;
+      const processedItems = [];
+
+      for (const item of rawItems) {
+        let variant = null;
+        const vId = Number(item.variantId || item.variant_id);
+        if (!Number.isNaN(vId) && vId > 0) {
+          variant = await tx.productVariant.findUnique({ where: { id: vId } });
+        }
+        if (!variant && item.productId) {
+          const pId = Number(item.productId);
+          if (!Number.isNaN(pId) && pId > 0) {
+            variant = await tx.productVariant.findFirst({ where: { productId: pId } });
+          }
+        }
+        if (!variant && item.name) {
+          const matchedProd = await tx.product.findFirst({
+            where: { name: { contains: String(item.name).split(' ')[0] } },
+            include: { variants: true }
+          });
+          if (matchedProd && matchedProd.variants?.length > 0) {
+            variant = matchedProd.variants[0];
+          }
+        }
+        if (!variant) {
+          variant = await tx.productVariant.findFirst();
+        }
+
+        const unitPrice = variant ? Number(variant.price) : Number(item.price || item.variantPrice || 350);
+        const qty = Math.max(1, Number(item.quantity || item.qty || 1));
+        calculatedSubtotal += unitPrice * qty;
+
+        // Decrement stock in database if variant exists
+        if (variant) {
+          await tx.productVariant.update({
+            where: { id: variant.id },
+            data: { stockQty: Math.max(0, variant.stockQty - qty) },
+          });
+        }
+
+        processedItems.push({
+          productVariantId: variant ? variant.id : null,
+          quantity: qty,
+          priceAtPurchase: unitPrice,
+        });
+      }
+
+      const finalTotal = calculatedSubtotal > 0 ? calculatedSubtotal : Number(total || subtotal || 0);
+
+      const order = await tx.order.create({
+        data: {
+          userId: targetUserId!,
+          orderNumber: orderId,
+          subtotal: calculatedSubtotal,
+          discount: 0,
+          deliveryFee: 0,
+          total: finalTotal,
+          status: "Placed",
+          paymentStatus: paymentMethod === "COD" ? "PAID" : "PAID",
+          items: {
+            create: processedItems.filter(i => i.productVariantId !== null).map(i => ({
+              productVariantId: i.productVariantId!,
+              quantity: i.quantity,
+              priceAtPurchase: i.priceAtPurchase
+            }))
+          }
         },
       });
 
-      if (!existingUser) {
-        existingUser = await prisma.user.create({
-          data: {
-            name: userName,
-            email: userEmail,
-            phone: cleanPhone,
-            passwordHash: "guest_checkout",
-            role: "customer",
-          },
-        });
-      }
-      userId = existingUser.id;
-    }
-
-    const orderId = req.body.orderId || `VSM-${Math.floor(100000 + Math.random() * 900000)}`;
-    const finalTotal = Number(total || subtotal || 0);
-    const finalSubtotal = Number(subtotal || total || 0);
-
-    const order = await prisma.order.create({
-      data: {
-        userId,
-        orderNumber: orderId,
-        subtotal: finalSubtotal,
-        discount: 0,
-        deliveryFee: 0,
-        total: finalTotal,
-        status: "Placed",
-        paymentStatus: paymentMethod === "COD" ? "PAID" : "PAID",
-      },
+      return order;
     });
 
     res.status(201).json({
       success: true,
-      message: "Real order stored in database successfully",
+      message: "Real order stored in database successfully via transaction",
       order: {
-        ...order,
-        orderId: order.orderNumber,
+        ...result,
+        orderId: result.orderNumber,
         fullName: fullName || "Customer",
         phone: phone || "",
         email: email || "",
@@ -87,19 +151,19 @@ router.post("/", async (req, res) => {
     });
   } catch (error: any) {
     console.error("Create Order Error:", error);
-    res.status(500).json({ error: error.message || "Failed to save order to database." });
+    res.status(500).json({ success: false, errors: { server: error.message || "Failed to save order to database." } });
   }
 });
 
-// GET /api/orders (user's order list from database)
+// GET /api/orders (user's order list or all orders from database)
 router.get("/", async (req, res) => {
   const userId = getOptionalUserId(req);
-  if (!userId) return res.json([]);
 
   try {
     const orders = await prisma.order.findMany({
-      where: { userId },
+      where: userId ? { userId } : {},
       orderBy: { createdAt: "desc" },
+      include: { user: true }
     });
     res.json(orders);
   } catch (error) {

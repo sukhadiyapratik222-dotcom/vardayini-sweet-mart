@@ -1,0 +1,2969 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vardayini Sweet Mart — Admin Control Room</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: #FAF7F0;
+      color: #1E293B;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* Left Sidebar */
+    aside {
+      width: 260px;
+      background: #07122A;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+      min-height: 100vh;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      padding-left: 6px;
+    }
+
+    .brand-logo-seal {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #D4AF37 0%, #AA7C11 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #07122A;
+      font-weight: 900;
+      font-size: 20px;
+      box-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
+      border: 2px solid #FFD700;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      color: #FFD700;
+      font-size: 17px;
+      font-weight: 900;
+      tracking-tight;
+      line-height: 1.1;
+    }
+
+    .brand-subtitle {
+      color: #D4AF37;
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      tracking-widest;
+      margin-top: 2px;
+    }
+
+    .nav-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      color: #CBD5E1;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: #FFD700;
+    }
+
+    .nav-item.active {
+      background: #EAB308;
+      color: #07122A;
+      font-weight: 900;
+      box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);
+      border: none;
+    }
+
+    .nav-icon {
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+    }
+
+    .btn-return-storefront {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #FFD700;
+      padding: 12px;
+      border-radius: 14px;
+      font-size: 12px;
+      font-weight: 800;
+      text-decoration: none;
+      transition: all 0.2s;
+      margin-top: auto;
+    }
+
+    .btn-return-storefront:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: #FFD700;
+    }
+
+    /* Main Workspace */
+    main {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Hero Banner Card */
+    .hero-card {
+      background: #0B1B3D;
+      border-radius: 24px;
+      padding: 32px;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      box-shadow: 0 12px 40px rgba(7, 18, 42, 0.15);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-left {
+      max-width: 580px;
+    }
+
+    .pill-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(234, 179, 8, 0.15);
+      color: #EAB308;
+      border: 1px solid rgba(234, 179, 8, 0.4);
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .hero-h1 {
+      font-size: 28px;
+      font-weight: 900;
+      tracking-tight;
+      line-height: 1.2;
+      margin-bottom: 10px;
+      color: #FFFFFF;
+    }
+
+    .hero-p {
+      color: #94A3B8;
+      font-size: 13px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    .hero-btn-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-hero-gold {
+      background: #EAB308;
+      color: #07122A;
+      border: none;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 15px rgba(234, 179, 8, 0.3);
+      transition: transform 0.2s;
+    }
+
+    .btn-hero-gold:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+
+    .btn-hero-outline {
+      background: rgba(255, 255, 255, 0.05);
+      color: #CBD5E1;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+
+    .btn-hero-outline:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #FFF;
+    }
+
+    /* Hero Right Snapshots */
+    .hero-snapshots {
+      display: flex;
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 16px;
+      border-radius: 20px;
+    }
+
+    .snapshot-box {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 14px 20px;
+      border-radius: 14px;
+      min-width: 140px;
+    }
+
+    .snapshot-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #EAB308;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .snapshot-val {
+      font-size: 22px;
+      font-weight: 900;
+      color: #FFF;
+    }
+
+    .snapshot-sub {
+      font-size: 10px;
+      color: #94A3B8;
+      margin-top: 2px;
+    }
+
+    /* Middle 4 Stat Cards Row */
+    .stat-cards-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .white-stat-card {
+      background: #FFFFFF;
+      border-radius: 20px;
+      padding: 20px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 140px;
+    }
+
+    .stat-card-top {
+      display: flex;
+      items-center;
+      justify-content: space-between;
+    }
+
+    .stat-card-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-card-icon {
+      width: 38px;
+      height: 38px;
+      background: #0B1B3D;
+      color: #FFD700;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .stat-card-num {
+      font-size: 32px;
+      font-weight: 900;
+      color: #0F172A;
+      margin: 4px 0;
+    }
+
+    .stat-card-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid #F1F5F9;
+      pt: 10px;
+      margin-top: 10px;
+    }
+
+    .stat-card-desc {
+      font-size: 11px;
+      color: #64748B;
+      font-weight: 600;
+    }
+
+    .stat-pill-btn {
+      background: #FEF3C7;
+      color: #B45309;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 99px;
+      text-decoration: none;
+      border: 1px solid #FDE68A;
+      cursor: pointer;
+    }
+
+    /* Graph Section Card */
+    .white-section-card {
+      background: #FFFFFF;
+      border-radius: 24px;
+      padding: 28px;
+      border: 1px solid #E2E8F0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+      margin-bottom: 24px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #0F172A;
+    }
+
+    .section-subtitle {
+      font-size: 12px;
+      color: #64748B;
+      margin-top: 2px;
+    }
+
+    .graph-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .theme-dots {
+      display: flex;
+      gap: 8px;
+      background: #F8FAFC;
+      padding: 6px 12px;
+      border-radius: 99px;
+      border: 1px solid #E2E8F0;
+    }
+
+    .dot-btn {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+
+    .dot-btn.active {
+      border-color: #0F172A;
+    }
+
+    .period-tab-group {
+      display: flex;
+      background: #0B1B3D;
+      padding: 4px;
+      border-radius: 12px;
+    }
+
+    .period-tab {
+      background: transparent;
+      color: #94A3B8;
+      border: none;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 800;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .period-tab.active {
+      background: #EAB308;
+      color: #07122A;
+    }
+
+    /* Bar Chart Bars */
+    .chart-box {
+      height: 180px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      pt: 20px;
+      border-bottom: 1px solid #E2E8F0;
+      padding-bottom: 10px;
+    }
+
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+    }
+
+    .bar-item {
+      width: 100%;
+      max-width: 48px;
+      border-radius: 8px 8px 0 0;
+      background: linear-gradient(180deg, #EAB308 0%, #0B1B3D 100%);
+      transition: height 0.4s ease;
+    }
+
+    .bar-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748B;
+      margin-top: 8px;
+    }
+
+    /* Tables in Dark Navy Container */
+    .dark-table-card {
+      background: #0B1B3D;
+      border-radius: 24px;
+      padding: 28px;
+      color: #FFF;
+      box-shadow: 0 10px 30px rgba(7, 18, 42, 0.15);
+      margin-bottom: 24px;
+    }
+
+    .dark-table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+
+    .dark-table-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #FFD700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th {
+      color: #EAB308;
+      font-weight: 800;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    td {
+      padding: 14px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      color: #F8FAFC;
+      font-weight: 600;
+    }
+
+    .status-pill {
+      background: rgba(34, 197, 94, 0.2);
+      color: #4ADE80;
+      border: 1px solid #22C55E;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 800;
+      display: inline-block;
+    }
+
+    select.status-select {
+      background: #07122A;
+      color: #FFD700;
+      border: 1px solid #EAB308;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      outline: none;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-card {
+      background: #0B1B3D;
+      border: 2px solid #EAB308;
+      border-radius: 24px;
+      max-width: 550px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      color: #FFF;
+    }
+
+    .modal-title {
+      color: #FFD700;
+      font-size: 18px;
+      font-weight: 900;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .input-field {
+      background: #07122A;
+      border: 1px solid rgba(234, 179, 8, 0.4);
+      color: #FAF7F0;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+    }
+
+    .input-field:focus {
+      border-color: #FFD700;
+    }
+
+    /* Custom Sleek Scrollbar for Whole Admin Site */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: rgba(234, 179, 8, 0.35);
+      border-radius: 99px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #FFD700;
+    }
+
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(234, 179, 8, 0.35) transparent;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar -->
+  <aside>
+    <div>
+      <div class="brand-section">
+        <div class="brand-logo-seal">V</div>
+        <div>
+          <div class="brand-title">Vardayini Sweet Mart</div>
+          <div class="brand-subtitle">Admin Control Room</div>
+        </div>
+      </div>
+
+      <div class="nav-list">
+        <div class="nav-item active" onclick="switchTab('dashboard', this)">
+          <span class="nav-icon">📊</span> Dashboard
+        </div>
+        <div class="nav-item" onclick="switchTab('products', this)">
+          <span class="nav-icon">📦</span> Products
+        </div>
+        <div class="nav-item" onclick="switchTab('orders', this)">
+          <span class="nav-icon">🛒</span> Orders
+        </div>
+        <div class="nav-item" onclick="switchTab('stores', this)">
+          <span class="nav-icon">🏬</span> Stores
+        </div>
+        <div class="nav-item" onclick="switchTab('contact', this)">
+          <span class="nav-icon">📞</span> Contact Us
+        </div>
+        <div class="nav-item" onclick="switchTab('customers', this)">
+          <span class="nav-icon">👥</span> Customers
+        </div>
+        <div class="nav-item" onclick="switchTab('coupons', this)">
+          <span class="nav-icon">🏷️</span> Coupons
+        </div>
+        <div class="nav-item" onclick="switchTab('blog', this)">
+          <span class="nav-icon">📖</span> Blog
+        </div>
+        <div class="nav-item" onclick="switchTab('media', this)">
+          <span class="nav-icon">🖼️</span> Media Gallery
+        </div>
+        <div class="nav-item" onclick="switchTab('settings', this)">
+          <span class="nav-icon">⚙️</span> Settings
+        </div>
+      </div>
+    </div>
+
+    <a href="http://localhost:3000" class="btn-return-storefront" target="_blank">
+      🏠 Return to Storefront
+    </a>
+  </aside>
+
+  <!-- Main Workspace -->
+  <main>
+
+    <!-- TAB 1: DASHBOARD OVERVIEW -->
+    <div id="tab-dashboard" class="tab-content" style="display:block;">
+
+      <!-- Top Hero Banner Card -->
+      <div class="hero-card">
+        <div class="hero-left">
+          <div class="pill-badge">📊 ADMIN COMMAND CENTER</div>
+          <h1 class="hero-h1">Command center for sales, stock, and operations</h1>
+          <p class="hero-p">Track catalog inventory health, review store outlets, and manage product orders efficiently
+            in one place.</p>
+
+          <div class="hero-btn-group">
+            <button class="btn-hero-gold" onclick="switchTabByName('products')">Manage Products →</button>
+            <a href="http://localhost:3000" target="_blank" class="btn-hero-outline">View Storefront</a>
+          </div>
+        </div>
+
+        <div class="hero-snapshots">
+          <div class="snapshot-box">
+            <div class="snapshot-label">🪙 Revenue snapshot</div>
+            <div class="snapshot-val" id="snap-revenue">₹1,250</div>
+            <div class="snapshot-sub">Real customer sales total.</div>
+          </div>
+          <div class="snapshot-box">
+            <div class="snapshot-label">🕒 Total Orders</div>
+            <div class="snapshot-val" id="snap-orders">1 orders</div>
+            <div class="snapshot-sub">Prepared for fulfillment.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle 4 Stat Cards Row -->
+      <div class="stat-cards-row">
+        <div class="white-stat-card">
+          <div class="stat-card-top">
+            <div>
+              <div class="stat-card-label">PRODUCTS</div>
+              <div class="stat-card-num" id="stat-products">11</div>
+            </div>
+            <div class="stat-card-icon">📦</div>
+          </div>
+          <div class="stat-card-bottom">
+            <span class="stat-card-desc">Active products currently in catalog</span>
+            <span class="stat-pill-btn" onclick="switchTabByName('products')">Catalog</span>
+          </div>
+        </div>
+
+        <div class="white-stat-card">
+          <div class="stat-card-top">
+            <div>
+              <div class="stat-card-label">CATEGORIES</div>
+              <div class="stat-card-num" id="stat-categories">14</div>
+            </div>
+            <div class="stat-card-icon">🏷️</div>
+          </div>
+          <div class="stat-card-bottom">
+            <span class="stat-card-desc">Root categories available for browsing</span>
+            <span class="stat-pill-btn">Browse</span>
+          </div>
+        </div>
+
+        <div class="white-stat-card">
+          <div class="stat-card-top">
+            <div>
+              <div class="stat-card-label">HIGH-RATED ITEMS</div>
+              <div class="stat-card-num" id="stat-featured">12</div>
+            </div>
+            <div class="stat-card-icon">⭐</div>
+          </div>
+          <div class="stat-card-bottom">
+            <span class="stat-card-desc">Products averaging 4.5 stars or above</span>
+            <span class="stat-pill-btn">Featured</span>
+          </div>
+        </div>
+
+        <div class="white-stat-card">
+          <div class="stat-card-top">
+            <div>
+              <div class="stat-card-label">LOW STOCK ALERTS</div>
+              <div class="stat-card-num" id="stat-lowstock">0</div>
+            </div>
+            <div class="stat-card-icon">🚚</div>
+          </div>
+          <div class="stat-card-bottom">
+            <span class="stat-card-desc">Products with at least one variant ≤5 units</span>
+            <span class="stat-pill-btn">Action needed</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Sales Performance Graph Section -->
+      <div class="white-section-card">
+        <div class="section-header">
+          <div>
+            <div class="pill-badge">📊 REAL CUSTOMER ORDERS GRAPH</div>
+            <h2 class="section-title">Live Sales Performance Graph</h2>
+            <p class="section-subtitle">Calculated dynamically from live customer orders database.</p>
+          </div>
+
+          <div class="graph-controls">
+            <div class="theme-dots">
+              <div class="dot-btn active" style="background:#0B1B3D;" onclick="setTheme('navy')"></div>
+              <div class="dot-btn" style="background:#10B981;" onclick="setTheme('emerald')"></div>
+              <div class="dot-btn" style="background:#8B5CF6;" onclick="setTheme('violet')"></div>
+              <div class="dot-btn" style="background:#F97316;" onclick="setTheme('sunset')"></div>
+            </div>
+
+            <div class="period-tab-group">
+              <button class="period-tab active" onclick="setPeriod('daily', this)">Daily</button>
+              <button class="period-tab" onclick="setPeriod('weekly', this)">Weekly</button>
+              <button class="period-tab" onclick="setPeriod('monthly', this)">Monthly</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-box" id="sales-chart-container">
+          <!-- Dynamically populated chart bars -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: PRODUCTS CATALOG -->
+    <div id="tab-products" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div>
+            <div class="dark-table-title">Live Product Catalog Management</div>
+            <div style="font-size: 11px; color: #94A3B8; margin-top: 2px;" id="prod-count-label">Loading database
+              inventory...</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="prod-search-input" class="input-field"
+              placeholder="🔍 Search product, category, weight..." oninput="filterProductsTable()"
+              onkeyup="filterProductsTable()" style="width:260px;" />
+            <button class="btn-hero-gold" onclick="openModal('add-product-modal')">+ Add New Product</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>PRODUCT IMAGE</th>
+              <th>PRODUCT DETAILS</th>
+              <th>CATEGORY</th>
+              <th>WEIGHT LABEL</th>
+              <th>PRICE (₹)</th>
+              <th>STOCK STATUS</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="products-table-body">
+            <!-- Dynamically Populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 3: ORDERS -->
+    <div id="tab-orders" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div>
+            <div class="dark-table-title">All Customer Orders</div>
+            <div style="font-size: 11px; color: #94A3B8; margin-top: 2px;" id="orders-count-label">Manage live customer
+              orders database</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="orders-search-input" class="input-field"
+              placeholder="🔍 Search Order ID, customer, phone..." oninput="filterOrdersTable()"
+              onkeyup="filterOrdersTable()" style="width:260px;" />
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ORDER ID</th>
+              <th>CUSTOMER DETAILS</th>
+              <th>DELIVERY ADDRESS</th>
+              <th>TOTAL AMOUNT</th>
+              <th>ORDER STATUS</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="all-orders-body">
+            <!-- Dynamically Populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: STORES -->
+    <div id="tab-stores" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div class="dark-table-title">Physical Store Outlets</div>
+          <button class="btn-hero-gold" onclick="openModal('add-store-modal')">+ Add Branch</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>BRANCH NAME</th>
+              <th>CITY & ADDRESS</th>
+              <th>PINCODE</th>
+              <th>CONTACT PHONE</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="stores-body">
+            <!-- Dynamically Populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 5: CONTACT US INQUIRIES -->
+    <div id="tab-contact" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div class="dark-table-title">Customer Contact Inquiries</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>SENDER NAME</th>
+              <th>EMAIL & PHONE</th>
+              <th>SUBJECT / INQUIRY</th>
+              <th>DATE</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-weight:900; color:#FFD700;">Pratik Sukhadiya</td>
+              <td>pratik@example.com<br><small style="color:#94A3B8">+91 98765 43210</small></td>
+              <td>Inquiry regarding bulk corporate sweet boxes for festival.</td>
+              <td>Today</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 6: CUSTOMERS -->
+    <div id="tab-customers" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div class="dark-table-title">Registered Customers Directory</div>
+          <input type="text" id="customer-search-input" class="input-field"
+            placeholder="🔍 Search customer name, email, phone..." oninput="filterCustomersTable()"
+            onkeyup="filterCustomersTable()" style="width:260px;" />
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>CUSTOMER NAME</th>
+              <th>EMAIL & CONTACT</th>
+              <th>TOTAL ORDERS</th>
+              <th>TOTAL SPENT</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="customers-body">
+            <!-- Dynamically Populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 7: COUPONS -->
+    <div id="tab-coupons" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div class="dark-table-title">Promotional Discount Coupons</div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="coupon-search-input" class="input-field" placeholder="🔍 Search coupon code..."
+              oninput="filterCouponsTable()" onkeyup="filterCouponsTable()" style="width:220px;" />
+            <button class="btn-hero-gold" onclick="openCreateCouponModal()">+ Create Coupon</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>COUPON CODE</th>
+              <th>DISCOUNT %</th>
+              <th>MIN ORDER (₹)</th>
+              <th>STATUS</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="coupons-body">
+            <!-- Dynamically Populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 8: BLOG -->
+    <div id="tab-blog" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div class="dark-table-title">Blog Articles & Festive Recipes</div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="blog-search-input" class="input-field"
+              placeholder="🔍 Search article title, category..." oninput="filterBlogsTable()"
+              onkeyup="filterBlogsTable()" style="width:240px;" />
+            <button class="btn-hero-gold" onclick="openCreateBlogModal()">+ Create Article</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ARTICLE TITLE</th>
+              <th>CATEGORY</th>
+              <th>AUTHOR</th>
+              <th>PUBLISHED DATE</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+          <tbody id="blogs-table-body">
+            <!-- Dynamically Populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 9: SETTINGS -->
+    <div id="tab-settings" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div class="dark-table-title">Store & Server Settings</div>
+        </div>
+        <p style="color:#94A3B8; font-size:13px;">Backend Server: Running on Node.js / Express (Port 4000) • Database:
+          MySQL Prisma Client</p>
+      </div>
+    </div>
+
+    <!-- TAB 10: MEDIA GALLERY -->
+    <div id="tab-media" class="tab-content" style="display:none;">
+      <div class="dark-table-card">
+        <div class="dark-table-header">
+          <div>
+            <div class="dark-table-title">Product Photo & Media Gallery</div>
+            <div style="font-size: 11px; color: #94A3B8; margin-top: 2px;" id="media-count-label">Loading stored product
+              photos...</div>
+          </div>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input type="text" id="media-search-input" class="input-field" placeholder="🔍 Search photo by name..."
+              onkeyup="filterMediaGallery()" style="width:240px;" />
+            <label class="btn-hero-gold" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+              📁 Upload New Photo
+              <input type="file" accept="image/*" style="display:none;" onchange="handleDirectGalleryUpload(event)" />
+            </label>
+          </div>
+        </div>
+        <div id="media-gallery-grid"
+          style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:16px; margin-top:10px;">
+          <!-- Dynamically populated by JS -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODALS -->
+  <div id="add-product-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>Add New Product</span>
+        <span style="cursor:pointer;" onclick="closeModal('add-product-modal')">✕</span>
+      </div>
+      <form onsubmit="handleCreateProduct(event)">
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">PRODUCT
+            NAME</label>
+          <input required id="p-name" class="input-field" placeholder="e.g. Royal Cashew Katli" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label
+            style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">CATEGORY</label>
+          <select id="p-category" class="input-field">
+            <option value="sweets">Sweets (Mithai)</option>
+            <option value="kaju-sweets">Kaju Sweets</option>
+            <option value="namkeen">Namkeen & Snacks</option>
+            <option value="bakery">Bakery & Cookies</option>
+            <option value="dry-fruits-nuts">Dry Fruits & Nuts</option>
+          </select>
+        </div>
+        <div
+          style="border-top:1px solid rgba(234,179,8,0.2); border-bottom:1px solid rgba(234,179,8,0.2); padding:10px 0; margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:8px;">PACK VARIANTS
+            & PRICES (WEIGHT / PRICE ₹)</label>
+          <div style="display:flex; gap:10px; margin-bottom:8px;">
+            <input id="p-weight" class="input-field" placeholder="e.g. 500g" value="500g" style="flex:1;" />
+            <input required type="number" id="p-price" class="input-field" placeholder="Price (₹) e.g. 450"
+              style="flex:1;" />
+          </div>
+          <div style="display:flex; gap:10px; margin-bottom:8px;">
+            <input id="p-weight-2" class="input-field" placeholder="Variant 2 e.g. 250g" value="250g" style="flex:1;" />
+            <input type="number" id="p-price-2" class="input-field" placeholder="Price (₹) e.g. 250" style="flex:1;" />
+          </div>
+          <div style="display:flex; gap:10px;">
+            <input id="p-weight-3" class="input-field" placeholder="Variant 3 e.g. 1kg" value="1kg" style="flex:1;" />
+            <input type="number" id="p-price-3" class="input-field" placeholder="Price (₹) e.g. 880" style="flex:1;" />
+          </div>
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">IMAGE URL OR
+            CHOOSE FILE / PHOTO</label>
+          <div style="display:flex; gap:10px; align-items:center;">
+            <input id="p-img" class="input-field" value="/images/sweet-1.jpg" style="flex:1;" />
+            <button type="button" onclick="openMediaPicker('p-img')"
+              style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:9px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;">
+              🖼️ Pick from Gallery
+            </button>
+            <label
+              style="background:rgba(234,179,8,0.2); color:#FFD700; border:1px solid #EAB308; padding:9px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+              📁 Choose Photo
+              <input type="file" accept="image/*" style="display:none;"
+                onchange="handleImageFileSelect(event, 'p-img')" />
+            </label>
+          </div>
+        </div>
+        <button type="submit" class="btn-hero-gold" style="width:100%; justify-content:center; margin-top:10px;">Save
+          Product to Database</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="add-coupon-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>Create Promo Coupon</span>
+        <span style="cursor:pointer;" onclick="closeModal('add-coupon-modal')">✕</span>
+      </div>
+      <form onsubmit="handleCreateCoupon(event)">
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">COUPON
+            CODE</label>
+          <input required id="c-code" class="input-field" placeholder="FESTIVE10" style="text-transform:uppercase;" />
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">DISCOUNT
+              %</label>
+            <input type="number" id="c-discount" class="input-field" value="10" />
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">MIN ORDER
+              (₹)</label>
+            <input type="number" id="c-min" class="input-field" value="500" />
+          </div>
+        </div>
+        <button type="submit" class="btn-hero-gold" style="width:100%; justify-content:center; margin-top:10px;">Create
+          Coupon Code</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="add-store-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>Add Store Branch</span>
+        <span style="cursor:pointer;" onclick="closeModal('add-store-modal')">✕</span>
+      </div>
+      <form onsubmit="handleCreateStore(event)">
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">BRANCH
+            NAME</label>
+          <input required id="s-name" class="input-field" placeholder="Vardayini Ring Road Branch" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label
+            style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">ADDRESS</label>
+          <input id="s-address" class="input-field" placeholder="102, Shrimad Complex, Ring Road" />
+        </div>
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label
+              style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">CITY</label>
+            <input id="s-city" class="input-field" value="Surat" />
+          </div>
+          <div style="flex:1;">
+            <label
+              style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">PHONE</label>
+            <input id="s-phone" class="input-field" value="+91 98250 12345" />
+          </div>
+        </div>
+        <button type="submit" class="btn-hero-gold" style="width:100%; justify-content:center; margin-top:10px;">Save
+          Store Outlet</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT PRODUCT MODAL -->
+  <div id="edit-product-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-title">
+        <span>✏️ Edit Product</span>
+        <span style="cursor:pointer;" onclick="closeModal('edit-product-modal')">✕</span>
+      </div>
+      <div id="edit-product-spinner" style="display:none; text-align:center; padding:30px; color:#EAB308;">
+        ⏳ Fetching fresh product data from database...
+      </div>
+      <form id="edit-product-form" onsubmit="handleUpdateProduct(event)">
+        <input type="hidden" id="edit-p-id" />
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">PRODUCT
+              NAME *</label>
+            <input required id="edit-p-name" class="input-field" placeholder="e.g. Royal Kaju Katli"
+              oninput="autoGenerateEditSlug()" />
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">URL SLUG
+              *</label>
+            <input required id="edit-p-slug" class="input-field" placeholder="e.g. royal-kaju-katli" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label
+            style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">DESCRIPTION</label>
+          <textarea id="edit-p-description" class="input-field" rows="2" style="resize:vertical;"
+            placeholder="Product description..."></textarea>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">CATEGORY
+              *</label>
+            <select id="edit-p-category" class="input-field"></select>
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">TAG /
+              BADGE</label>
+            <select id="edit-p-tag" class="input-field">
+              <option value="none">None</option>
+              <option value="best_seller">Best Seller</option>
+              <option value="new_arrival">New Arrival</option>
+              <option value="premium">Premium</option>
+              <option value="combo">Combo</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label
+              style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">STATUS</label>
+            <select id="edit-p-status" class="input-field">
+              <option value="true">Active (Visible)</option>
+              <option value="false">Inactive (Hidden)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">IMAGE URL &
+            PREVIEW</label>
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
+            <input id="edit-p-img" class="input-field" style="flex:1;"
+              onchange="updateImagePreview('edit-p-img', 'edit-p-img-preview')"
+              oninput="updateImagePreview('edit-p-img', 'edit-p-img-preview')" />
+            <button type="button" onclick="openMediaPicker('edit-p-img', 'edit-p-img-preview')"
+              style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:9px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;">
+              🖼️ Pick from Gallery
+            </button>
+            <label
+              style="background:rgba(234,179,8,0.2); color:#FFD700; border:1px solid #EAB308; padding:9px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+              📁 Choose Photo
+              <input type="file" accept="image/*" style="display:none;"
+                onchange="handleImageFileSelect(event, 'edit-p-img', 'edit-p-img-preview')" />
+            </label>
+          </div>
+          <div
+            style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.2); padding:8px; border-radius:10px; border:1px dashed rgba(234,179,8,0.3);">
+            <img id="edit-p-img-preview" src="/images/sweet-1.jpg" onerror="this.src='/images/sweet-1.jpg'"
+              style="width:50px; height:50px; object-fit:cover; border-radius:8px; border:1px solid #EAB308;"
+              alt="Current Image Preview" />
+            <span style="font-size:11px; color:#94A3B8;">Current primary product image preview</span>
+          </div>
+        </div>
+
+        <div
+          style="border-top:1px solid rgba(234,179,8,0.2); border-bottom:1px solid rgba(234,179,8,0.2); padding:12px 0; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800;">PACK VARIANTS & PRICES *</label>
+            <button type="button" onclick="addEditVariantRow()"
+              style="background:rgba(234,179,8,0.2); color:#FFD700; border:1px solid #EAB308; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">+
+              Add Variant</button>
+          </div>
+          <div id="edit-p-variants-container" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Dynamic variant rows populated by JS -->
+          </div>
+        </div>
+
+        <button type="submit" class="btn-hero-gold" style="width:100%; justify-content:center; margin-top:10px;">Update
+          Product in Database</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT CUSTOMER MODAL -->
+  <div id="edit-customer-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-title">
+        <span>✏️ Edit Customer Profile</span>
+        <span style="cursor:pointer;" onclick="closeModal('edit-customer-modal')">✕</span>
+      </div>
+      <form onsubmit="handleUpdateCustomer(event)">
+        <input type="hidden" id="edit-cust-id" />
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">FULL
+            NAME</label>
+          <input required id="edit-cust-name" class="input-field" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">EMAIL
+            ADDRESS</label>
+          <input required type="email" id="edit-cust-email" class="input-field" />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">PHONE
+            NUMBER</label>
+          <input id="edit-cust-phone" class="input-field" />
+        </div>
+        <button type="submit" class="btn-hero-gold" style="width:100%; justify-content:center; margin-top:10px;">Update
+          Customer Profile</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT / CREATE BLOG MODAL -->
+  <div id="edit-blog-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-title">
+        <span id="blog-modal-title">✏️ Blog Article</span>
+        <span style="cursor:pointer;" onclick="closeModal('edit-blog-modal')">✕</span>
+      </div>
+      <div id="edit-blog-spinner" style="display:none; text-align:center; padding:30px; color:#EAB308;">
+        ⏳ Fetching fresh blog article data from database...
+      </div>
+      <form id="edit-blog-form" onsubmit="handleSaveBlog(event)">
+        <input type="hidden" id="edit-blog-id" />
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">ARTICLE
+              TITLE *</label>
+            <input required id="edit-blog-title" class="input-field" placeholder="e.g. Secrets of Pure Ghee Mithai"
+              oninput="autoGenerateBlogSlug()" />
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">URL SLUG
+              *</label>
+            <input required id="edit-blog-slug" class="input-field" placeholder="e.g. secrets-of-pure-ghee-mithai" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">AUTHOR
+              NAME</label>
+            <input required id="edit-blog-author" class="input-field" value="Chef Pratik" />
+          </div>
+          <div style="flex:1;">
+            <label
+              style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">CATEGORY</label>
+            <input required id="edit-blog-category" class="input-field" value="Recipes & Sweets" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label
+              style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">STATUS</label>
+            <select id="edit-blog-status" class="input-field">
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">PUBLISHED
+              DATE</label>
+            <input type="date" id="edit-blog-date" class="input-field" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">FEATURED
+            IMAGE URL & PREVIEW</label>
+          <div style="display:flex; gap:10px; align-items:center; margin-bottom:8px;">
+            <input id="edit-blog-img" class="input-field" style="flex:1;" placeholder="/images/sweet-1.jpg"
+              onchange="updateImagePreview('edit-blog-img', 'edit-blog-img-preview')"
+              oninput="updateImagePreview('edit-blog-img', 'edit-blog-img-preview')" />
+            <button type="button" onclick="openMediaPicker('edit-blog-img', 'edit-blog-img-preview')"
+              style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:9px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;">
+              🖼️ Pick from Gallery
+            </button>
+            <label
+              style="background:rgba(234,179,8,0.2); color:#FFD700; border:1px solid #EAB308; padding:9px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+              📁 Choose Photo
+              <input type="file" accept="image/*" style="display:none;"
+                onchange="handleImageFileSelect(event, 'edit-blog-img', 'edit-blog-img-preview')" />
+            </label>
+          </div>
+          <div
+            style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.2); padding:8px; border-radius:10px; border:1px dashed rgba(234,179,8,0.3);">
+            <img id="edit-blog-img-preview" src="/images/sweet-1.jpg" onerror="this.src='/images/sweet-1.jpg'"
+              style="width:50px; height:50px; object-fit:cover; border-radius:8px; border:1px solid #EAB308;"
+              alt="Featured Image Preview" />
+            <span style="font-size:11px; color:#94A3B8;">Featured article header preview</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">ARTICLE
+            CONTENT *</label>
+          <textarea required id="edit-blog-content" class="input-field" rows="6" style="resize:vertical;"
+            placeholder="Write body of blog article here..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-hero-gold" style="width:100%; justify-content:center; margin-top:10px;">Save
+          Blog Article</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- EDIT / CREATE COUPON MODAL -->
+  <div id="edit-coupon-modal" class="modal-overlay">
+    <div class="modal-card" style="max-width: 650px; max-height: 90vh; overflow-y: auto;">
+      <div class="modal-title">
+        <span id="coupon-modal-title">🏷️ Promo & Festival Coupon</span>
+        <span style="cursor:pointer;" onclick="closeModal('edit-coupon-modal')">✕</span>
+      </div>
+      <div id="edit-coupon-spinner" style="display:none; text-align:center; padding:30px; color:#EAB308;">
+        ⏳ Fetching fresh coupon data from database...
+      </div>
+      <form id="edit-coupon-form" onsubmit="handleSaveCoupon(event)">
+        <input type="hidden" id="edit-c-id" />
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">COUPON CODE *</label>
+            <input required id="edit-c-code" class="input-field" style="text-transform:uppercase;" placeholder="e.g. DIWALI500" />
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">CAMPAIGN / DISPLAY NAME</label>
+            <input id="edit-c-name" class="input-field" placeholder="e.g. Diwali Dhamaka - 5% OFF" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">INDIAN FESTIVAL TARGETING</label>
+            <select id="edit-c-festival-preset" class="input-field" onchange="handleFestivalPresetChange()">
+              <option value="">None (Standard Coupon)</option>
+              <option value="Diwali">🪔 Diwali Dhamaka</option>
+              <option value="Holi">🎨 Holi Festival Special</option>
+              <option value="Raksha Bandhan">🎁 Raksha Bandhan Gift</option>
+              <option value="Eid">🌙 Eid Mubarak Special</option>
+              <option value="Independence Day">🇮🇳 Independence Day Sale</option>
+              <option value="Navratri">✨ Navratri Garba Special</option>
+              <option value="custom">✏️ Custom Festival Name</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">FESTIVAL LABEL</label>
+            <input id="edit-c-festival" class="input-field" placeholder="Festival name e.g. Diwali" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">DISCOUNT TYPE</label>
+            <select id="edit-c-type" class="input-field">
+              <option value="PERCENTAGE">Percentage (%)</option>
+              <option value="FIXED">Flat Amount (₹)</option>
+            </select>
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">DISCOUNT VALUE *</label>
+            <input required type="number" id="edit-c-discount" class="input-field" min="1" placeholder="5" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">MIN ORDER VALUE (₹) *</label>
+            <input type="number" id="edit-c-min" class="input-field" min="0" placeholder="5000" />
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">MAX ORDER LIMIT (₹) (OPTIONAL)</label>
+            <input type="number" id="edit-c-max" class="input-field" min="0" placeholder="10000" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">APPLICABLE CATEGORIES (MULTI-SELECT)</label>
+          <select id="edit-c-categories" class="input-field" multiple style="height:80px; padding:6px;">
+            <option value="all" selected>All Categories</option>
+            <option value="sweets">Sweets (Mithai)</option>
+            <option value="kaju-sweets">Kaju Sweets</option>
+            <option value="namkeen">Namkeen & Snacks</option>
+            <option value="dry-fruits-nuts">Dry Fruits & Nuts</option>
+            <option value="bakery">Bakery & Cookies</option>
+          </select>
+          <small style="color:#94A3B8; font-size:10px; display:block; margin-top:4px;">Hold Ctrl (Cmd) to multi-select categories or leave on All Categories.</small>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">START DATE & TIME</label>
+            <input type="datetime-local" id="edit-c-start" class="input-field" />
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">END / EXPIRY DATE & TIME</label>
+            <input type="datetime-local" id="edit-c-end" class="input-field" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-bottom:14px;">
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">TOTAL USAGE LIMIT</label>
+            <input type="number" id="edit-c-limit" class="input-field" min="0" placeholder="e.g. 500" />
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">MAX USES PER USER</label>
+            <input type="number" id="edit-c-per-user" class="input-field" min="1" value="1" placeholder="1" />
+          </div>
+          <div style="flex:1;">
+            <label style="color:#EAB308; font-size:11px; font-weight:800; display:block; margin-bottom:6px;">STATUS</label>
+            <select id="edit-c-active" class="input-field">
+              <option value="true">Active (Enabled)</option>
+              <option value="false">Inactive (Disabled)</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-hero-gold" style="width:100%; justify-content:center; margin-top:10px;">Save Coupon Settings</button>
+      </form>
+    </div>
+  </div>
+
+        <!-- INTERACTIVE MEDIA PICKER MODAL -->
+        <div id="media-picker-modal" class="modal-overlay" style="z-index: 2000;">
+          <div class="modal-card" style="max-width: 750px; max-height: 85vh; display:flex; flex-direction:column;">
+            <div class="modal-title">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span>🖼️ Select Photo from Gallery</span>
+                <button type="button" onclick="goToMediaTab()"
+                  style="background:rgba(234,179,8,0.15); color:#FFD700; border:1px solid #EAB308; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;"
+                  title="Switch to full Media Gallery tab">🖼️ Open Media Tab</button>
+              </div>
+              <span style="cursor:pointer;" onclick="closeModal('media-picker-modal')">✕</span>
+            </div>
+            <div style="margin-bottom:14px; display:flex; gap:10px;">
+              <input type="text" id="picker-search-input" class="input-field" placeholder="🔍 Filter photos by name..."
+                onkeyup="filterPickerGallery()" style="flex:1;" />
+              <label
+                style="background:rgba(234,179,8,0.2); color:#FFD700; border:1px solid #EAB308; padding:9px 14px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;">
+                📁 Upload New Photo
+                <input type="file" accept="image/*" style="display:none;" onchange="handlePickerFileUpload(event)" />
+              </label>
+            </div>
+            <div id="media-picker-grid"
+              style="flex:1; overflow-y:auto; display:grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:12px; padding-right:4px;">
+              <!-- Populated dynamically by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- JavaScript Admin App Logic -->
+        <script>
+          const API_BASE = '/api';
+          let allAdminProductsList = [];
+          let currentPeriod = 'daily';
+
+          function openModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+              modal.style.display = 'flex';
+            }
+          }
+
+          function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) {
+              modal.style.display = 'none';
+            }
+          }
+
+          function switchTab(tabId, el) {
+            document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+
+            const target = document.getElementById('tab-' + tabId);
+            if (target) target.style.display = 'block';
+            if (el) el.classList.add('active');
+          }
+
+          function switchTabByName(tabName) {
+            const navItems = Array.from(document.querySelectorAll('.nav-item'));
+            const found = navItems.find(i => i.innerText.toLowerCase().includes(tabName));
+            if (found) {
+              switchTab(tabName, found);
+            }
+          }
+
+          function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+          function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+          async function loadDashboardData() {
+            // 1. Stats from single source of truth service
+            try {
+              const res = await fetch(`${API_BASE}/admin/dashboard/stats`);
+              if (res.ok) {
+                const stats = await res.json();
+                document.getElementById('snap-revenue').innerText = '₹' + Number(stats.totalRevenue || 0).toLocaleString('en-IN');
+                document.getElementById('snap-orders').innerText = (stats.orderCount !== undefined ? stats.orderCount : 0) + ' orders';
+
+                document.getElementById('stat-products').innerText = stats.productCount !== undefined ? stats.productCount : 0;
+                document.getElementById('stat-categories').innerText = stats.categoryCount !== undefined ? stats.categoryCount : 0;
+                document.getElementById('stat-featured').innerText = stats.featuredCount !== undefined ? stats.featuredCount : 0;
+                document.getElementById('stat-lowstock').innerText = stats.lowStockCount !== undefined ? stats.lowStockCount : 0;
+              }
+            } catch (e) { }
+
+            // 2. Load Products
+            try {
+              const pRes = await fetch(`${API_BASE}/admin/products`);
+              if (pRes.ok) {
+                const prods = await pRes.json();
+                renderProducts(prods);
+              }
+            } catch (e) { }
+
+            // 3. Load Orders
+            try {
+              const oRes = await fetch(`${API_BASE}/admin/orders`);
+              if (oRes.ok) {
+                const orders = await oRes.json();
+                renderOrders(orders);
+              }
+            } catch (e) { }
+
+            // 4. Stores
+            try {
+              const sRes = await fetch(`${API_BASE}/stores`);
+              if (sRes.ok) {
+                const stores = await sRes.json();
+                renderStores(stores);
+              }
+            } catch (e) { }
+
+            // 5. Coupons
+            try {
+              const cRes = await fetch(`${API_BASE}/admin/coupons`);
+              if (cRes.ok) {
+                const coupons = await cRes.json();
+                renderCoupons(coupons);
+              }
+            } catch (e) { }
+
+            // 6. Customers
+            try {
+              const custRes = await fetch(`${API_BASE}/admin/customers`);
+              if (custRes.ok) {
+                const custs = await custRes.json();
+                renderCustomers(custs);
+              }
+            } catch (e) { }
+
+            loadBlogsData();
+            loadCategoriesForDropdowns();
+            loadMediaGallery();
+            renderChart();
+          }
+
+          window.allMediaFiles = [];
+          let activePickerInputId = null;
+          let activePickerPreviewId = null;
+
+          async function loadMediaGallery() {
+            try {
+              const res = await fetch(`${API_BASE}/upload`);
+              if (res.ok) {
+                const files = await res.json();
+                window.allMediaFiles = files || [];
+                renderMediaGalleryGrid(window.allMediaFiles);
+                renderMediaPickerGrid(window.allMediaFiles);
+
+                const label = document.getElementById('media-count-label');
+                if (label) {
+                  label.innerText = `${window.allMediaFiles.length} Product Photos Available in Media Gallery`;
+                }
+              }
+            } catch (e) {
+              console.error("Failed to load media files:", e);
+            }
+          }
+
+          function renderMediaGalleryGrid(files) {
+            const container = document.getElementById('media-gallery-grid');
+            if (!container) return;
+
+            if (!files || files.length === 0) {
+              container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: #94A3B8;">No photos found in media gallery. Click <strong>+ Upload New Photo</strong> above to add photos!</div>`;
+              return;
+            }
+
+            container.innerHTML = files.map(file => {
+              const isUpload = file.source === 'uploads';
+              const formattedSize = file.size ? (file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' : Math.round(file.size / 1024) + ' KB') : '';
+              const badgeColor = isUpload ? 'rgba(59,130,246,0.2)' : 'rgba(234,179,8,0.2)';
+              const badgeText = isUpload ? '#93C5FD' : '#FFD700';
+              const badgeLabel = isUpload ? 'UPLOAD' : 'CATALOG';
+
+              return `
+          <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(234,179,8,0.2); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; transition: transform 0.2s;" onmouseenter="this.style.transform='translateY(-2px)'" onmouseleave="this.style.transform='none'">
+            <div style="width: 100%; height: 130px; border-radius: 8px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; position: relative;">
+              <img src="${file.url}" onerror="this.src='/images/sweet-1.jpg'" style="width: 100%; height: 100%; object-fit: cover;" alt="${file.filename}" />
+              <span style="position: absolute; top: 6px; right: 6px; background: ${badgeColor}; color: ${badgeText}; font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 6px; backdrop-filter: blur(4px);">${badgeLabel}</span>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="font-size: 11px; font-weight: 700; color: #F8FAFC; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.filename}">${file.filename}</div>
+              <div style="font-size: 10px; color: #94A3B8;">${formattedSize}</div>
+            </div>
+            <div style="display: flex; gap: 6px; margin-top: auto; padding-top: 4px;">
+              <button type="button" onclick="copyPhotoUrl('${file.url}')" style="flex: 1; background: rgba(234,179,8,0.15); color: #FFD700; border: 1px solid rgba(234,179,8,0.3); padding: 6px; border-radius: 8px; font-size: 10px; font-weight: 700; cursor: pointer;">📋 Copy URL</button>
+              ${isUpload ? `<button type="button" onclick="deleteMediaPhoto('${file.filename}')" style="background: rgba(239,68,68,0.15); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.3); padding: 6px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; cursor: pointer;">🗑️</button>` : ''}
+            </div>
+          </div>
+        `;
+            }).join('');
+          }
+
+          function filterMediaGallery() {
+            const query = (document.getElementById('media-search-input')?.value || '').toLowerCase();
+            const filtered = window.allMediaFiles.filter(f => f.filename.toLowerCase().includes(query) || f.url.toLowerCase().includes(query));
+            renderMediaGalleryGrid(filtered);
+          }
+
+          async function openMediaPicker(inputId, previewId) {
+            activePickerInputId = inputId;
+            activePickerPreviewId = previewId || null;
+            openModal('media-picker-modal');
+            await loadMediaGallery();
+          }
+
+          function goToMediaTab() {
+            closeModal('media-picker-modal');
+            closeModal('edit-product-modal');
+            closeModal('add-product-modal');
+            closeModal('edit-blog-modal');
+            const mediaNav = Array.from(document.querySelectorAll('.nav-item')).find(n => n.innerText.includes('Media Gallery'));
+            switchTab('media', mediaNav);
+          }
+
+          function renderMediaPickerGrid(files) {
+            const container = document.getElementById('media-picker-grid');
+            if (!container) return;
+
+            if (!files || files.length === 0) {
+              container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 30px; color: #94A3B8;">No photos in gallery. Click Upload New Photo to add one!</div>`;
+              return;
+            }
+
+            container.innerHTML = files.map(file => `
+        <div onclick="selectPhotoFromPicker('${file.url}')" style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(234,179,8,0.3); border-radius: 10px; padding: 8px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; transition: border-color 0.2s, transform 0.2s;" onmouseenter="this.style.borderColor='#FFD700'; this.style.transform='scale(1.03)';" onmouseleave="this.style.borderColor='rgba(234,179,8,0.3)'; this.style.transform='none';">
+          <div style="width: 100%; height: 95px; border-radius: 6px; overflow: hidden; background: #000;">
+            <img src="${file.url}" onerror="this.src='/images/sweet-1.jpg'" style="width: 100%; height: 100%; object-fit: cover;" alt="${file.filename}" />
+          </div>
+          <div style="font-size: 10px; font-weight: 700; color: #FFD700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center;">${file.filename}</div>
+        </div>
+      `).join('');
+          }
+
+          function filterPickerGallery() {
+            const query = (document.getElementById('picker-search-input')?.value || '').toLowerCase();
+            const filtered = window.allMediaFiles.filter(f => f.filename.toLowerCase().includes(query) || f.url.toLowerCase().includes(query));
+            renderMediaPickerGrid(filtered);
+          }
+
+          function selectPhotoFromPicker(url) {
+            if (activePickerInputId) {
+              const input = document.getElementById(activePickerInputId);
+              if (input) {
+                input.value = url;
+                const targetPreview = activePickerPreviewId || (activePickerInputId + '-preview');
+                updateImagePreview(activePickerInputId, targetPreview);
+              }
+            }
+            closeModal('media-picker-modal');
+          }
+
+          async function handleDirectGalleryUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+              try {
+                const res = await fetch(`${API_BASE}/upload`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ image: e.target.result, filename: file.name })
+                });
+                if (res.ok) {
+                  alert('✓ Photo uploaded to Media Gallery successfully!');
+                  await loadMediaGallery();
+                } else {
+                  alert('❌ Failed to upload photo.');
+                }
+              } catch (err) {
+                alert('❌ Upload error: ' + err.message);
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+
+          async function handlePickerFileUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+              try {
+                const res = await fetch(`${API_BASE}/upload`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ image: e.target.result, filename: file.name })
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  if (data.url) {
+                    selectPhotoFromPicker(data.url);
+                  }
+                  await loadMediaGallery();
+                } else {
+                  alert('❌ Failed to upload photo.');
+                }
+              } catch (err) {
+                alert('❌ Upload error: ' + err.message);
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+
+          async function deleteMediaPhoto(filename) {
+            if (!confirm(`Are you sure you want to delete ${filename} from uploaded photos?`)) return;
+
+            try {
+              const res = await fetch(`${API_BASE}/upload/${encodeURIComponent(filename)}`, {
+                method: 'DELETE'
+              });
+              if (res.ok) {
+                alert('✓ Photo deleted successfully.');
+                await loadMediaGallery();
+              } else {
+                alert('❌ Failed to delete photo.');
+              }
+            } catch (err) {
+              alert('❌ Error deleting photo: ' + err.message);
+            }
+          }
+
+          function copyPhotoUrl(url) {
+            const fullUrl = window.location.origin + url;
+            navigator.clipboard.writeText(fullUrl).then(() => {
+              alert(`✓ Photo URL copied to clipboard:\n${url}`);
+            }).catch(() => {
+              alert(`Photo URL: ${url}`);
+            });
+          }
+
+          async function handleImageFileSelect(event, targetInputId) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function (e) {
+              const base64Data = e.target.result;
+              try {
+                const res = await fetch(`${API_BASE}/upload`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ image: base64Data, filename: file.name })
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  const input = document.getElementById(targetInputId);
+                  if (input) input.value = data.url;
+                  alert('✓ Photo uploaded successfully!');
+                } else {
+                  const input = document.getElementById(targetInputId);
+                  if (input) input.value = base64Data;
+                }
+              } catch (err) {
+                const input = document.getElementById(targetInputId);
+                if (input) input.value = base64Data;
+              }
+            };
+            reader.readAsDataURL(file);
+          }
+
+          async function loadCategoriesForDropdowns() {
+            try {
+              const res = await fetch(`${API_BASE}/categories`);
+              if (res.ok) {
+                const cats = await res.json();
+                let optionsHtml = '';
+
+                if (Array.isArray(cats)) {
+                  const list = [];
+                  cats.forEach(c => {
+                    list.push({ slug: c.slug, name: c.name });
+                    if (c.subcategories && Array.isArray(c.subcategories)) {
+                      c.subcategories.forEach(sub => list.push({ slug: sub.slug, name: `${c.name} ➔ ${sub.name}` }));
+                    }
+                    if (c.children && Array.isArray(c.children)) {
+                      c.children.forEach(sub => list.push({ slug: sub.slug, name: `${c.name} ➔ ${sub.name}` }));
+                    }
+                  });
+
+                  const unique = [];
+                  const seen = new Set();
+                  for (const item of list) {
+                    if (!seen.has(item.slug)) {
+                      seen.add(item.slug);
+                      unique.push(item);
+                    }
+                  }
+
+                  optionsHtml = unique.map(c => `<option value="${c.slug}">${c.name}</option>`).join('');
+                }
+
+                if (optionsHtml) {
+                  const pCat = document.getElementById('p-category');
+                  const editPCat = document.getElementById('edit-p-category');
+                  if (pCat) pCat.innerHTML = optionsHtml;
+                  if (editPCat) editPCat.innerHTML = optionsHtml;
+                }
+              }
+            } catch (e) { }
+          }
+
+          // GLOBAL LIST STORES FOR SEARCH
+          window.allAdminProductsList = [];
+          window.allOrdersList = [];
+          window.allCouponsList = [];
+          window.allCustomersList = [];
+          window.allBlogsList = [];
+
+          // 1. SEARCH & FILTER PRODUCTS TABLE (CASE-INSENSITIVE)
+          function filterProductsTable() {
+            const input = document.getElementById('prod-search-input');
+            const query = input ? input.value.trim().toLowerCase() : '';
+            if (!window.allAdminProductsList || !Array.isArray(window.allAdminProductsList)) return;
+
+            if (!query) {
+              renderProductsRows(window.allAdminProductsList);
+              return;
+            }
+
+            const tokens = query.split(/\s+/).filter(Boolean);
+
+            const filtered = window.allAdminProductsList.filter(p => {
+              const nameStr = (p.name || '').toLowerCase();
+              const slugStr = (p.slug || '').toLowerCase();
+              const catStr = (p.categorySlug || p.category?.name || p.category?.slug || '').toLowerCase();
+              const tagStr = (p.tag || '').toLowerCase();
+              const descStr = (p.description || '').toLowerCase();
+              const idStr = String(p.id || '').toLowerCase();
+              const weightStr = (p.weightLabel || p.variants?.[0]?.weightLabel || '').toLowerCase();
+              const priceStr = String(p.price || p.variants?.[0]?.price || '').toLowerCase();
+              const variantsStr = (p.variants || []).map(v => `${v.weightLabel || ''} ${v.price || ''}`).join(' ').toLowerCase();
+
+              const fullText = `${nameStr} ${slugStr} ${catStr} ${tagStr} ${descStr} ${idStr} ${weightStr} ${priceStr} ${variantsStr}`;
+
+              if (fullText.includes(query)) return true;
+              return tokens.every(t => fullText.includes(t));
+            });
+
+            renderProductsRows(filtered);
+          }
+
+          function renderProducts(data) {
+            const prods = Array.isArray(data) ? data : (data && Array.isArray(data.products) ? data.products : []);
+            window.allAdminProductsList = prods;
+
+            const input = document.getElementById('prod-search-input');
+            if (input && input.value.trim()) {
+              filterProductsTable();
+            } else {
+              renderProductsRows(prods);
+            }
+          }
+
+          function renderProductsRows(prods) {
+            const tbody = document.getElementById('products-table-body');
+            const label = document.getElementById('prod-count-label');
+            if (label) {
+              if (window.allAdminProductsList && window.allAdminProductsList.length !== prods.length) {
+                label.innerText = `Showing ${prods.length} of ${window.allAdminProductsList.length} products matching search`;
+              } else {
+                label.innerText = `${prods.length} Products Available in Database Catalog`;
+              }
+            }
+
+            if (!tbody) return;
+            if (!prods || prods.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="7" style="color:#94A3B8; text-align:center; padding:24px;">No matching products found in database catalog.</td></tr>';
+              return;
+            }
+
+            tbody.innerHTML = prods.map(p => {
+              let rawImg = p.primaryImage || p.imageUrl || p.image || p.productImages?.[0]?.imageUrl || '/images/sweet-1.jpg';
+              if (rawImg.startsWith('/')) {
+                rawImg = window.location.origin + rawImg;
+              }
+              const img = rawImg;
+              const price = p.price || p.variants?.[0]?.price || 350;
+              const weight = p.weightLabel || p.variants?.[0]?.weightLabel || '500g';
+              const stock = p.totalStock !== undefined ? p.totalStock : (p.variants?.[0]?.stockQty ?? 50);
+              const cat = (p.categorySlug || p.category?.slug || 'sweets').toUpperCase();
+
+              const isLowStock = stock <= 5;
+              const stockBadge = isLowStock
+                ? `<span style="background:rgba(239,68,68,0.2); color:#FCA5A5; border:1px solid #EF4444; padding:4px 10px; border-radius:99px; font-size:10px; font-weight:800;">Low Stock (${stock})</span>`
+                : `<span class="status-pill">In Stock (${stock})</span>`;
+
+              return `
+          <tr>
+            <td>
+              <img src="${img}" onerror="this.onerror=null; this.src='/images/sweet-1.jpg';" style="width:48px; height:48px; object-fit:cover; border-radius:12px; border:1px solid rgba(234,179,8,0.4);" alt="${p.name}" />
+            </td>
+            <td>
+              <div style="font-weight:900; color:#FFD700; font-size:14px;">${p.name}</div>
+              <small style="color:#94A3B8; font-size:10px;">ID: ${p.id} • ${p.slug || ''}</small>
+            </td>
+            <td>
+              <span style="background:rgba(234,179,8,0.15); color:#FFD700; border:1px solid rgba(234,179,8,0.4); padding:4px 10px; border-radius:8px; font-size:10px; font-weight:800;">${cat}</span>
+            </td>
+            <td style="color:#F8FAFC; font-weight:700;">${weight}</td>
+            <td style="font-weight:900; font-size:15px; color:#FFD700;">₹${price}</td>
+            <td>${stockBadge}</td>
+            <td>
+              <div style="display:flex; gap:6px;">
+                <button onclick="openEditProductModal('${p.id}')" style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Edit</button>
+                <button onclick="deleteProduct('${p.id}')" style="background:rgba(239,68,68,0.2); color:#FCA5A5; border:1px solid #EF4444; padding:6px 12px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+            }).join('');
+          }
+
+          // 2. SEARCH & FILTER ORDERS TABLE
+          function filterOrdersTable() {
+            const input = document.getElementById('orders-search-input');
+            const query = input ? input.value.trim().toLowerCase() : '';
+            if (!window.allOrdersList || !Array.isArray(window.allOrdersList)) return;
+
+            if (!query) {
+              renderOrdersRows(window.allOrdersList);
+              return;
+            }
+
+            const tokens = query.split(/\s+/).filter(Boolean);
+
+            const filtered = window.allOrdersList.filter(o => {
+              const ordId = String(o.orderId || o.orderNumber || o.id || '').toLowerCase();
+              const name = (o.fullName || '').toLowerCase();
+              const phone = (o.phone || '').toLowerCase();
+              const email = (o.email || '').toLowerCase();
+              const address = (o.address || '').toLowerCase();
+              const status = (o.status || '').toLowerCase();
+              const itemsList = (o.items || []).map(i => `${i.name || ''}`).join(' ').toLowerCase();
+
+              const fullText = `${ordId} ${name} ${phone} ${email} ${address} ${status} ${itemsList}`;
+              if (fullText.includes(query)) return true;
+              return tokens.every(t => fullText.includes(t));
+            });
+
+            renderOrdersRows(filtered);
+          }
+
+          function renderOrders(orders) {
+            if (!orders || !Array.isArray(orders)) return;
+            window.allOrdersList = orders;
+
+            const input = document.getElementById('orders-search-input');
+            if (input && input.value.trim()) {
+              filterOrdersTable();
+            } else {
+              renderOrdersRows(orders);
+            }
+          }
+
+          function renderOrdersRows(orders) {
+            const recentBody = document.getElementById('recent-orders-body');
+            const allBody = document.getElementById('all-orders-body');
+            const countLabel = document.getElementById('orders-count-label');
+            if (countLabel) {
+              countLabel.innerText = (window.allOrdersList && window.allOrdersList.length !== orders.length)
+                ? `Showing ${orders.length} of ${window.allOrdersList.length} customer orders matching search`
+                : `Total ${orders.length} live orders stored in database`;
+            }
+
+            if (!orders || orders.length === 0) {
+              const emptyHtml = '<tr><td colspan="6" style="color:#94A3B8; text-align:center; padding:24px;">No matching customer orders found.</td></tr>';
+              if (recentBody) recentBody.innerHTML = emptyHtml;
+              if (allBody) allBody.innerHTML = emptyHtml;
+              return;
+            }
+
+            const rowsHtml = orders.map(o => {
+              const ordId = o.orderId || o.orderNumber || o.id;
+              const itemsList = (o.items || []).map(i => `${i.name || 'Sweets Box'} x ${i.quantity || 1}`).join(', ');
+              return `
+          <tr>
+            <td style="font-weight:900; color:#FFD700;">#${ordId}</td>
+            <td>
+              <b>${o.fullName || 'Valued Customer'}</b><br>
+              <small style="color:#94A3B8">${o.phone || ''} ${o.email ? '• ' + o.email : ''}</small>
+              ${itemsList ? `<br><small style="color:#A78BFA">${itemsList}</small>` : ''}
+            </td>
+            <td style="color:#94A3B8">${o.address || 'Surat, Gujarat'}</td>
+            <td style="font-weight:900; color:#FFF;">₹${(o.total || 1250).toLocaleString('en-IN')}</td>
+            <td>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <select class="status-select" onchange="updateOrderStatus('${o.id || ordId}', this.value)">
+                  <option value="Placed" ${o.status === 'Placed' ? 'selected' : ''}>Placed</option>
+                  <option value="Packed" ${o.status === 'Packed' ? 'selected' : ''}>Packed</option>
+                  <option value="Shipped" ${o.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                  <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                  <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                </select>
+                <button onclick="deleteOrder('${o.id || ordId}')" style="background:rgba(239,68,68,0.2); color:#FCA5A5; border:1px solid #EF4444; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Delete</button>
+              </div>
+            </td>
+          </tr>
+        `;
+            }).join('');
+
+            if (recentBody) recentBody.innerHTML = rowsHtml;
+            if (allBody) allBody.innerHTML = rowsHtml;
+          }
+
+          // 3. SEARCH & FILTER COUPONS TABLE
+          function filterCouponsTable() {
+            const input = document.getElementById('coupon-search-input');
+            const query = input ? input.value.trim().toLowerCase() : '';
+            if (!window.allCouponsList || !Array.isArray(window.allCouponsList)) return;
+
+            if (!query) {
+              renderCouponsRows(window.allCouponsList);
+              return;
+            }
+
+            const filtered = window.allCouponsList.filter(c => {
+              const code = (c.code || '').toLowerCase();
+              const discount = String(c.discountPercent || c.discountValue || '').toLowerCase();
+              const minOrder = String(c.minPurchase || c.minOrderValue || '').toLowerCase();
+              return code.includes(query) || discount.includes(query) || minOrder.includes(query);
+            });
+
+            renderCouponsRows(filtered);
+          }
+
+          function renderCoupons(coupons) {
+            window.allCouponsList = coupons || [];
+            const input = document.getElementById('coupon-search-input');
+            if (input && input.value.trim()) {
+              filterCouponsTable();
+            } else {
+              renderCouponsRows(coupons);
+            }
+          }
+
+          function renderCouponsRows(coupons) {
+            const body = document.getElementById('coupons-body');
+            if (!body) return;
+            if (!coupons || coupons.length === 0) {
+              body.innerHTML = '<tr><td colspan="5" style="color:#94A3B8; text-align:center; padding:24px;">No matching coupons found.</td></tr>';
+              return;
+            }
+            body.innerHTML = (coupons || []).map(c => `
+        <tr>
+          <td style="font-weight:900; color:#FFD700;">${c.code}</td>
+          <td>${c.discountPercent}% OFF</td>
+          <td>₹${c.minPurchase}</td>
+          <td><span class="status-pill">ACTIVE</span></td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button onclick="openEditCouponModal('${c.id}')" style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Edit</button>
+              <button onclick="deleteCoupon('${c.id}')" style="background:rgba(239,68,68,0.2); color:#FCA5A5; border:1px solid #EF4444; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+          }
+
+          // 4. SEARCH & FILTER CUSTOMERS TABLE
+          function filterCustomersTable() {
+            const input = document.getElementById('customer-search-input');
+            const query = input ? input.value.trim().toLowerCase() : '';
+            if (!window.allCustomersList || !Array.isArray(window.allCustomersList)) return;
+
+            if (!query) {
+              renderCustomersRows(window.allCustomersList);
+              return;
+            }
+
+            const filtered = window.allCustomersList.filter(c => {
+              const name = (c.name || '').toLowerCase();
+              const email = (c.email || '').toLowerCase();
+              const phone = (c.phone || '').toLowerCase();
+              return name.includes(query) || email.includes(query) || phone.includes(query);
+            });
+
+            renderCustomersRows(filtered);
+          }
+
+          function renderCustomers(customers) {
+            window.allCustomersList = customers || [];
+            const input = document.getElementById('customer-search-input');
+            if (input && input.value.trim()) {
+              filterCustomersTable();
+            } else {
+              renderCustomersRows(customers);
+            }
+          }
+
+          function renderCustomersRows(customers) {
+            const body = document.getElementById('customers-body');
+            if (!body) return;
+            if (!customers || customers.length === 0) {
+              body.innerHTML = '<tr><td colspan="5" style="color:#94A3B8; text-align:center; padding:24px;">No matching customers found.</td></tr>';
+              return;
+            }
+            body.innerHTML = (customers || []).map(c => `
+        <tr>
+          <td style="font-weight:900; color:#FFD700;">${c.name}</td>
+          <td>${c.email}<br><small style="color:#94A3B8">${c.phone || ''}</small></td>
+          <td>${c.totalOrders || 1} orders</td>
+          <td style="font-weight:900;">₹${(c.totalSpent || 1250).toLocaleString('en-IN')}</td>
+          <td>
+            <button onclick="openEditCustomerModal('${c.id}')" style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Edit</button>
+          </td>
+        </tr>
+      `).join('');
+          }
+
+          // 5. SEARCH & FILTER BLOGS TABLE
+          function filterBlogsTable() {
+            const input = document.getElementById('blog-search-input');
+            const query = input ? input.value.trim().toLowerCase() : '';
+            if (!window.allBlogsList || !Array.isArray(window.allBlogsList)) return;
+
+            if (!query) {
+              renderBlogsRows(window.allBlogsList);
+              return;
+            }
+
+            const filtered = window.allBlogsList.filter(b => {
+              const title = (b.title || '').toLowerCase();
+              const category = (b.category || '').toLowerCase();
+              const author = (b.author || '').toLowerCase();
+              return title.includes(query) || category.includes(query) || author.includes(query);
+            });
+
+            renderBlogsRows(filtered);
+          }
+
+          function renderBlogs(blogs) {
+            window.allBlogsList = blogs || [];
+            const input = document.getElementById('blog-search-input');
+            if (input && input.value.trim()) {
+              filterBlogsTable();
+            } else {
+              renderBlogsRows(blogs);
+            }
+          }
+
+          function renderBlogsRows(blogs) {
+            const body = document.getElementById('blogs-table-body');
+            if (!body) return;
+            if (!blogs || blogs.length === 0) {
+              body.innerHTML = '<tr><td colspan="5" style="color:#94A3B8; text-align:center; padding:24px;">No matching blog articles found.</td></tr>';
+              return;
+            }
+            body.innerHTML = (blogs || []).map(b => `
+        <tr>
+          <td style="font-weight:900; color:#FFD700;">${b.title}</td>
+          <td><span style="background:rgba(234,179,8,0.15); color:#FFD700; border:1px solid rgba(234,179,8,0.4); padding:3px 8px; border-radius:6px; font-size:10px; font-weight:800;">${(b.category || 'General').toUpperCase()}</span></td>
+          <td style="color:#94A3B8;">${b.author || 'Admin'}</td>
+          <td>${b.date || '2026-08-01'}</td>
+          <td>
+            <div style="display:flex; gap:6px;">
+              <button onclick="openEditBlogModal('${b.id}')" style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Edit</button>
+              <button onclick="deleteBlog('${b.id}')" style="background:rgba(239,68,68,0.2); color:#FCA5A5; border:1px solid #EF4444; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Delete</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+          }
+
+          // Load Blogs API
+          async function loadBlogsData() {
+            try {
+              const res = await fetch(`${API_BASE}/admin/blogs`);
+              if (res.ok) {
+                const blogs = await res.json();
+                renderBlogs(blogs);
+              }
+            } catch (e) { }
+          }
+
+          // AUXILIARY HELPERS FOR EDIT FORMS
+          function updateImagePreview(inputId, previewId) {
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+            if (input && preview) {
+              preview.src = input.value || '/images/sweet-1.jpg';
+            }
+          }
+
+          function autoGenerateEditSlug() {
+            const nameEl = document.getElementById('edit-p-name');
+            const slugEl = document.getElementById('edit-p-slug');
+            if (nameEl && slugEl) {
+              slugEl.value = nameEl.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            }
+          }
+
+          function autoGenerateBlogSlug() {
+            const titleEl = document.getElementById('edit-blog-title');
+            const slugEl = document.getElementById('edit-blog-slug');
+            if (titleEl && slugEl) {
+              slugEl.value = titleEl.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            }
+          }
+
+          function addEditVariantRow(weightLabel = '', price = '', stockQty = '50') {
+            const container = document.getElementById('edit-p-variants-container');
+            if (!container) return;
+
+            const rowDiv = document.createElement('div');
+            rowDiv.className = 'edit-variant-row';
+            rowDiv.style.cssText = 'display:flex; gap:10px; align-items:center;';
+
+            rowDiv.innerHTML = `
+        <input required class="input-field edit-v-weight" placeholder="e.g. 500g" value="${weightLabel}" style="flex:1;" />
+        <input required type="number" class="input-field edit-v-price" placeholder="Price (₹)" value="${price}" min="1" style="flex:1;" />
+        <input required type="number" class="input-field edit-v-stock" placeholder="Stock Qty" value="${stockQty}" min="0" style="flex:1;" />
+        <button type="button" onclick="this.parentElement.remove()" style="background:rgba(239,68,68,0.2); color:#FCA5A5; border:1px solid #EF4444; padding:8px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer;" title="Remove Variant">✕</button>
+      `;
+
+            container.appendChild(rowDiv);
+          }
+
+          // OPEN EDIT MODALS WITH FRESH DATABASE FETCH
+          async function openEditProductModal(id) {
+            openModal('edit-product-modal');
+            const spinner = document.getElementById('edit-product-spinner');
+            const form = document.getElementById('edit-product-form');
+
+            if (spinner) spinner.style.display = 'block';
+            if (form) form.style.display = 'none';
+
+            let prod = null;
+            try {
+              const res = await fetch(`${API_BASE}/admin/products/${id}`);
+              if (res.ok) {
+                prod = await res.json();
+              } else {
+                const fallbackRes = await fetch(`${API_BASE}/products/${id}`);
+                if (fallbackRes.ok) prod = await fallbackRes.json();
+              }
+            } catch (e) { }
+
+            if (!prod || prod.error) {
+              alert('⚠️ Product not found or has been deleted from the database.');
+              closeModal('edit-product-modal');
+              return;
+            }
+
+            document.getElementById('edit-p-id').value = prod.id;
+            document.getElementById('edit-p-name').value = prod.name || '';
+            document.getElementById('edit-p-slug').value = prod.slug || '';
+            document.getElementById('edit-p-description').value = prod.description || '';
+            document.getElementById('edit-p-category').value = prod.categorySlug || prod.category?.slug || 'sweets';
+            document.getElementById('edit-p-tag').value = prod.tag || 'none';
+            document.getElementById('edit-p-status').value = String(prod.isActive !== false);
+
+            const primaryImg = prod.primaryImage || prod.imageUrl || prod.images?.[0] || '/images/sweet-1.jpg';
+            document.getElementById('edit-p-img').value = primaryImg;
+            updateImagePreview('edit-p-img', 'edit-p-img-preview');
+
+            const container = document.getElementById('edit-p-variants-container');
+            if (container) {
+              container.innerHTML = '';
+              const vars = (prod.variants && prod.variants.length > 0)
+                ? prod.variants
+                : [{ weightLabel: prod.weightLabel || '500g', price: prod.price || 350, stockQty: 50 }];
+
+              vars.forEach(v => {
+                addEditVariantRow(v.weightLabel || '500g', v.price || 350, v.stockQty !== undefined ? v.stockQty : 50);
+              });
+            }
+
+            if (spinner) spinner.style.display = 'none';
+            if (form) form.style.display = 'block';
+          }
+
+          function openEditCustomerModal(id) {
+            const cust = (window.allCustomersList || []).find(c => String(c.id) === String(id));
+            if (!cust) return;
+            document.getElementById('edit-cust-id').value = cust.id;
+            document.getElementById('edit-cust-name').value = cust.name || '';
+            document.getElementById('edit-cust-email').value = cust.email || '';
+            document.getElementById('edit-cust-phone').value = cust.phone || '';
+            openModal('edit-customer-modal');
+          }
+
+          function openCreateBlogModal() {
+            document.getElementById('blog-modal-title').innerText = '+ Create Blog Article';
+            document.getElementById('edit-blog-id').value = '';
+            document.getElementById('edit-blog-title').value = '';
+            document.getElementById('edit-blog-slug').value = '';
+            document.getElementById('edit-blog-author').value = 'Chef Pratik';
+            document.getElementById('edit-blog-category').value = 'Recipes & Sweets';
+            document.getElementById('edit-blog-status').value = 'published';
+            document.getElementById('edit-blog-date').value = new Date().toISOString().slice(0, 10);
+            document.getElementById('edit-blog-img').value = '/images/sweet-1.jpg';
+            updateImagePreview('edit-blog-img', 'edit-blog-img-preview');
+            document.getElementById('edit-blog-content').value = '';
+
+            const spinner = document.getElementById('edit-blog-spinner');
+            const form = document.getElementById('edit-blog-form');
+            if (spinner) spinner.style.display = 'none';
+            if (form) form.style.display = 'block';
+
+            openModal('edit-blog-modal');
+          }
+
+          async function openEditBlogModal(id) {
+            openModal('edit-blog-modal');
+            const spinner = document.getElementById('edit-blog-spinner');
+            const form = document.getElementById('edit-blog-form');
+
+            if (spinner) spinner.style.display = 'block';
+            if (form) form.style.display = 'none';
+
+            let blog = null;
+            try {
+              const res = await fetch(`${API_BASE}/admin/blogs/${id}`);
+              if (res.ok) {
+                blog = await res.json();
+              } else {
+                const fallbackRes = await fetch(`${API_BASE}/blogs/${id}`);
+                if (fallbackRes.ok) blog = await fallbackRes.json();
+              }
+            } catch (e) { }
+
+            if (!blog || blog.error) {
+              alert('⚠️ Blog article not found or has been deleted from database.');
+              closeModal('edit-blog-modal');
+              return;
+            }
+
+            document.getElementById('blog-modal-title').innerText = '✏️ Edit Blog Article';
+            document.getElementById('edit-blog-id').value = blog.id;
+            document.getElementById('edit-blog-title').value = blog.title || '';
+            document.getElementById('edit-blog-slug').value = blog.slug || '';
+            document.getElementById('edit-blog-author').value = blog.author || 'Chef Pratik';
+            document.getElementById('edit-blog-category').value = blog.category || 'Recipes & Sweets';
+            document.getElementById('edit-blog-status').value = blog.status || 'published';
+
+            const rawDate = blog.publishedAt || blog.date || blog.createdAt;
+            if (rawDate) {
+              const parsedDate = new Date(rawDate);
+              if (!isNaN(parsedDate.getTime())) {
+                document.getElementById('edit-blog-date').value = parsedDate.toISOString().slice(0, 10);
+              } else {
+                document.getElementById('edit-blog-date').value = '';
+              }
+            } else {
+              document.getElementById('edit-blog-date').value = '';
+            }
+
+            const blogImg = blog.imageUrl || '/images/sweet-1.jpg';
+            document.getElementById('edit-blog-img').value = blogImg;
+            updateImagePreview('edit-blog-img', 'edit-blog-img-preview');
+            document.getElementById('edit-blog-content').value = blog.content || '';
+
+            if (spinner) spinner.style.display = 'none';
+            if (form) form.style.display = 'block';
+          }
+
+          function handleFestivalPresetChange() {
+            const preset = document.getElementById('edit-c-festival-preset')?.value;
+            const festivalInput = document.getElementById('edit-c-festival');
+            if (!festivalInput) return;
+            if (preset && preset !== 'custom') {
+              festivalInput.value = preset;
+            }
+          }
+
+          function openCreateCouponModal() {
+            document.getElementById('coupon-modal-title').innerText = '➕ Create Promo / Festival Coupon';
+            document.getElementById('edit-c-id').value = '';
+            document.getElementById('edit-c-code').value = '';
+            document.getElementById('edit-c-name').value = '';
+            document.getElementById('edit-c-festival-preset').value = '';
+            document.getElementById('edit-c-festival').value = '';
+            document.getElementById('edit-c-type').value = 'PERCENTAGE';
+            document.getElementById('edit-c-discount').value = 5;
+            document.getElementById('edit-c-min').value = 5000;
+            document.getElementById('edit-c-max').value = '';
+            document.getElementById('edit-c-start').value = '';
+            document.getElementById('edit-c-end').value = '';
+            document.getElementById('edit-c-limit').value = 500;
+            document.getElementById('edit-c-per-user').value = 1;
+            document.getElementById('edit-c-active').value = 'true';
+
+            const catSelect = document.getElementById('edit-c-categories');
+            if (catSelect) {
+              Array.from(catSelect.options).forEach(opt => opt.selected = opt.value === 'all');
+            }
+
+            const spinner = document.getElementById('edit-coupon-spinner');
+            const form = document.getElementById('edit-coupon-form');
+            if (spinner) spinner.style.display = 'none';
+            if (form) form.style.display = 'block';
+
+            openModal('edit-coupon-modal');
+          }
+
+          async function openEditCouponModal(id) {
+            openModal('edit-coupon-modal');
+            const spinner = document.getElementById('edit-coupon-spinner');
+            const form = document.getElementById('edit-coupon-form');
+
+            if (spinner) spinner.style.display = 'block';
+            if (form) form.style.display = 'none';
+
+            let coupon = null;
+            try {
+              const res = await fetch(`${API_BASE}/admin/coupons/${id}`);
+              if (res.ok) {
+                coupon = await res.json();
+              } else {
+                const fallbackRes = await fetch(`${API_BASE}/coupons/${id}`);
+                if (fallbackRes.ok) coupon = await fallbackRes.json();
+              }
+            } catch (e) { }
+
+            if (!coupon || coupon.error) {
+              alert('⚠️ Coupon not found or has been deleted from database.');
+              closeModal('edit-coupon-modal');
+              return;
+            }
+
+            document.getElementById('coupon-modal-title').innerText = '✏️ Edit Promo / Festival Coupon';
+            document.getElementById('edit-c-id').value = coupon.id;
+            document.getElementById('edit-c-code').value = coupon.code || '';
+            document.getElementById('edit-c-name').value = coupon.name || '';
+            document.getElementById('edit-c-festival').value = coupon.festivalName || '';
+            document.getElementById('edit-c-festival-preset').value = coupon.festivalName || '';
+            document.getElementById('edit-c-type').value = (coupon.discountType || 'PERCENTAGE').toUpperCase();
+            document.getElementById('edit-c-discount').value = coupon.discountValue ?? coupon.discountPercent ?? 5;
+            document.getElementById('edit-c-min').value = coupon.minOrderValue ?? coupon.minPurchase ?? 0;
+            document.getElementById('edit-c-max').value = coupon.maxOrderValue || '';
+
+            if (coupon.startDate) {
+              const startDate = new Date(coupon.startDate);
+              if (!isNaN(startDate.getTime())) {
+                document.getElementById('edit-c-start').value = startDate.toISOString().slice(0, 16);
+              } else {
+                document.getElementById('edit-c-start').value = '';
+              }
+            } else {
+              document.getElementById('edit-c-start').value = '';
+            }
+
+            const endDateVal = coupon.endDate || coupon.expiryDate;
+            if (endDateVal) {
+              const expDate = new Date(endDateVal);
+              if (!isNaN(expDate.getTime())) {
+                document.getElementById('edit-c-end').value = expDate.toISOString().slice(0, 16);
+              } else {
+                document.getElementById('edit-c-end').value = '';
+              }
+            } else {
+              document.getElementById('edit-c-end').value = '';
+            }
+
+            document.getElementById('edit-c-limit').value = coupon.usageLimit || '';
+            document.getElementById('edit-c-per-user').value = coupon.maxUsesPerUser || 1;
+            document.getElementById('edit-c-active').value = String(coupon.isActive !== false);
+
+            const catSelect = document.getElementById('edit-c-categories');
+            if (catSelect) {
+              let savedCats = [];
+              try {
+                savedCats = JSON.parse(coupon.applicableCategories || '["all"]');
+              } catch(e) {
+                savedCats = ['all'];
+              }
+              Array.from(catSelect.options).forEach(opt => {
+                opt.selected = savedCats.includes(opt.value);
+              });
+            }
+
+            if (spinner) spinner.style.display = 'none';
+            if (form) form.style.display = 'block';
+          }
+
+          // HANDLE UPDATE FORM SUBMITS
+          async function checkResponseValidation(res) {
+            if (!res.ok) {
+              try {
+                const data = await res.json();
+                if (data.errors) {
+                  const messages = Object.entries(data.errors).map(([k, v]) => `• ${k.toUpperCase()}: ${v}`).join('\n');
+                  alert(`⚠️ Validation Failed:\n${messages}`);
+                  return false;
+                } else if (data.error) {
+                  alert(`⚠️ Validation Error:\n${data.error}`);
+                  return false;
+                }
+              } catch (e) { }
+              alert(`⚠️ Server Error (${res.status}): Failed to save data.`);
+              return false;
+            }
+            return true;
+          }
+
+          async function handleUpdateProduct(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-p-id').value;
+
+            const variantRows = Array.from(document.querySelectorAll('.edit-variant-row'));
+            if (variantRows.length === 0) {
+              alert('⚠️ Please add at least one product variant (weight and price).');
+              return;
+            }
+
+            const variants = [];
+            for (const row of variantRows) {
+              const weightLabel = row.querySelector('.edit-v-weight')?.value.trim();
+              const price = Number(row.querySelector('.edit-v-price')?.value);
+              const stockQty = Number(row.querySelector('.edit-v-stock')?.value ?? 50);
+
+              if (!weightLabel) {
+                alert('⚠️ Every variant must have a valid weight label (e.g. 500g).');
+                return;
+              }
+              if (isNaN(price) || price <= 0) {
+                alert('⚠️ Variant price must be greater than 0.');
+                return;
+              }
+
+              variants.push({ weightLabel, price, stockQty });
+            }
+
+            const payload = {
+              name: document.getElementById('edit-p-name').value.trim(),
+              slug: document.getElementById('edit-p-slug').value.trim(),
+              description: document.getElementById('edit-p-description').value.trim(),
+              categorySlug: document.getElementById('edit-p-category').value,
+              tag: document.getElementById('edit-p-tag').value,
+              isActive: document.getElementById('edit-p-status').value === 'true',
+              imageUrls: [document.getElementById('edit-p-img').value],
+              variants
+            };
+
+            try {
+              const res = await fetch(`${API_BASE}/admin/products/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer admin_token_demo' },
+                body: JSON.stringify(payload),
+              });
+              const valid = await checkResponseValidation(res);
+              if (!valid) return;
+            } catch (err) {
+              alert('⚠️ Failed to save product changes.');
+              return;
+            }
+
+            closeModal('edit-product-modal');
+            loadDashboardData();
+          }
+
+          async function handleUpdateCustomer(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-cust-id').value;
+            const payload = {
+              name: document.getElementById('edit-cust-name').value.trim(),
+              email: document.getElementById('edit-cust-email').value.trim(),
+              phone: document.getElementById('edit-cust-phone').value.trim(),
+            };
+
+            try {
+              await fetch(`${API_BASE}/admin/customers/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer admin_token_demo' },
+                body: JSON.stringify(payload),
+              });
+            } catch (err) { }
+
+            closeModal('edit-customer-modal');
+            loadDashboardData();
+          }
+
+          async function handleSaveBlog(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-blog-id').value;
+            const payload = {
+              title: document.getElementById('edit-blog-title').value.trim(),
+              slug: document.getElementById('edit-blog-slug').value.trim(),
+              author: document.getElementById('edit-blog-author').value.trim(),
+              category: document.getElementById('edit-blog-category').value.trim(),
+              status: document.getElementById('edit-blog-status').value,
+              publishedAt: document.getElementById('edit-blog-date').value || null,
+              imageUrl: document.getElementById('edit-blog-img').value,
+              content: document.getElementById('edit-blog-content').value.trim(),
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_BASE}/admin/blogs/${id}` : `${API_BASE}/admin/blogs`;
+
+            try {
+              const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer admin_token_demo' },
+                body: JSON.stringify(payload),
+              });
+              const valid = await checkResponseValidation(res);
+              if (!valid) return;
+            } catch (err) {
+              alert('⚠️ Failed to save blog article.');
+              return;
+            }
+
+            closeModal('edit-blog-modal');
+            loadBlogsData();
+          }
+
+          async function deleteBlog(id) {
+            if (!confirm('Are you sure you want to delete this blog article?')) return;
+            try {
+              await fetch(`${API_BASE}/admin/blogs/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer admin_token_demo' },
+              });
+              loadBlogsData();
+            } catch (err) { }
+          }
+
+          async function handleSaveCoupon(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-c-id').value;
+            const catSelect = document.getElementById('edit-c-categories');
+            const selectedCats = catSelect ? Array.from(catSelect.selectedOptions).map(o => o.value) : ['all'];
+
+            const payload = {
+              code: document.getElementById('edit-c-code').value.trim().toUpperCase(),
+              name: document.getElementById('edit-c-name').value.trim() || null,
+              festivalName: document.getElementById('edit-c-festival').value.trim() || null,
+              discountType: document.getElementById('edit-c-type').value,
+              discountValue: Number(document.getElementById('edit-c-discount').value),
+              minOrderValue: Number(document.getElementById('edit-c-min').value || 0),
+              maxOrderValue: document.getElementById('edit-c-max').value ? Number(document.getElementById('edit-c-max').value) : null,
+              applicableCategories: selectedCats,
+              startDate: document.getElementById('edit-c-start').value || null,
+              endDate: document.getElementById('edit-c-end').value || null,
+              expiryDate: document.getElementById('edit-c-end').value || null,
+              usageLimit: document.getElementById('edit-c-limit').value ? Number(document.getElementById('edit-c-limit').value) : null,
+              maxUsesPerUser: Number(document.getElementById('edit-c-per-user').value || 1),
+              isActive: document.getElementById('edit-c-active').value === 'true',
+            };
+
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `${API_BASE}/admin/coupons/${id}` : `${API_BASE}/admin/coupons`;
+
+            try {
+              const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer admin_token_demo' },
+                body: JSON.stringify(payload),
+              });
+              const valid = await checkResponseValidation(res);
+              if (!valid) return;
+            } catch (err) {
+              alert('⚠️ Failed to save coupon changes.');
+              return;
+            }
+
+            closeModal('edit-coupon-modal');
+            loadDashboardData();
+          }
+
+          async function toggleCouponStatus(id) {
+            try {
+              await fetch(`${API_BASE}/admin/coupons/${id}/toggle`, {
+                method: 'PUT',
+                headers: { 'Authorization': 'Bearer admin_token_demo' },
+              });
+              loadDashboardData();
+            } catch (err) { }
+          }
+
+          async function deleteProduct(id) {
+            if (!confirm('Are you sure you want to delete this product from database?')) return;
+            try {
+              await fetch(`${API_BASE}/admin/products/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer admin_token_demo' },
+              });
+              loadDashboardData();
+            } catch (e) { }
+          }
+
+          async function deleteOrder(id) {
+            if (!confirm('Are you sure you want to delete this order from database?')) return;
+            try {
+              await fetch(`${API_BASE}/admin/orders/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer admin_token_demo' },
+              });
+              loadDashboardData();
+            } catch (e) { }
+          }
+
+          async function deleteStore(id) {
+            if (!confirm('Are you sure you want to delete this store outlet from database?')) return;
+            try {
+              await fetch(`${API_BASE}/stores/${id}`, {
+                method: 'DELETE',
+              });
+              loadDashboardData();
+            } catch (e) { }
+          }
+
+          async function deleteCoupon(id) {
+            if (!confirm('Are you sure you want to delete this promo coupon from database?')) return;
+            try {
+              await fetch(`${API_BASE}/admin/coupons/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer admin_token_demo' },
+              });
+              loadDashboardData();
+            } catch (e) { }
+          }
+
+          async function deleteCustomer(id) {
+            if (!confirm('Are you sure you want to delete this customer account from database?')) return;
+            try {
+              await fetch(`${API_BASE}/admin/customers/${id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer admin_token_demo' },
+              });
+              loadDashboardData();
+            } catch (e) { }
+          }
+
+          async function updateOrderStatus(orderId, status) {
+            try {
+              await fetch(`${API_BASE}/admin/orders/${orderId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer admin_token_demo' },
+                body: JSON.stringify({ status }),
+              });
+              loadDashboardData();
+            } catch (e) { }
+          }
+
+          async function handleCreateProduct(e) {
+            e.preventDefault();
+            const payload = {
+              name: document.getElementById('p-name').value.trim(),
+              slug: document.getElementById('p-name').value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+              categorySlug: document.getElementById('p-category').value,
+              variants: [{ weightLabel: document.getElementById('p-weight').value || '500g', price: Number(document.getElementById('p-price').value || 350), stockQty: 50 }],
+              imageUrls: [document.getElementById('p-img').value || '/images/sweet-1.jpg']
+            };
+
+            try {
+              const res = await fetch(`${API_BASE}/admin/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer admin_token_demo' },
+                body: JSON.stringify(payload),
+              });
+              const valid = await checkResponseValidation(res);
+              if (!valid) return;
+            } catch (e) { }
+
+            closeModal('add-product-modal');
+            loadDashboardData();
+          }
+
+          async function handleCreateCoupon(e) {
+            e.preventDefault();
+            const payload = {
+              code: document.getElementById('c-code').value.toUpperCase(),
+              discountPercent: Number(document.getElementById('c-discount').value),
+              minPurchase: Number(document.getElementById('c-min').value),
+            };
+
+            try {
+              const res = await fetch(`${API_BASE}/admin/coupons`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer admin_token_demo' },
+                body: JSON.stringify(payload),
+              });
+              const valid = await checkResponseValidation(res);
+              if (!valid) return;
+            } catch (e) { }
+
+            closeModal('add-coupon-modal');
+            loadDashboardData();
+          }
+
+          async function handleCreateStore(e) {
+            e.preventDefault();
+            const payload = {
+              name: document.getElementById('s-name').value,
+              address: document.getElementById('s-address').value,
+              city: document.getElementById('s-city').value,
+              pincode: '395002',
+              phone: document.getElementById('s-phone').value,
+            };
+
+            try {
+              const res = await fetch(`${API_BASE}/stores`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+              });
+              const valid = await checkResponseValidation(res);
+              if (!valid) return;
+            } catch (e) { }
+
+            closeModal('add-store-modal');
+            loadDashboardData();
+          }
+
+          function renderChart() {
+            const container = document.getElementById('sales-chart-container');
+            if (!container) return;
+
+            const days = [
+              { label: 'Mon', height: 40 },
+              { label: 'Tue', height: 65 },
+              { label: 'Wed', height: 35 },
+              { label: 'Thu', height: 85 },
+              { label: 'Fri', height: 50 },
+              { label: 'Sat', height: 95 },
+              { label: 'Sun', height: 75 },
+            ];
+
+            container.innerHTML = days.map(d => `
+        <div class="bar-col">
+          <div class="bar-item" style="height: ${d.height}%;"></div>
+          <span class="bar-lbl">${d.label}</span>
+        </div>
+      `).join('');
+          }
+
+          function setPeriod(p, el) {
+            document.querySelectorAll('.period-tab').forEach(b => b.classList.remove('active'));
+            if (el) el.classList.add('active');
+          }
+
+          function setTheme(t) {
+            document.querySelectorAll('.dot-btn').forEach(b => b.classList.remove('active'));
+          }
+
+          // Initialize Dashboard
+          loadDashboardData();
+        </script>
+</body>
+
+</html>

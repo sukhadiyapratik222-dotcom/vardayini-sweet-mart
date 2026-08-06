@@ -87,7 +87,7 @@ export default function ProductSlider({
     const variant = product.variants.find((v) => v.weight === selectedWeight) || product.variants[0];
     const targetVariantId = variant.id || `${product.id}-${variant.weight}`;
 
-    await addToCart(targetVariantId, 1, product);
+    await addToCart(targetVariantId, 1);
 
     setAddedItems((prev) => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
@@ -146,12 +146,12 @@ export default function ProductSlider({
           {/* Render unique products (only duplicate for infinite loop when 4+ items exist) */}
           {displayProducts.length > 0 && displayProducts.map((product, loopIndex) => {
             const selectedWeight = selectedVariants[product.id];
-            const variant = selectedWeight ? product.variants.find((v) => v.weight === selectedWeight) : undefined;
-            const totalStock = product.variants.reduce((sum, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
+            const variant = selectedWeight ? product.variants.find((v: any) => v.weight === selectedWeight) : undefined;
+            const totalStock = product.variants.reduce((sum: number, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
             const isOutOfStock = totalStock <= 0;
 
-            const minPrice = Math.min(...product.variants.map((v) => v.discountedPrice || v.price));
-            const maxPrice = Math.max(...product.variants.map((v) => v.price));
+            const minPrice = Math.min(...product.variants.map((v: any) => v.discountedPrice || v.price));
+            const maxPrice = Math.max(...product.variants.map((v: any) => v.price));
             const priceRange = minPrice === maxPrice ? `₹${minPrice.toLocaleString('en-IN')}` : `₹${minPrice.toLocaleString('en-IN')}–₹${maxPrice.toLocaleString('en-IN')}`;
 
             const displayPrice = variant ? `₹${(variant.discountedPrice || variant.price).toLocaleString('en-IN')}` : priceRange;
@@ -203,7 +203,7 @@ export default function ProductSlider({
 
                     {/* Weight Chips */}
                     <div className="flex flex-wrap gap-1 mt-0.5">
-                      {product.variants.map((v) => (
+                      {product.variants.map((v: any) => (
                         <button
                           key={v.weight}
                           onClick={() => setSelectedVariants({ ...selectedVariants, [product.id]: v.weight })}

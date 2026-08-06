@@ -1,14 +1,108 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { X, Minus, Plus, Trash2, Truck, Gift, Sparkles, Tag, ArrowRight } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+
+function EditableCartQuantityInput({
+  itemId,
+  itemTitle,
+  currentQuantity,
+  maxStock,
+  updateQuantity,
+  onRequestRemove
+}: {
+  itemId: string;
+  itemTitle: string;
+  currentQuantity: number;
+  maxStock: number;
+  updateQuantity: (id: string, q: number) => void;
+  onRequestRemove: (id: string, name: string) => void;
+}) {
+  const [val, setVal] = useState<string>(String(currentQuantity));
+
+  useEffect(() => {
+    setVal(String(currentQuantity));
+  }, [currentQuantity]);
+
+  const triggerZeroRemoval = () => {
+    onRequestRemove(itemId, itemTitle);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setVal(text);
+
+    if (text === '') return;
+
+    const parsed = parseInt(text, 10);
+    if (!isNaN(parsed)) {
+      if (parsed === 0) {
+        triggerZeroRemoval();
+      } else if (parsed > 0) {
+        const capped = Math.min(maxStock, parsed);
+        updateQuantity(itemId, capped);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed <= 0) {
+        triggerZeroRemoval();
+      } else {
+        const capped = Math.min(maxStock, parsed);
+        updateQuantity(itemId, capped);
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    if (val === '' || isNaN(parseInt(val, 10))) {
+      setVal(String(currentQuantity));
+    } else {
+      const parsed = parseInt(val, 10);
+      if (parsed <= 0) {
+        triggerZeroRemoval();
+      } else if (parsed > maxStock) {
+        updateQuantity(itemId, maxStock);
+        setVal(String(maxStock));
+      }
+    }
+  };
+
+  return (
+    <input
+      type="number"
+      min={0}
+      max={maxStock}
+      value={val}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+      className="w-10 text-center text-xs font-black text-[#0B1B3D] bg-transparent border-none outline-none appearance-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+    />
+  );
+}
 
 export default function CartDrawer() {
   const { cart, isOpen, setIsOpen, updateQuantity, removeFromCart, applyCoupon, removeCoupon, loading } = useCart();
   const [couponCode, setCouponCode] = useState('');
   const [couponFeedback, setCouponFeedback] = useState<{ success: boolean; message: string } | null>(null);
+  const [zeroNotice, setZeroNotice] = useState<string | null>(null);
+  const [confirmRemoveItem, setConfirmRemoveItem] = useState<{ id: string; name: string } | null>(null);
+
+  const handleZeroError = (msg: string) => {
+    setZeroNotice(msg);
+    setTimeout(() => setZeroNotice(null), 4000);
+  };
+
+  const handleRequestRemove = (id: string, name: string) => {
+    handleZeroError(`⚠️ Quantity cannot be 0. Please confirm removal.`);
+    setConfirmRemoveItem({ id, name });
+  };
 
   if (!isOpen) return null;
 
@@ -31,6 +125,43 @@ export default function CartDrawer() {
         onClick={() => setIsOpen(false)}
       />
 
+      {/* Confirmation Modal */}
+      {confirmRemoveItem && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[60] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-gold/40 space-y-4 text-center">
+            <div className="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto border border-red-300">
+              <Trash2 size={28} />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-[#0B1B3D] text-lg">Remove Item from Cart?</h3>
+              <p className="text-xs text-red-600 font-bold mt-1">⚠️ Quantity cannot be 0.</p>
+              <p className="text-xs text-gray-600 font-medium mt-1">
+                Are you sure you want to remove <strong className="text-[#0B1B3D]">{confirmRemoveItem.name}</strong> from your cart?
+              </p>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => {
+                  setConfirmRemoveItem(null);
+                }}
+                className="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 py-2.5 rounded-xl text-xs font-extrabold transition"
+              >
+                Cancel (Keep 1)
+              </button>
+              <button
+                onClick={() => {
+                  removeFromCart(confirmRemoveItem.id);
+                  setConfirmRemoveItem(null);
+                }}
+                className="flex-1 bg-red-600 text-white hover:bg-red-700 py-2.5 rounded-xl text-xs font-extrabold shadow-md transition"
+              >
+                Yes, Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Drawer Container */}
       <div className="fixed right-0 top-0 h-screen w-full max-w-md bg-white shadow-2xl z-50 flex flex-col border-l-2 border-gold/30">
         
@@ -50,6 +181,14 @@ export default function CartDrawer() {
             <X size={20} />
           </button>
         </div>
+
+        {/* Zero Quantity Error Banner */}
+        {zeroNotice && (
+          <div className="bg-red-500/15 border-b-2 border-red-500 px-6 py-2.5 text-xs font-black text-red-700 flex items-center justify-between">
+            <span>{zeroNotice}</span>
+            <button onClick={() => setZeroNotice(null)} className="font-extrabold text-red-800 hover:text-red-950">✕</button>
+          </div>
+        )}
 
         {/* Free Delivery Progress Bar Ribbon */}
         {cart && (
@@ -83,6 +222,8 @@ export default function CartDrawer() {
               const weight = item.productVariant?.weightLabel || '500g';
               const unitPrice = Number(item.productVariant?.discountedPrice || item.productVariant?.price || 250);
               const itemTotal = unitPrice * item.quantity;
+              const maxStock = (item as any).stockQty ?? (item as any).maxStock ?? (item.productVariant as any)?.stockQty ?? 50;
+              const isMaxReached = item.quantity >= maxStock;
 
               return (
                 <div key={item.id} className="pt-3 first:pt-0 flex gap-3 items-center">
@@ -98,23 +239,43 @@ export default function CartDrawer() {
                     <p className="text-xs font-black text-[#0B1B3D] mt-1">
                       ₹{itemTotal.toLocaleString('en-IN')}
                     </p>
+                    {isMaxReached && (
+                      <p className="text-[9px] text-amber-700 font-bold mt-0.5">
+                        ⚠️ Max stock ({maxStock})
+                      </p>
+                    )}
                   </div>
 
                   {/* Quantity Stepper & Remove */}
                   <div className="flex flex-col items-end gap-1.5">
                     <div className="flex items-center border border-gold/40 rounded-xl bg-white shadow-xs overflow-hidden">
                       <button
-                        onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                        onClick={() => {
+                          if (item.quantity <= 1) {
+                            handleRequestRemove(item.id, itemTitle);
+                          } else {
+                            updateQuantity(item.id, item.quantity - 1);
+                          }
+                        }}
                         disabled={loading}
                         className="p-1 hover:bg-gold/20 text-[#0B1B3D] transition disabled:opacity-40"
+                        title={item.quantity <= 1 ? "Remove item from cart" : "Decrease quantity"}
                       >
                         <Minus size={14} />
                       </button>
-                      <span className="px-2.5 text-xs font-black text-[#0B1B3D]">{item.quantity}</span>
+                      <EditableCartQuantityInput
+                        itemId={item.id}
+                        itemTitle={itemTitle}
+                        currentQuantity={item.quantity}
+                        maxStock={maxStock}
+                        updateQuantity={updateQuantity}
+                        onRequestRemove={handleRequestRemove}
+                      />
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        disabled={loading}
-                        className="p-1 hover:bg-gold/20 text-[#0B1B3D] transition disabled:opacity-40"
+                        disabled={loading || isMaxReached}
+                        className="p-1 hover:bg-gold/20 text-[#0B1B3D] transition disabled:opacity-30 disabled:cursor-not-allowed"
+                        title={isMaxReached ? `Max stock limit (${maxStock}) reached` : 'Increase quantity'}
                       >
                         <Plus size={14} />
                       </button>
@@ -154,15 +315,24 @@ export default function CartDrawer() {
           <div className="border-t-2 border-gold/30 bg-amber-50/40 p-5 space-y-3">
             
             {/* Bulk Order Special Messaging */}
-            {cart.subtotal < 5000 ? (
-              <div className="bg-amber-100/70 p-2.5 rounded-xl border border-gold/30 flex items-center gap-2 text-xs text-[#0B1B3D] font-bold">
+            {cart.subtotal < 4200 ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const res = applyCoupon('BULK5');
+                  setCouponFeedback(res);
+                  setTimeout(() => setCouponFeedback(null), 5000);
+                }}
+                className="w-full text-left bg-amber-100/70 hover:bg-amber-200/80 p-2.5 rounded-xl border border-gold/40 flex items-center gap-2 text-xs text-[#0B1B3D] font-bold transition cursor-pointer shadow-2xs"
+                title="Click to apply 5% Bulk Offer"
+              >
                 <Sparkles size={16} className="text-gold-dark shrink-0" />
-                <span>Bulk Offer: Add ₹{(5000 - cart.subtotal).toLocaleString('en-IN')} more to get <strong>5% OFF</strong> on orders above ₹5,000!</span>
-              </div>
+                <span>Bulk Offer: Add <strong>₹{(4200 - cart.subtotal).toLocaleString('en-IN')}</strong> more to get <strong>5% OFF</strong> on orders above ₹4,200!</span>
+              </button>
             ) : (
               <div className="bg-green-100 p-2.5 rounded-xl border border-green-300 flex items-center gap-2 text-xs text-green-900 font-bold">
                 <Gift size={16} className="text-green-700 shrink-0" />
-                <span>🎉 Bulk Special Applied: 5% Bulk Discount included!</span>
+                <span>🎉 Bulk Special Unlocked: 5% Bulk Discount applied!</span>
               </div>
             )}
 

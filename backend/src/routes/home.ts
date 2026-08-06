@@ -3,6 +3,14 @@ import { prisma } from "../prisma";
 
 const router = Router();
 
+router.get("/", (_req, res) => {
+  res.json({
+    bannersUrl: "/api/home/banners",
+    sectionsUrl: "/api/home/sections",
+    message: "Homepage API Endpoints Active"
+  });
+});
+
 // GET /api/home/banners - Returns hero carousel promotional banners
 router.get("/banners", async (req, res) => {
   const banners = [

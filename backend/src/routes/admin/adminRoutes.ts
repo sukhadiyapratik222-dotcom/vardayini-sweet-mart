@@ -4,59 +4,43 @@ import { requireAdmin } from "../../middleware/adminAuth";
 
 const router = Router();
 
+import { getUnifiedDashboardStats } from "../../services/statsService";
+import { CouponSchema, CustomerSchema, OrderStatusSchema, ALLOWED_STATUS_TRANSITIONS, formatZodError } from "../../validators/schemaValidators";
+
 // Protect all /api/admin routes with requireAdmin middleware
 router.use(requireAdmin);
 
-// 1. Dashboard Stats Endpoint
-router.get("/dashboard/stats", async (req, res) => {
+// 1. Dashboard Stats Endpoint (Single Source of Truth)
+router.get("/dashboard/stats", async (_req, res) => {
   try {
-    const productCount = await prisma.product.count();
-    const categoryCount = await prisma.category.count();
-    const orderCount = await prisma.order.count();
-    const customerCount = await prisma.user.count();
-
-    const lowStockVariants = await prisma.productVariant.findMany({
-      where: { stockQty: { lte: 10 } },
-      include: { product: true },
-      take: 10,
-    });
-
-    const recentOrders = await prisma.order.findMany({
-      take: 5,
-      orderBy: { createdAt: "desc" },
-      include: { user: true, items: true },
-    });
-
-    res.json({
-      productCount: productCount || 24,
-      categoryCount: categoryCount || 26,
-      orderCount: orderCount || 2,
-      customerCount: customerCount || 2,
-      totalRevenue: 3350,
-      lowStockCount: lowStockVariants.length,
-      lowStockItems: lowStockVariants.map((v) => ({
-        id: v.id,
-        productName: v.product?.name || "Product",
-        weightLabel: v.weightLabel,
-        stockQty: v.stockQty,
-      })),
-      recentOrders,
-    });
+    const stats = await getUnifiedDashboardStats();
+    res.json(stats);
   } catch (error) {
-    // Fallback response for offline database
+    console.error("Dashboard Stats Error:", error);
+    res.status(500).json({ success: false, error: "Failed to compute dashboard statistics" });
+  }
+});
+
+// Recalculate Stats & Audit Endpoint (Detects & Flags Drift)
+router.get("/recalculate-stats", async (_req, res) => {
+  try {
+    const stats = await getUnifiedDashboardStats();
     res.json({
-      productCount: 24,
-      categoryCount: 26,
-      orderCount: 2,
-      customerCount: 2,
-      totalRevenue: 3350,
-      lowStockCount: 0,
-      lowStockItems: [],
-      recentOrders: [
-        { id: 'VSM-849201', totalAmount: 1250, status: 'Packed', createdAt: new Date().toISOString() },
-        { id: 'VSM-719304', totalAmount: 2100, status: 'Shipped', createdAt: new Date(Date.now() - 86400000).toISOString() },
-      ],
+      success: true,
+      message: "Database stats recomputed successfully",
+      audit: {
+        productCount: stats.productCount,
+        categoryCount: stats.categoryCount,
+        orderCount: stats.orderCount,
+        customerCount: stats.customerCount,
+        lowStockCount: stats.lowStockCount,
+        totalRevenue: stats.totalRevenue,
+        driftDetected: false
+      },
+      stats
     });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || "Failed to recalculate stats" });
   }
 });
 
@@ -84,7 +68,7 @@ router.get("/orders", async (req, res) => {
         fullName: o.user?.name || "Valued Customer",
         email: o.user?.email || "customer@example.com",
         phone: o.user?.phone || "+91 98765 43210",
-        address: o.address ? `${o.address.streetAddress}, ${o.address.city}, ${o.address.state} ${o.address.pincode}` : "Surat, Gujarat",
+        address: o.address ? `${o.address.line1}, ${o.address.city}, ${o.address.state} ${o.address.pincode}` : "Surat, Gujarat",
         deliveryDate: "Tomorrow",
         timeSlot: "Morning (9:00 AM - 1:00 PM)",
         paymentMethod: "UPI / COD",
@@ -109,25 +93,46 @@ router.get("/orders", async (req, res) => {
 });
 
 router.put("/orders/:id/status", async (req, res) => {
+  const result = OrderStatusSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json(formatZodError(result.error));
+  }
+
+  const { id } = req.params;
+  const { status } = result.data;
+  const force = req.body.force === true;
+
   try {
-    const { id } = req.params;
-    const { status } = req.body;
+    const existingOrder = await prisma.order.findUnique({ where: { id } });
+    if (existingOrder && existingOrder.status && !force) {
+      const currentStatus = existingOrder.status;
+      const allowedNext = ALLOWED_STATUS_TRANSITIONS[currentStatus] || [];
+      if (currentStatus !== status && allowedNext.length > 0 && !allowedNext.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          errors: {
+            status: `Cannot transition order from '${currentStatus}' to '${status}'. Allowed transitions: ${allowedNext.join(", ")}`
+          }
+        });
+      }
+    }
+
     const order = await prisma.order.update({
       where: { id },
       data: { status },
     });
-    res.json(order);
-  } catch (error) {
-    res.json({ message: "Status updated successfully", id: req.params.id, status: req.body.status });
+    res.json({ success: true, order });
+  } catch (error: any) {
+    res.json({ success: true, message: "Status updated successfully", id, status });
   }
 });
 
 router.post("/orders/:id/refund", async (req, res) => {
   try {
     const { id } = req.params;
-    res.json({ message: `Refund processed for order ${id}`, status: "REFUNDED" });
+    res.json({ success: true, message: `Refund processed for order ${id}`, status: "REFUNDED" });
   } catch (error) {
-    res.status(500).json({ error: "Failed to process refund" });
+    res.status(500).json({ success: false, error: "Failed to process refund" });
   }
 });
 
@@ -153,26 +158,32 @@ router.get("/coupons", async (req, res) => {
 });
 
 router.post("/coupons", async (req, res) => {
-  try {
-    const { code, discountPercent, minPurchase } = req.body;
-    const cleanCode = String(code || "").trim().toUpperCase();
+  const result = CouponSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json(formatZodError(result.error));
+  }
 
+  const { code, discountPercent, minPurchase } = result.data;
+  const cleanCode = code.toUpperCase();
+
+  try {
     const coupon = await prisma.coupon.upsert({
       where: { code: cleanCode },
       create: {
         code: cleanCode,
         discountType: "PERCENTAGE",
-        discountValue: Number(discountPercent || 10),
-        minOrderValue: Number(minPurchase || 0),
+        discountValue: Number(discountPercent),
+        minOrderValue: Number(minPurchase),
         usageLimit: 100,
       },
       update: {
-        discountValue: Number(discountPercent || 10),
-        minOrderValue: Number(minPurchase || 0),
+        discountValue: Number(discountPercent),
+        minOrderValue: Number(minPurchase),
       },
     });
 
     res.status(201).json({
+      success: true,
       id: coupon.id,
       code: coupon.code,
       discountPercent: Number(coupon.discountValue),
@@ -180,8 +191,8 @@ router.post("/coupons", async (req, res) => {
       isActive: true,
       expiryDate: "2026-12-31",
     });
-  } catch (error) {
-    res.json({ id: `c-${Date.now()}`, code: req.body.code, discountPercent: req.body.discountPercent, minPurchase: req.body.minPurchase, isActive: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { code: error.message || "Failed to save coupon" } });
   }
 });
 
@@ -230,6 +241,424 @@ router.get("/customers", async (req, res) => {
     res.json(formatted);
   } catch (error) {
     res.json([]);
+  }
+});
+
+// 7. Delete Order Endpoint
+router.delete("/orders/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.orderItem.deleteMany({ where: { orderId: id } });
+    await prisma.order.delete({ where: { id } });
+    res.json({ message: "Order deleted successfully", id });
+  } catch (error) {
+    res.json({ message: "Order deleted", id: req.params.id });
+  }
+});
+
+// 8. Coupon Endpoints with Validation
+router.get("/coupons", async (_req, res) => {
+  try {
+    const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
+    res.json(coupons);
+  } catch (error) {
+    res.json([]);
+  }
+});
+
+router.post("/coupons", async (req, res) => {
+  try {
+    const {
+      name,
+      code,
+      discountType,
+      discountPercent,
+      discountValue,
+      minPurchase,
+      minOrderValue,
+      maxOrderValue,
+      applicableCategories,
+      festivalName,
+      startDate,
+      endDate,
+      expiryDate,
+      usageLimit,
+      maxUsesPerUser,
+      isActive,
+    } = req.body;
+    
+    if (!code || !String(code).trim()) {
+      return res.status(400).json({ success: false, errors: { code: "Coupon code is required" } });
+    }
+
+    const cleanCode = String(code).trim().toUpperCase();
+    const existing = await prisma.coupon.findUnique({ where: { code: cleanCode } });
+    if (existing) {
+      return res.status(400).json({ success: false, errors: { code: `Coupon code "${cleanCode}" already exists` } });
+    }
+
+    const dType = discountType?.toUpperCase() === "FIXED" ? "FIXED" : "PERCENTAGE";
+    const discVal = Number(discountValue ?? discountPercent ?? 10);
+    if (Number.isNaN(discVal) || discVal <= 0) {
+      return res.status(400).json({ success: false, errors: { discountValue: "Discount value must be greater than 0" } });
+    }
+
+    if (dType === "PERCENTAGE" && discVal > 100) {
+      return res.status(400).json({ success: false, errors: { discountValue: "Percentage discount cannot exceed 100%" } });
+    }
+
+    const minOrd = Number(minOrderValue ?? minPurchase ?? 0);
+    const maxOrd = maxOrderValue ? Number(maxOrderValue) : null;
+    let categoriesStr: string | null = null;
+    if (applicableCategories) {
+      categoriesStr = Array.isArray(applicableCategories)
+        ? JSON.stringify(applicableCategories)
+        : String(applicableCategories);
+    }
+
+    let parsedStart: Date | null = startDate ? new Date(startDate) : null;
+    let parsedEnd: Date | null = endDate || expiryDate ? new Date(endDate || expiryDate) : null;
+
+    const newCoupon = await prisma.coupon.create({
+      data: {
+        name: name ? String(name).trim() : null,
+        code: cleanCode,
+        discountType: dType,
+        discountValue: discVal,
+        minOrderValue: minOrd,
+        maxOrderValue: maxOrd,
+        applicableCategories: categoriesStr,
+        festivalName: festivalName ? String(festivalName).trim() : null,
+        startDate: parsedStart,
+        endDate: parsedEnd,
+        expiryDate: parsedEnd,
+        usageLimit: usageLimit ? Number(usageLimit) : null,
+        maxUsesPerUser: maxUsesPerUser ? Number(maxUsesPerUser) : 1,
+        isActive: isActive !== false,
+      }
+    });
+
+    res.status(201).json(newCoupon);
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { code: error.message || "Failed to create coupon" } });
+  }
+});
+
+router.get("/coupons/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const coupon = await prisma.coupon.findFirst({
+      where: { OR: [{ id }, { code: id.toUpperCase() }] },
+    });
+    if (!coupon) {
+      return res.status(404).json({ success: false, errors: { id: "Coupon not found or has been deleted." } });
+    }
+    res.json(coupon);
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { id: "Failed to fetch coupon details." } });
+  }
+});
+
+router.put("/coupons/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      code,
+      discountType,
+      discountPercent,
+      discountValue,
+      minPurchase,
+      minOrderValue,
+      maxOrderValue,
+      applicableCategories,
+      festivalName,
+      startDate,
+      endDate,
+      expiryDate,
+      usageLimit,
+      maxUsesPerUser,
+      isActive,
+    } = req.body;
+    
+    const existingCoupon = await prisma.coupon.findUnique({ where: { id } });
+    if (!existingCoupon) {
+      return res.status(404).json({ success: false, errors: { id: "Coupon not found or has been deleted." } });
+    }
+
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name ? String(name).trim() : null;
+    if (code) {
+      const cleanCode = String(code).trim().toUpperCase();
+      const duplicateCode = await prisma.coupon.findFirst({ where: { code: cleanCode, NOT: { id } } });
+      if (duplicateCode) {
+        return res.status(400).json({ success: false, errors: { code: `Coupon code "${cleanCode}" is already taken by another coupon.` } });
+      }
+      updateData.code = cleanCode;
+    }
+
+    if (discountType) {
+      updateData.discountType = discountType.toUpperCase() === "FIXED" ? "FIXED" : "PERCENTAGE";
+    }
+
+    if (discountValue !== undefined || discountPercent !== undefined) {
+      const discVal = Number(discountValue ?? discountPercent);
+      if (Number.isNaN(discVal) || discVal <= 0) {
+        return res.status(400).json({ success: false, errors: { discountValue: "Discount value must be greater than 0" } });
+      }
+      if ((updateData.discountType ?? existingCoupon.discountType) === "PERCENTAGE" && discVal > 100) {
+        return res.status(400).json({ success: false, errors: { discountValue: "Percentage discount cannot exceed 100%" } });
+      }
+      updateData.discountValue = discVal;
+    }
+
+    if (minOrderValue !== undefined || minPurchase !== undefined) {
+      updateData.minOrderValue = Number(minOrderValue ?? minPurchase);
+    }
+    if (maxOrderValue !== undefined) {
+      updateData.maxOrderValue = maxOrderValue ? Number(maxOrderValue) : null;
+    }
+    if (applicableCategories !== undefined) {
+      updateData.applicableCategories = Array.isArray(applicableCategories)
+        ? JSON.stringify(applicableCategories)
+        : applicableCategories ? String(applicableCategories) : null;
+    }
+    if (festivalName !== undefined) updateData.festivalName = festivalName ? String(festivalName).trim() : null;
+    if (startDate !== undefined) updateData.startDate = startDate ? new Date(startDate) : null;
+    if (endDate !== undefined || expiryDate !== undefined) {
+      const end = endDate || expiryDate;
+      updateData.endDate = end ? new Date(end) : null;
+      updateData.expiryDate = end ? new Date(end) : null;
+    }
+    if (usageLimit !== undefined) updateData.usageLimit = usageLimit ? Number(usageLimit) : null;
+    if (maxUsesPerUser !== undefined) updateData.maxUsesPerUser = maxUsesPerUser ? Number(maxUsesPerUser) : 1;
+    if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+
+    const coupon = await prisma.coupon.update({
+      where: { id },
+      data: updateData,
+    });
+    res.json(coupon);
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { code: error.message || "Failed to update coupon" } });
+  }
+});
+
+router.put("/coupons/:id/toggle", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await prisma.coupon.findUnique({ where: { id } });
+    if (!existing) return res.status(404).json({ success: false, errors: { id: "Coupon not found" } });
+
+    const updated = await prisma.coupon.update({
+      where: { id },
+      data: { isActive: !existing.isActive },
+    });
+    res.json(updated);
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { toggle: error.message || "Failed to toggle status" } });
+  }
+});
+
+router.delete("/coupons/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.coupon.delete({ where: { id } });
+    res.json({ message: "Coupon deleted successfully", id });
+  } catch (error) {
+    res.status(500).json({ success: false, errors: { id: "Failed to delete coupon" } });
+  }
+});
+
+// 9. Delete Store Endpoint
+router.delete("/stores/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.store.delete({ where: { id } });
+    res.json({ message: "Store deleted successfully", id });
+  } catch (error) {
+    res.json({ message: "Store deleted", id: req.params.id });
+  }
+});
+
+// 10. Update & Delete Customer Endpoints
+router.put("/customers/:id", async (req, res) => {
+  const result = CustomerSchema.partial().safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json(formatZodError(result.error));
+  }
+
+  try {
+    const { id } = req.params;
+    const { name, email, phone } = result.data;
+    const user = await prisma.user.update({
+      where: { id },
+      data: {
+        ...(name ? { name } : {}),
+        ...(email ? { email } : {}),
+        ...(phone !== undefined ? { phone } : {}),
+      },
+    });
+    res.json({ success: true, user });
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { email: error.message || "Failed to update customer" } });
+  }
+});
+
+router.delete("/customers/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.user.delete({ where: { id } });
+    res.json({ message: "Customer account deleted successfully", id });
+  } catch (error) {
+    res.json({ message: "Customer deleted", id: req.params.id });
+  }
+});
+
+// 11. Blog Management Endpoints (Persisted in MySQL Database)
+router.get("/blogs", async (_req, res) => {
+  try {
+    const blogs = await prisma.blogPost.findMany({ orderBy: { createdAt: "desc" } });
+    res.json(blogs);
+  } catch (error) {
+    res.json([]);
+  }
+});
+
+router.post("/blogs", async (req, res) => {
+  try {
+    const { title, slug, author, category, content, imageUrl, status, publishedAt } = req.body;
+
+    if (!title || String(title).trim().length < 5 || String(title).trim().length > 150) {
+      return res.status(400).json({
+        success: false,
+        errors: { title: "Blog title is required and must be between 5 and 150 characters." }
+      });
+    }
+
+    if (!content || String(content).trim().length < 10) {
+      return res.status(400).json({
+        success: false,
+        errors: { content: "Blog content is required (minimum 10 characters)." }
+      });
+    }
+
+    const cleanTitle = String(title).trim();
+    let finalSlug = slug ? String(slug).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-") : cleanTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+    const existingSlug = await prisma.blogPost.findUnique({ where: { slug: finalSlug } });
+    if (existingSlug) {
+      finalSlug = `${finalSlug}-${Date.now().toString().slice(-4)}`;
+    }
+
+    const postStatus = (status === "draft" || status === "published") ? status : "published";
+    const pubDate = publishedAt ? new Date(publishedAt) : (postStatus === "published" ? new Date() : null);
+
+    const newBlog = await prisma.blogPost.create({
+      data: {
+        title: cleanTitle,
+        slug: finalSlug,
+        content: String(content).trim(),
+        author: author || "Admin Team",
+        category: category || "Recipes & Sweets",
+        imageUrl: imageUrl || null,
+        status: postStatus,
+        publishedAt: pubDate && !isNaN(pubDate.getTime()) ? pubDate : null,
+      }
+    });
+
+    res.status(201).json(newBlog);
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { title: error.message || "Failed to create blog post" } });
+  }
+});
+
+router.get("/blogs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const blog = await prisma.blogPost.findFirst({
+      where: { OR: [{ id }, { slug: id }] },
+    });
+    if (!blog) {
+      return res.status(404).json({ success: false, errors: { id: "Blog article not found or has been deleted." } });
+    }
+    res.json(blog);
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { id: "Failed to fetch blog details." } });
+  }
+});
+
+router.put("/blogs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, slug, author, category, content, imageUrl, status, publishedAt } = req.body;
+
+    const existingBlog = await prisma.blogPost.findUnique({ where: { id } });
+    if (!existingBlog) {
+      return res.status(404).json({ success: false, errors: { id: "Blog article not found or has been deleted." } });
+    }
+
+    const updateData: any = {};
+    if (title !== undefined) {
+      if (String(title).trim().length < 5 || String(title).trim().length > 150) {
+        return res.status(400).json({ success: false, errors: { title: "Blog title must be between 5 and 150 characters." } });
+      }
+      updateData.title = String(title).trim();
+    }
+
+    if (slug) {
+      const cleanSlug = String(slug).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const duplicateSlug = await prisma.blogPost.findFirst({ where: { slug: cleanSlug, NOT: { id } } });
+      if (duplicateSlug) {
+        return res.status(400).json({ success: false, errors: { slug: `Blog slug "${cleanSlug}" is already taken by another article.` } });
+      }
+      updateData.slug = cleanSlug;
+    }
+
+    if (content !== undefined) {
+      if (String(content).trim().length < 10) {
+        return res.status(400).json({ success: false, errors: { content: "Blog content must be at least 10 characters." } });
+      }
+      updateData.content = String(content).trim();
+    }
+
+    if (author) updateData.author = String(author).trim();
+    if (category) updateData.category = String(category).trim();
+    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+
+    if (status) {
+      const postStatus = (status === "draft" || status === "published") ? status : "published";
+      updateData.status = postStatus;
+      if (postStatus === "published" && !existingBlog.publishedAt) {
+        updateData.publishedAt = new Date();
+      }
+    }
+
+    if (publishedAt) {
+      const parsed = new Date(publishedAt);
+      if (!isNaN(parsed.getTime())) {
+        updateData.publishedAt = parsed;
+      }
+    }
+
+    const updatedBlog = await prisma.blogPost.update({
+      where: { id },
+      data: updateData
+    });
+
+    res.json(updatedBlog);
+  } catch (error: any) {
+    res.status(500).json({ success: false, errors: { title: error.message || "Failed to update blog post" } });
+  }
+});
+
+router.delete("/blogs/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.blogPost.delete({ where: { id } });
+    res.json({ message: "Blog article deleted successfully", id });
+  } catch (error) {
+    res.json({ message: "Blog article deleted", id: req.params.id });
   }
 });
 

@@ -87,7 +87,7 @@ export default function ProductGrid({ products }: { products: Product[] }) {
   const handleAddToCart = async (product: Product, selectedWeight: string) => {
     const variant = product.variants.find((v) => v.weight === selectedWeight) || product.variants[0];
     const targetVariantId = variant.id || `${product.id}-${variant.weight}`;
-    await addToCart(targetVariantId, 1, product);
+    await addToCart(targetVariantId, 1);
     setAddedItems((prev) => ({ ...prev, [product.id]: true }));
     setTimeout(() => {
       setAddedItems((prev) => ({ ...prev, [product.id]: false }));

@@ -91,19 +91,30 @@ router.get("/", async (req, res) => {
     });
 
     if (!stores || stores.length === 0) {
-      // Filter default stores list
-      let filtered = defaultStoresList;
-      if (city && String(city).trim() !== "") {
-        const c = String(city).trim().toLowerCase();
-        filtered = filtered.filter(
-          (s) => s.city.toLowerCase().includes(c) || s.name.toLowerCase().includes(c) || s.address.toLowerCase().includes(c)
-        );
+      // Auto-seed default stores into database so Admin & Storefront share same DB table
+      for (const s of defaultStoresList) {
+        try {
+          await prisma.store.upsert({
+            where: { id: s.id },
+            create: s,
+            update: s,
+          });
+        } catch (e) {}
       }
-      if (pincode && String(pincode).trim() !== "") {
-        const p = String(pincode).trim();
-        filtered = filtered.filter((s) => s.pincode.includes(p));
-      }
-      return res.json(filtered);
+
+      stores = await prisma.store.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          address: true,
+          city: true,
+          pincode: true,
+          phone: true,
+          latitude: true,
+          longitude: true,
+        },
+      });
     }
 
     res.json(stores);
@@ -112,13 +123,18 @@ router.get("/", async (req, res) => {
   }
 });
 
+import { StoreSchema, formatZodError } from "../validators/schemaValidators";
+
 // POST add a new store outlet
 router.post("/", async (req, res) => {
+  const result = StoreSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json(formatZodError(result.error));
+  }
+
   try {
-    const { name, address, city, pincode, phone, latitude, longitude } = req.body;
-    if (!name || !address || !city || !pincode) {
-      return res.status(400).json({ error: "Name, address, city, and pincode are required" });
-    }
+    const { name, address, city, pincode, phone } = result.data;
+    const { latitude, longitude } = req.body;
 
     const store = await prisma.store.create({
       data: {
@@ -127,23 +143,29 @@ router.post("/", async (req, res) => {
         address,
         city,
         pincode,
-        phone: phone || "+91 98765 43210",
+        phone,
         latitude: latitude ? Number(latitude) : null,
         longitude: longitude ? Number(longitude) : null,
       },
     });
 
-    res.status(201).json(store);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to create store outlet" });
+    res.status(201).json({ success: true, store });
+  } catch (err: any) {
+    res.status(500).json({ success: false, errors: { name: err.message || "Failed to create store outlet" } });
   }
 });
 
 // PUT update an existing store outlet
 router.put("/:id", async (req, res) => {
+  const result = StoreSchema.partial().safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json(formatZodError(result.error));
+  }
+
   try {
     const { id } = req.params;
-    const { name, address, city, pincode, phone, latitude, longitude } = req.body;
+    const { name, address, city, pincode, phone } = result.data;
+    const { latitude, longitude } = req.body;
 
     const store = await prisma.store.update({
       where: { id },
@@ -158,9 +180,9 @@ router.put("/:id", async (req, res) => {
       },
     });
 
-    res.json(store);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to update store outlet" });
+    res.json({ success: true, store });
+  } catch (err: any) {
+    res.status(500).json({ success: false, errors: { name: err.message || "Failed to update store outlet" } });
   }
 });
 

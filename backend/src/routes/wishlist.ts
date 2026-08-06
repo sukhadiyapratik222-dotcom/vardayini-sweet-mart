@@ -4,10 +4,9 @@ import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
-// GET /api/wishlist - Get wishlist items for authenticated user
-router.get("/", authenticate, async (req, res) => {
-  const userId = req.userId;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
+router.get("/", authenticate, async (req: any, res) => {
+  const userId = req.userId || req.user?.id;
+  if (!userId) return res.json([]);
 
   try {
     const items = await prisma.wishlist.findMany({

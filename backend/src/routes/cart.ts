@@ -87,7 +87,11 @@ async function calculateCartTotals(cartId: string, appliedCouponCode?: string) {
     amountForFreeDelivery,
     total,
     itemCount: cart.items.length,
-    items: cart.items
+    items: cart.items.map(item => ({
+      ...item,
+      stockQty: item.productVariant?.stockQty ?? 50,
+      maxStock: item.productVariant?.stockQty ?? 50
+    }))
   };
 }
 
@@ -143,6 +147,14 @@ const handleAddToCart = async (req: any, res: any) => {
       return res.status(400).json({ error: "variant_id is required." });
     }
 
+    const vId = Number(targetVariantId);
+    let variant = null;
+    if (!Number.isNaN(vId) && vId > 0) {
+      variant = await prisma.productVariant.findUnique({ where: { id: vId } });
+    }
+
+    const maxStock = variant ? Math.max(1, variant.stockQty) : 50;
+
     let cart = cartId
       ? await prisma.cart.findUnique({ where: { id: cartId } })
       : userId
@@ -161,20 +173,25 @@ const handleAddToCart = async (req: any, res: any) => {
     }
 
     const existingItem = await prisma.cartItem.findFirst({
-      where: { cartId: cart.id, productVariantId: targetVariantId }
+      where: { cartId: cart.id, productVariantId: vId || Number(targetVariantId) }
     });
 
     if (existingItem) {
+      if (existingItem.quantity >= maxStock) {
+        return res.status(400).json({ error: `Cannot add more. Max stock limit (${maxStock}) reached for this item.` });
+      }
+      const nextQty = Math.min(maxStock, existingItem.quantity + targetQty);
       await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + targetQty }
+        data: { quantity: nextQty }
       });
     } else {
+      const nextQty = Math.min(maxStock, targetQty);
       await prisma.cartItem.create({
         data: {
           cartId: cart.id,
-          productVariantId: targetVariantId,
-          quantity: targetQty
+          productVariantId: vId || Number(targetVariantId),
+          quantity: nextQty
         }
       });
     }
@@ -200,14 +217,23 @@ const handleUpdateQuantity = async (req: any, res: any) => {
       return res.status(400).json({ error: "item_id and valid qty are required." });
     }
 
-    const item = await prisma.cartItem.findUnique({ where: { id: targetItemId } });
+    const item = await prisma.cartItem.findUnique({
+      where: { id: targetItemId },
+      include: { productVariant: true }
+    });
     if (!item) {
       return res.status(404).json({ error: "Cart item not found." });
     }
 
+    const maxStock = item.productVariant ? Math.max(1, item.productVariant.stockQty) : 50;
+
+    if (targetQty > maxStock) {
+      return res.status(400).json({ error: `Only ${maxStock} items available in stock. Max stock reached.` });
+    }
+
     await prisma.cartItem.update({
       where: { id: targetItemId },
-      data: { quantity: targetQty }
+      data: { quantity: Math.min(maxStock, Math.max(1, targetQty)) }
     });
 
     const cartData = await calculateCartTotals(item.cartId);
@@ -255,7 +281,7 @@ router.post("/apply-coupon", async (req, res) => {
 
     const validCoupons = ["SWEET10", "FESTIVE5", "GIFT15"];
     if (!validCoupons.includes(targetCode)) {
-      return res.status(400).json({ error: `Invalid coupon code. Try SWEET10, FESTIVE5, or GIFT15.` });
+      return res.status(400).json({ error: `Invalid coupon code please try agin latter` });
     }
 
     let cart = cartId

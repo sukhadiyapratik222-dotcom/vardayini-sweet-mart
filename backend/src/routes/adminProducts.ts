@@ -4,6 +4,8 @@ import { requireAdmin } from "../middleware/adminAuth";
 
 const router = Router();
 
+import { ProductCreateSchema, formatZodError } from "../validators/schemaValidators";
+
 // Protect all admin product routes with requireAdmin middleware
 router.use(requireAdmin);
 
@@ -21,6 +23,7 @@ router.get("/", async (req, res) => {
 
     const formatted = products.map((p) => ({
       ...p,
+      isActive: p.isActive !== false,
       categorySlug: p.category?.slug || "",
       subcategory: p.category?.slug || "",
       images: (p.productImages ?? []).map((img: any) => img.imageUrl),
@@ -31,6 +34,42 @@ router.get("/", async (req, res) => {
     res.json(formatted);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch admin product inventory." });
+  }
+});
+
+// GET /api/admin/products/:id - Fetch single product for admin edit modal
+router.get("/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const targetId = Number(id);
+
+    const product = await prisma.product.findFirst({
+      where: {
+        OR: [{ id: Number.isNaN(targetId) ? -1 : targetId }, { slug: id }],
+      },
+      include: {
+        category: true,
+        variants: true,
+        productImages: true,
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({ error: "Product not found or has been deleted." });
+    }
+
+    const formatted = {
+      ...product,
+      categorySlug: product.category?.slug || "",
+      subcategory: product.category?.slug || "",
+      images: (product.productImages ?? []).map((img: any) => img.imageUrl),
+      primaryImage: product.productImages?.[0]?.imageUrl || "/images/sweet-1.jpg",
+      totalStock: (product.variants ?? []).reduce((sum: number, v: any) => sum + (v.stockQty ?? 0), 0),
+    };
+
+    res.json(formatted);
+  } catch (error: any) {
+    res.status(500).json({ error: "Failed to fetch product details." });
   }
 });
 
@@ -46,10 +85,18 @@ function generateUniqueSku(rawSku: string | undefined, index: number): string {
 
 // POST /api/admin/products - Create a new product with variants & images
 router.post("/", async (req, res) => {
+  const result = ProductCreateSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json(formatZodError(result.error));
+  }
+
   try {
-    const { name, slug, description, categorySlug, tag, isActive, variants, imageUrls } = req.body;
-    if (!name || !slug || !categorySlug || !variants?.length) {
-      return res.status(400).json({ error: "Name, slug, categorySlug, and variants are required." });
+    let { name, slug, description, categorySlug, tag, isActive, variants, imageUrls } = result.data as any;
+    if (!slug) {
+      slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    }
+    if (!variants || variants.length === 0) {
+      variants = [{ weightLabel: "500g", price: req.body.price || 350, stockQty: 50 }];
     }
 
     // Validate duplicate product by name
@@ -144,12 +191,48 @@ router.put("/:id", async (req, res) => {
     });
 
     if (!existing) {
-      return res.status(404).json({ error: "Product not found." });
+      return res.status(404).json({ error: "Product not found or has been deleted." });
+    }
+
+    if (name && name.trim()) {
+      const duplicateName = await prisma.product.findFirst({
+        where: {
+          name: { equals: name.trim() },
+          NOT: { id: existing.id },
+        },
+      });
+      if (duplicateName) {
+        return res.status(400).json({ error: `Product name "${name.trim()}" is already used by another product.` });
+      }
+    }
+
+    if (slug && slug.trim()) {
+      const cleanSlug = slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const duplicateSlug = await prisma.product.findFirst({
+        where: {
+          slug: cleanSlug,
+          NOT: { id: existing.id },
+        },
+      });
+      if (duplicateSlug) {
+        return res.status(400).json({ error: `Product slug "${cleanSlug}" is already taken by another product.` });
+      }
+    }
+
+    if (Array.isArray(variants) && variants.length > 0) {
+      for (const v of variants) {
+        if (!v.weightLabel || !v.weightLabel.trim()) {
+          return res.status(400).json({ error: "Each variant must have a valid weight label." });
+        }
+        if (Number.isNaN(Number(v.price)) || Number(v.price) <= 0) {
+          return res.status(400).json({ error: "Variant price must be a number greater than 0." });
+        }
+      }
     }
 
     const updateData: any = {
-      ...(name ? { name } : {}),
-      ...(slug ? { slug } : {}),
+      ...(name ? { name: name.trim() } : {}),
+      ...(slug ? { slug: slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") } : {}),
       ...(description !== undefined ? { description } : {}),
       ...(tag ? { tag } : {}),
       ...(typeof isActive === "boolean" ? { isActive } : {}),
@@ -187,17 +270,63 @@ router.put("/:id", async (req, res) => {
     }
 
     if (Array.isArray(variants) && variants.length > 0) {
-      await prisma.productVariant.deleteMany({ where: { productId: product.id } });
-      await prisma.productVariant.createMany({
-        data: variants.map((variant: any, idx: number) => ({
-          productId: product.id,
-          weightLabel: variant.weightLabel || "500g",
-          price: Number(variant.price || 250),
-          discountedPrice: variant.discountedPrice ? Number(variant.discountedPrice) : null,
-          stockQty: Number(variant.stockQty ?? 20),
-          sku: generateUniqueSku(variant.sku, idx),
-        })),
+      const existingVariants = await prisma.productVariant.findMany({
+        where: { productId: product.id }
       });
+
+      const processedVariantIds = new Set<number>();
+
+      for (let idx = 0; idx < variants.length; idx++) {
+        const v = variants[idx];
+        const weightLabel = (v.weightLabel || v.weight || "500g").trim();
+        const price = Number(v.price || 250);
+        const discountedPrice = v.discountedPrice ? Number(v.discountedPrice) : null;
+        const stockQty = Number(v.stockQty ?? 50);
+
+        let matched = null;
+        if (v.id && !Number.isNaN(Number(v.id))) {
+          matched = existingVariants.find(ev => ev.id === Number(v.id));
+        }
+        if (!matched && weightLabel) {
+          matched = existingVariants.find(ev => ev.weightLabel.toLowerCase() === weightLabel.toLowerCase());
+        }
+
+        if (matched) {
+          await prisma.productVariant.update({
+            where: { id: matched.id },
+            data: {
+              weightLabel,
+              price,
+              discountedPrice,
+              stockQty
+            }
+          });
+          processedVariantIds.add(matched.id);
+        } else {
+          const created = await prisma.productVariant.create({
+            data: {
+              productId: product.id,
+              weightLabel,
+              price,
+              discountedPrice,
+              stockQty,
+              sku: generateUniqueSku(v.sku, idx),
+            }
+          });
+          processedVariantIds.add(created.id);
+        }
+      }
+
+      for (const ev of existingVariants) {
+        if (!processedVariantIds.has(ev.id)) {
+          try {
+            await prisma.cartItem.deleteMany({ where: { productVariantId: ev.id } });
+            await prisma.productVariant.delete({ where: { id: ev.id } });
+          } catch (err) {
+            await prisma.productVariant.update({ where: { id: ev.id }, data: { stockQty: 0 } });
+          }
+        }
+      }
     }
 
     const updatedProduct = await prisma.product.findUnique({
@@ -238,12 +367,17 @@ router.delete("/:id", async (req, res) => {
 
     // Delete child records first to satisfy MySQL foreign key constraints
     await prisma.productImage.deleteMany({ where: { productId: existing.id } });
-    await prisma.productVariant.deleteMany({ where: { productId: existing.id } });
 
-    // Finally delete product from MySQL database
-    await prisma.product.delete({ where: { id: existing.id } });
-
-    res.json({ success: true, message: `Product "${existing.name}" permanently deleted.`, id: existing.id });
+    try {
+      await prisma.cartItem.deleteMany({ where: { productVariant: { productId: existing.id } } });
+      await prisma.productVariant.deleteMany({ where: { productId: existing.id } });
+      await prisma.product.delete({ where: { id: existing.id } });
+      res.json({ success: true, message: `Product "${existing.name}" permanently deleted.`, id: existing.id });
+    } catch (dbErr) {
+      // If referenced in historical customer orders, mark inactive so order history remains intact
+      await prisma.product.update({ where: { id: existing.id }, data: { isActive: false } });
+      res.json({ success: true, message: `Product "${existing.name}" deactivated (preserved for order history).`, id: existing.id });
+    }
   } catch (error: any) {
     console.error("Error deleting product:", error);
     res.status(500).json({ error: error.message || "Failed to delete product." });

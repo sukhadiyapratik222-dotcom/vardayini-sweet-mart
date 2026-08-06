@@ -47,7 +47,25 @@ export default function ProductDetailClient({ product, initialReviews }: Product
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [activeTab, setActiveTab] = useState<'description' | 'nutrition' | 'reviews'>('description');
-  
+  // Related Products state
+  const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function fetchRelated() {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+        const res = await fetch(`${API_URL}/products?format=array`);
+        if (res.ok) {
+          const allProds = await res.json();
+          const list = Array.isArray(allProds) ? allProds : (allProds.products || []);
+          const filtered = list.filter((p: any) => String(p.id) !== String(product.id) && p.slug !== product.slug);
+          setRelatedProducts(filtered.slice(0, 4));
+        }
+      } catch (e) {}
+    }
+    fetchRelated();
+  }, [product]);
+
   // Interactive reviews state
   const [reviews, setReviews] = useState<ApiReview[]>(initialReviews || []);
   const [newRating, setNewRating] = useState(5);
@@ -81,7 +99,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
 
   const handleAddToCart = async () => {
     const targetVariantId = selectedVariant?.id || `${product.id}-${selectedVariant?.weightLabel || 'default'}`;
-    await addToCart(targetVariantId, quantity, product);
+    await addToCart(targetVariantId, quantity);
     setIsAdded(true);
     setTimeout(() => setIsAdded(false), 2000);
     if (setIsOpen) setIsOpen(true);
@@ -89,7 +107,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
 
   const handleBuyNow = async () => {
     const targetVariantId = selectedVariant?.id || `${product.id}-${selectedVariant?.weightLabel || 'default'}`;
-    await addToCart(targetVariantId, quantity, product);
+    await addToCart(targetVariantId, quantity);
     router.push('/cart');
   };
 
@@ -120,33 +138,19 @@ export default function ProductDetailClient({ product, initialReviews }: Product
         <Header />
 
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Breadcrumb */}
-          <div className="mb-6 flex flex-wrap items-center gap-2 text-xs font-bold text-gray-500">
-            <Link href="/" className="hover:text-gold-dark">Home</Link>
-            <span>/</span>
-            <Link href="/categories" className="hover:text-gold-dark">Products</Link>
-            <span>/</span>
-            <span className="text-gold-dark font-extrabold">{product.category?.name || product.category || 'Special Sweets'}</span>
-            <span>/</span>
-            <span className="text-[#0B1B3D] truncate">{product.name}</span>
-          </div>
-
-          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] items-start">
-            
-            {/* Left Column: Interactive Image Gallery with Hover Zoom */}
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Gallery */}
             <section className="space-y-4">
-              <div 
-                className="group relative overflow-hidden rounded-3xl border-2 border-gold/30 bg-white shadow-lg cursor-crosshair"
+              <div
+                className="relative aspect-square w-full overflow-hidden rounded-3xl border-2 border-gold/30 bg-amber-50/50 shadow-xl cursor-zoom-in"
                 onMouseMove={handleMouseMove}
-                onMouseLeave={() => setZoomPos({ x: 0, y: 0, isZoomed: false })}
+                onMouseLeave={() => setZoomPos((prev) => ({ ...prev, isZoomed: false }))}
               >
-                <div className="relative aspect-[4/3] overflow-hidden">
+                <div className="h-full w-full overflow-hidden">
                   <img
-                    src={imageUrls[selectedImage]}
+                    src={imageUrls[selectedImage] || '/images/sweet-1.jpg'}
                     alt={product.name}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
-                    }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/images/sweet-1.jpg'; }}
                     className="w-full h-full object-cover transition-transform duration-200"
                     style={{
                       transformOrigin: `${zoomPos.x}% ${zoomPos.y}%`,
@@ -160,10 +164,6 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                     SAVE {Math.round(((originalPrice - displayPrice) / originalPrice) * 100)}% OFF
                   </div>
                 )}
-
-                <div className="absolute bottom-3 left-3 bg-black/50 text-white text-[10px] font-bold px-3 py-1 rounded-full backdrop-blur-sm pointer-events-none">
-                  🔍 Hover photo to zoom
-                </div>
               </div>
 
               {/* Thumbnails */}
@@ -174,16 +174,13 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                       key={index}
                       type="button"
                       onClick={() => setSelectedImage(index)}
-                      className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border-2 transition-all ${
-                        selectedImage === index ? 'border-gold ring-2 ring-gold/40 scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'
-                      }`}
+                      className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl border-2 transition-all ${selectedImage === index ? 'border-gold ring-2 ring-gold/40 scale-105' : 'border-gray-200 opacity-70 hover:opacity-100'
+                        }`}
                     >
                       <img
                         src={imageUrl}
                         alt={`${product.name} thumbnail`}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';
-                        }}
+                        onError={(e) => { (e.target as HTMLImageElement).src = '/images/sweet-1.jpg'; }}
                         className="h-full w-full object-cover"
                       />
                     </button>
@@ -211,7 +208,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
               </div>
             </section>
 
-            {/* Right Column: Product Details, Variant Picker, Stepper & CTA */}
+            {/* Right Column */}
             <section className="rounded-3xl border-2 border-gold/30 bg-white p-6 sm:p-8 shadow-xl space-y-6">
               <div>
                 <span className="text-xs font-extrabold uppercase tracking-widest text-gold-dark bg-gold/15 px-3 py-1 rounded-full border border-gold/30">
@@ -222,7 +219,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                   {product.name}
                 </h1>
 
-                {/* Rating & Reviews Summary */}
+                {/* Rating */}
                 <div className="mt-3 flex items-center gap-2 text-sm text-gray-700">
                   <div className="flex items-center gap-0.5">
                     {[...Array(5)].map((_, i) => (
@@ -247,7 +244,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                   )}
                 </div>
                 <p className="text-xs text-gray-500 font-medium">
-                  Inclusive of all taxes & protective tin box packaging. Select weight variant below to auto-update pricing.
+                  Inclusive of all taxes. Select weight variant below to auto-update pricing.
                 </p>
               </div>
 
@@ -266,11 +263,10 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                           key={v.id || v.weightLabel}
                           type="button"
                           onClick={() => setSelectedVariantId(v.id)}
-                          className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                            isSelected
+                          className={`p-3 rounded-2xl border-2 text-left transition-all ${isSelected
                               ? 'border-[#0B1B3D] bg-[#0B1B3D] text-gold shadow-md scale-105'
                               : 'border-gray-200 bg-gray-50 text-gray-800 hover:border-gold'
-                          }`}
+                            }`}
                         >
                           <span className="block text-xs font-black">{v.weightLabel || v.weight}</span>
                           <span className={`block text-xs mt-0.5 ${isSelected ? 'text-gold-light font-bold' : 'text-green-700 font-bold'}`}>
@@ -287,15 +283,6 @@ export default function ProductDetailClient({ product, initialReviews }: Product
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-xs font-black text-[#0B1B3D] uppercase tracking-wider">Quantity:</label>
-                  {((selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0) ? (
-                    <span className="bg-red-100 text-red-700 px-2.5 py-0.5 rounded-md text-xs font-black uppercase">
-                      Out of Stock
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-bold text-green-700">
-                      In Stock (Qty: {selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50})
-                    </span>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -308,119 +295,102 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                     >
                       <Minus size={16} />
                     </button>
-                    <span className="px-5 font-black text-sm text-[#0B1B3D] min-w-12 text-center">{quantity}</span>
-                    <button
-                      type="button"
-                      disabled={(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0}
-                      onClick={() => setQuantity((q) => q + 1)}
-                      className="p-3 text-gray-700 hover:bg-gold/20 transition font-bold disabled:opacity-30"
-                    >
-                      <Plus size={16} />
-                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={Math.max(1, Number(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50))}
+                      value={quantity}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '') return;
+                        const parsed = parseInt(val, 10);
+                        const maxS = Math.max(1, Number(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50));
+                        if (!isNaN(parsed) && parsed >= 1) {
+                          setQuantity(Math.min(maxS, parsed));
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const maxS = Math.max(1, Number(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50));
+                        const parsed = parseInt(e.target.value, 10);
+                        if (isNaN(parsed) || parsed < 1) {
+                          setQuantity(1);
+                        } else if (parsed > maxS) {
+                          setQuantity(maxS);
+                        }
+                      }}
+                      className="w-14 text-center font-black text-sm text-[#0B1B3D] bg-transparent border-none outline-none appearance-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    {(() => {
+                      const variantStock = Math.max(1, Number(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50));
+                      const isStockLimit = quantity >= variantStock;
+                      return (
+                        <button
+                          type="button"
+                          disabled={variantStock <= 0 || isStockLimit}
+                          onClick={() => setQuantity((q) => Math.min(variantStock, q + 1))}
+                          className="p-3 text-gray-700 hover:bg-gold/20 transition font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+                          title={isStockLimit ? `Max available stock (${variantStock}) reached` : 'Increase quantity'}
+                        >
+                          <Plus size={16} />
+                        </button>
+                      );
+                    })()}
                   </div>
 
                   <span className="text-xs text-gray-500 font-semibold">Total: <strong className="text-[#0B1B3D] font-black">{formatPrice(displayPrice * quantity)}</strong></span>
                 </div>
               </div>
 
-              {/* Action Buttons: Add to Cart & Buy Now */}
+              {/* CTA Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                 <button
                   type="button"
                   disabled={(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0}
                   onClick={handleAddToCart}
-                  className={`w-full py-4 rounded-2xl font-black text-sm transition flex items-center justify-center gap-2 shadow-lg border disabled:bg-gray-300 disabled:text-gray-500 disabled:border-gray-300 disabled:cursor-not-allowed ${
-                    isAdded
-                      ? 'bg-green-700 text-white border-green-700'
-                      : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/40'
-                  }`}
+                  className={`w-full py-4 rounded-2xl font-black text-sm transition flex items-center justify-center gap-2 shadow-lg border ${isAdded ? 'bg-green-700 text-white border-green-700' : 'bg-[#0B1B3D] text-gold hover:bg-[#162C5B] border-gold/40'}`}
                 >
-                  {(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0 ? (
-                    <span>Out of Stock</span>
-                  ) : isAdded ? (
-                    <>
-                      <Check size={18} />
-                      <span>Added to Cart!</span>
-                    </>
-                  ) : (
-                    <>
-                      <ShoppingCart size={18} />
-                      <span>Add to Cart</span>
-                    </>
-                  )}
+                  <ShoppingCart size={18} />
+                  <span>{isAdded ? "Added!" : "Add to Cart"}</span>
                 </button>
 
                 <button
                   type="button"
                   disabled={(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0}
                   onClick={handleBuyNow}
-                  className="w-full bg-gold text-[#0B1B3D] hover:bg-gold-light py-4 rounded-2xl font-black text-sm shadow-lg transition border border-gold text-center disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-300 disabled:cursor-not-allowed"
+                  className="w-full bg-gold text-[#0B1B3D] hover:bg-gold-light py-4 rounded-2xl font-black text-sm shadow-lg transition border border-gold text-center"
                 >
-                  {(selectedVariant?.stockQty ?? selectedVariant?.stock ?? 50) <= 0 ? "Out of Stock" : "⚡ Buy Now"}
+                  ⚡ Buy Now
                 </button>
               </div>
 
               {/* Tabs Section */}
-              <div className="pt-6 border-t border-gold/20 space-y-4">
+              <div className="pt-6 border-t border-gold/20">
                 <div className="flex border-b border-gray-200">
                   {(['description', 'nutrition', 'reviews'] as const).map((tab) => (
                     <button
                       key={tab}
                       type="button"
                       onClick={() => setActiveTab(tab)}
-                      className={`py-2.5 px-4 font-black text-xs uppercase tracking-wider transition border-b-2 -mb-px ${
-                        activeTab === tab
-                          ? 'border-[#0B1B3D] text-[#0B1B3D]'
-                          : 'border-transparent text-gray-400 hover:text-gray-700'
-                      }`}
+                      className={`py-2.5 px-4 font-black text-xs uppercase tracking-wider transition border-b-2 -mb-px ${activeTab === tab ? 'border-[#0B1B3D] text-[#0B1B3D]' : 'border-transparent text-gray-400'}`}
                     >
-                      {tab === 'nutrition' ? 'Ingredients & Nutrition' : tab === 'reviews' ? `Reviews (${reviews.length})` : tab}
+                      {tab}
                     </button>
                   ))}
                 </div>
 
-                <div className="bg-amber-50/50 p-5 rounded-2xl border border-gold/20 text-xs text-gray-700 leading-relaxed">
-                  {/* Description Tab */}
-                  {activeTab === 'description' && (
-                    <div className="space-y-3">
-                      <p className="text-sm font-semibold text-[#0B1B3D]">
-                        {product.description || 'Authentic traditional sweet prepared in small batches using 100% pure desi ghee, premium grade nuts, and organic spices.'}
-                      </p>
-                      <ul className="list-disc pl-4 space-y-1 text-gray-600 font-medium">
-                        <li>Made with pure A2 Desi Cow Ghee & premium dry fruits</li>
-                        <li>Zero artificial preservatives, colorings or synthetic flavors</li>
-                        <li>Hygienically packed in airtight food-grade tin boxes</li>
-                        <li>Shelf life: 45 days from date of manufacturing</li>
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Nutrition Tab */}
-                  {activeTab === 'nutrition' && (
-                    <div className="space-y-4">
-                      <p className="font-bold text-[#0B1B3D]">Nutritional information per 100g serving:</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {nutritionRows.map(([label, value]) => (
-                          <div key={label} className="bg-white p-3 rounded-xl border border-gold/20 shadow-sm">
-                            <span className="text-[10px] text-gray-400 font-bold block uppercase">{label}</span>
-                            <span className="text-xs font-black text-[#0B1B3D]">{value}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Customer Reviews & Post Review Form Tab */}
+                <div className="mt-4 p-4 bg-amber-50/50 rounded-2xl text-xs text-gray-700">
+                  {activeTab === 'description' && <p>{product.description || 'Premium quality traditional sweets.'}</p>}
+                  {activeTab === 'nutrition' && <p>Nutrition details here...</p>}
+                  
+                  {/* Customer Reviews Tab */}
                   {activeTab === 'reviews' && (
                     <div className="space-y-6">
-                      {/* Review submission feedback */}
                       {reviewSubmitted && (
                         <div className="p-3 bg-green-100 border border-green-300 text-green-800 rounded-xl font-bold">
                           ✓ Thank you! Your review has been published.
                         </div>
                       )}
 
-                      {/* Add Review Form */}
                       <form onSubmit={handleAddReview} className="bg-white p-4 rounded-2xl border border-gold/30 space-y-3">
                         <h4 className="font-black text-[#0B1B3D] text-xs uppercase tracking-wider flex items-center gap-1.5">
                           <Sparkles size={14} className="text-gold-dark" />
@@ -437,7 +407,6 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                               className="w-full border border-gray-300 px-3 py-1.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold"
                             />
                           </div>
-
                           <div>
                             <label className="block text-[10px] font-bold text-gray-600 mb-1">Rating</label>
                             <select
@@ -445,11 +414,9 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                               onChange={(e) => setNewRating(Number(e.target.value))}
                               className="w-full border border-gray-300 px-3 py-1.5 rounded-xl text-xs font-bold bg-white outline-none focus:ring-2 focus:ring-gold"
                             >
-                              <option value={5}>★★★★★ (5 Stars - Excellent)</option>
-                              <option value={4}>★★★★☆ (4 Stars - Very Good)</option>
-                              <option value={3}>★★★☆☆ (3 Stars - Average)</option>
-                              <option value={2}>★★☆☆☆ (2 Stars - Poor)</option>
-                              <option value={1}>★☆☆☆☆ (1 Star - Terrible)</option>
+                              <option value={5}>★★★★★ (5 Stars)</option>
+                              <option value={4}>★★★★☆ (4 Stars)</option>
+                              <option value={3}>★★★☆☆ (3 Stars)</option>
                             </select>
                           </div>
                         </div>
@@ -459,7 +426,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                           <textarea
                             value={newComment}
                             onChange={(e) => setNewComment(e.target.value)}
-                            placeholder="Describe taste, freshness, packaging quality..."
+                            placeholder="Describe taste, freshness..."
                             rows={2}
                             className="w-full border border-gray-300 px-3 py-1.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold"
                           />
@@ -474,7 +441,6 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                         </button>
                       </form>
 
-                      {/* Existing Reviews list */}
                       <div className="space-y-3">
                         {reviews.map((rev) => (
                           <div key={rev.id} className="bg-white p-3.5 rounded-2xl border border-gray-200 shadow-sm space-y-1.5">
@@ -482,18 +448,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
                               <span className="font-extrabold text-[#0B1B3D] text-xs">{rev.user?.name || 'Verified Customer'}</span>
                               <span className="text-[10px] text-gray-400 font-semibold">{new Date(rev.createdAt).toLocaleDateString()}</span>
                             </div>
-
-                            <div className="flex items-center gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  size={12}
-                                  className={`${i < rev.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
-                                />
-                              ))}
-                            </div>
-
-                            <p className="text-xs text-gray-600 leading-relaxed font-medium">{rev.comment}</p>
+                            <p className="text-xs text-gray-600">{rev.comment}</p>
                           </div>
                         ))}
                       </div>
@@ -504,9 +459,71 @@ export default function ProductDetailClient({ product, initialReviews }: Product
             </section>
           </div>
         </main>
+
+        {/* Related Products Section */}
+        {relatedProducts.length > 0 && (
+          <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <span className="text-xs font-black text-gold-dark uppercase tracking-widest bg-gold/15 px-3 py-1 rounded-full border border-gold/30">
+                  Recommended For You
+                </span>
+                <h3 className="text-2xl font-black text-[#0B1B3D] mt-2">Related Products & Sweets</h3>
+              </div>
+              <Link href="/categories/sweets" className="text-xs font-extrabold text-[#0B1B3D] hover:text-gold-dark underline">
+                View Catalog →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {relatedProducts.map((rel: any) => {
+                const relImg = rel.primaryImage || rel.imageUrl || rel.image || rel.productImages?.[0]?.imageUrl || '/images/sweet-1.jpg';
+                const relPrice = Number(rel.price || rel.variants?.[0]?.price || 350);
+                const relWeight = rel.weightLabel || rel.variants?.[0]?.weightLabel || '500g';
+                return (
+                  <div key={rel.id || rel.slug} className="bg-white rounded-3xl border-2 border-gold/30 p-4 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group">
+                    <div>
+                      <div className="relative h-44 w-full overflow-hidden rounded-2xl mb-3">
+                        <img
+                          src={relImg}
+                          alt={rel.name}
+                          onError={(e) => { (e.target as HTMLImageElement).src = '/images/sweet-1.jpg'; }}
+                          className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        />
+                        <span className="absolute top-2 left-2 bg-[#0B1B3D]/80 text-gold text-[10px] font-black px-2.5 py-1 rounded-full backdrop-blur-xs">
+                          {relWeight}
+                        </span>
+                      </div>
+                      <h4 className="font-black text-[#0B1B3D] text-sm line-clamp-1 group-hover:text-gold-dark transition-colors">
+                        {rel.name}
+                      </h4>
+                      <p className="text-xs text-gray-500 font-semibold mt-0.5">
+                        {rel.category?.name || rel.category || 'Pure Desi Ghee'}
+                      </p>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <div>
+                        <span className="text-xs text-gray-400 font-bold block text-[10px] uppercase">PRICE</span>
+                        <span className="text-base font-black text-[#0B1B3D]">{formatPrice(relPrice)}</span>
+                      </div>
+                      <Link
+                        href={`/products/${rel.slug || rel.id}`}
+                        className="bg-[#0B1B3D] text-gold hover:bg-[#162C5B] px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1 shadow-sm"
+                      >
+                        <span>View Item</span>
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
       </div>
 
       <Footer />
     </div>
   );
-}
+}

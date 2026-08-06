@@ -24,78 +24,82 @@ export default function HomePage() {
 
   useEffect(() => {
     async function loadOutlets() {
-      // 1. Try to load from backend API
+      let storeData: any[] = [];
       try {
         const res = await fetch(`${API_BASE}/stores`);
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
-            setOutlets(data);
-            return;
+            storeData = data;
           }
         }
       } catch (e) {}
 
-      // 2. Fallback: load from admin panel localStorage (stores added via admin)
-      const cached = typeof window !== "undefined" ? localStorage.getItem("admin_stores_list") : null;
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setOutlets(parsed);
-            return;
-          }
-        } catch (e) {}
+      if (storeData.length === 0 && typeof window !== "undefined") {
+        const cached = localStorage.getItem("admin_stores_list");
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed) && parsed.length > 0) storeData = parsed;
+          } catch (e) {}
+        }
       }
 
-      // 3. No real outlets found — show nothing (don't show fake demo outlets)
-      setOutlets([]);
+      setOutlets(storeData);
     }
 
     async function loadCatalogProducts() {
+      let apiProducts: any[] = [];
       try {
         const res = await fetch(`${API_BASE}/products?limit=100`);
         if (res.ok) {
           const data = await res.json();
-          const apiProducts = Array.isArray(data.products) ? data.products : (Array.isArray(data) ? data : []);
-
-          let adminProducts: any[] = [];
-          if (typeof window !== "undefined") {
-            const cachedCatalog = localStorage.getItem("admin_products_catalog");
-            if (cachedCatalog) {
-              try {
-                adminProducts = JSON.parse(cachedCatalog);
-              } catch (e) {}
-            }
-          }
-
-          const combinedPool = [...apiProducts, ...adminProducts];
-          const uniqueMap = new Map();
-          const seenNames = new Set();
-
-          combinedPool.forEach((p) => {
-            const nameKey = (p.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
-            const slugKey = (p.slug || String(p.id)).toLowerCase().trim();
-
-            if (nameKey && !seenNames.has(nameKey) && !uniqueMap.has(slugKey)) {
-              seenNames.add(nameKey);
-              uniqueMap.set(slugKey, p);
-            }
-          });
-
-          // Instantly filter out any product marked Inactive (isActive === false)
-          const activeOnly = Array.from(uniqueMap.values()).filter((p: any) => p.isActive !== false);
-          setAllProducts(activeOnly);
-          return;
+          apiProducts = Array.isArray(data.products) ? data.products : (Array.isArray(data) ? data : []);
         }
       } catch (e) {}
 
-      // Fallback ONLY if backend API server is completely unreachable
-      setAllProducts(localProducts.filter((p: any) => p.isActive !== false));
+      let adminProducts: any[] = [];
+      if (typeof window !== "undefined") {
+        const cachedCatalog = localStorage.getItem("admin_products_catalog");
+        if (cachedCatalog) {
+          try {
+            adminProducts = JSON.parse(cachedCatalog);
+          } catch (e) {}
+        }
+      }
+
+      const combinedPool = apiProducts.length > 0 ? [...apiProducts, ...adminProducts, ...localProducts] : [...adminProducts, ...localProducts];
+      const uniqueMap = new Map();
+      const seenNames = new Set();
+
+      combinedPool.forEach((p) => {
+        const nameKey = (p.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
+        const slugKey = (p.slug || String(p.id)).toLowerCase().trim();
+
+        if (nameKey && !seenNames.has(nameKey) && !uniqueMap.has(slugKey)) {
+          seenNames.add(nameKey);
+          uniqueMap.set(slugKey, p);
+        }
+      });
+
+      const activeOnly = Array.from(uniqueMap.values()).filter((p: any) => p.isActive !== false);
+      setAllProducts(activeOnly);
     }
 
-    loadOutlets();
-    loadCatalogProducts();
+    const loadAll = () => {
+      loadOutlets();
+      loadCatalogProducts();
+    };
+
+    loadAll();
+
+    window.addEventListener("admin_data_updated", loadAll);
+    window.addEventListener("storage", loadAll);
+
+    return () => {
+      window.removeEventListener("admin_data_updated", loadAll);
+      window.removeEventListener("storage", loadAll);
+    };
   }, []);
 
   // Auto-pull products strictly by their category & subcategory classification

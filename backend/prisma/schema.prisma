@@ -196,13 +196,23 @@ model Payment {
 }
 
 model Coupon {
-  id            String    @id @default(uuid())
-  code          String    @unique
-  discountType  String    @map("discount_type")
-  discountValue Float     @map("discount_value")
-  minOrderValue Float     @default(0) @map("min_order_value")
-  expiryDate    DateTime? @map("expiry_date")
-  usageLimit    Int?      @map("usage_limit")
+  id                   String    @id @default(uuid())
+  name                 String?
+  code                 String    @unique
+  discountType         String    @map("discount_type")
+  discountValue        Float     @map("discount_value")
+  minOrderValue        Float     @default(0) @map("min_order_value")
+  maxOrderValue        Float?    @map("max_order_value")
+  applicableCategories String?   @map("applicable_categories")
+  festivalName         String?   @map("festival_name")
+  startDate            DateTime? @map("start_date")
+  endDate              DateTime? @map("end_date")
+  expiryDate           DateTime? @map("expiry_date")
+  usageLimit           Int?      @map("usage_limit")
+  maxUsesPerUser       Int?      @default(1) @map("max_uses_per_user")
+  timesUsed            Int       @default(0) @map("times_used")
+  isActive             Boolean   @default(true) @map("is_active")
+  createdAt            DateTime  @default(now()) @map("created_at")
 
   @@map("coupons")
 }
@@ -249,7 +259,12 @@ model BlogPost {
   title       String
   slug        String    @unique
   content     String
+  status      String    @default("published")
+  author      String?   @default("Admin")
+  category    String?   @default("General")
+  imageUrl    String?   @map("image_url")
   publishedAt DateTime? @map("published_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("blog_posts")
 }

@@ -92,13 +92,23 @@ export default function StoresPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchOutlets("", "");
+    const load = () => fetchOutlets("", "");
+    load();
+
+    window.addEventListener("admin_data_updated", load);
+    window.addEventListener("storage", load);
+
+    return () => {
+      window.removeEventListener("admin_data_updated", load);
+      window.removeEventListener("storage", load);
+    };
   }, []);
 
   async function fetchOutlets(cityParam: string, pincodeParam: string) {
     setLoading(true);
     let storeData: PhysicalOutlet[] = [];
 
+    // 1. Fetch live stores from backend API
     try {
       const query = new URLSearchParams();
       if (cityParam) query.set("city", cityParam);
@@ -111,11 +121,9 @@ export default function StoresPage() {
           storeData = data;
         }
       }
-    } catch (err) {
-      console.warn("Backend stores API offline, using local store data.");
-    }
+    } catch (err) {}
 
-    // Check Admin added stores in localStorage
+    // 2. Fallback to localStorage / defaultOutlets if API is unavailable
     if (storeData.length === 0) {
       const cached = typeof window !== "undefined" ? localStorage.getItem("admin_stores_list") : null;
       if (cached) {

@@ -1,16 +1,110 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Minus, Plus, Trash2, Truck, Gift, Sparkles, Tag, ArrowRight, ShieldCheck, ShoppingBag } from 'lucide-react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { useCart } from '../context/CartContext';
 
+function EditableCartPageQuantityInput({
+  itemId,
+  itemTitle,
+  currentQuantity,
+  maxStock,
+  updateQuantity,
+  onRequestRemove
+}: {
+  itemId: string;
+  itemTitle: string;
+  currentQuantity: number;
+  maxStock: number;
+  updateQuantity: (id: string, q: number) => void;
+  onRequestRemove: (id: string, name: string) => void;
+}) {
+  const [val, setVal] = useState<string>(String(currentQuantity));
+
+  useEffect(() => {
+    setVal(String(currentQuantity));
+  }, [currentQuantity]);
+
+  const triggerZeroRemoval = () => {
+    onRequestRemove(itemId, itemTitle);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const text = e.target.value;
+    setVal(text);
+
+    if (text === '') return;
+
+    const parsed = parseInt(text, 10);
+    if (!isNaN(parsed)) {
+      if (parsed === 0) {
+        triggerZeroRemoval();
+      } else if (parsed > 0) {
+        const capped = Math.min(maxStock, parsed);
+        updateQuantity(itemId, capped);
+      }
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const parsed = parseInt(val, 10);
+      if (isNaN(parsed) || parsed <= 0) {
+        triggerZeroRemoval();
+      } else {
+        const capped = Math.min(maxStock, parsed);
+        updateQuantity(itemId, capped);
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    if (val === '' || isNaN(parseInt(val, 10))) {
+      setVal(String(currentQuantity));
+    } else {
+      const parsed = parseInt(val, 10);
+      if (parsed <= 0) {
+        triggerZeroRemoval();
+      } else if (parsed > maxStock) {
+        updateQuantity(itemId, maxStock);
+        setVal(String(maxStock));
+      }
+    }
+  };
+
+  return (
+    <input
+      type="number"
+      min={0}
+      max={maxStock}
+      value={val}
+      onChange={handleChange}
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+      className="w-12 text-center text-xs font-black text-[#0B1B3D] bg-transparent border-none outline-none appearance-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+    />
+  );
+}
+
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, applyCoupon, removeCoupon, loading } = useCart();
   const [couponCode, setCouponCode] = useState('');
   const [couponFeedback, setCouponFeedback] = useState<{ success: boolean; message: string } | null>(null);
+  const [zeroNotice, setZeroNotice] = useState<string | null>(null);
+  const [confirmRemoveItem, setConfirmRemoveItem] = useState<{ id: string; name: string } | null>(null);
+
+  const handleZeroError = (msg: string) => {
+    setZeroNotice(msg);
+    setTimeout(() => setZeroNotice(null), 4000);
+  };
+
+  const handleRequestRemove = (id: string, name: string) => {
+    handleZeroError(`⚠️ Quantity cannot be 0. Please confirm removal.`);
+    setConfirmRemoveItem({ id, name });
+  };
 
   const handleApplyCoupon = (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,69 +122,128 @@ export default function CartPage() {
       <div>
         <Header />
 
-        {/* Page Banner Header */}
-        <section className="border-b border-gold/30 bg-[#0B1B3D] text-white px-4 py-8 sm:px-6 lg:px-8 shadow-inner">
-          <div className="mx-auto max-w-7xl">
-            <div className="flex items-center gap-2 text-xs font-extrabold text-gold uppercase tracking-widest mb-2">
-              <Link href="/" className="hover:underline">Home</Link>
-              <span>/</span>
-              <span>Shopping Cart</span>
+        {/* Confirmation Modal */}
+        {confirmRemoveItem && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-[60] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-gold/40 space-y-4 text-center">
+              <div className="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto border border-red-300">
+                <Trash2 size={28} />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-[#0B1B3D] text-lg">Remove Item from Cart?</h3>
+                <p className="text-xs text-red-600 font-bold mt-1">⚠️ Quantity cannot be 0.</p>
+                <p className="text-xs text-gray-600 font-medium mt-1">
+                  Are you sure you want to remove <strong className="text-[#0B1B3D]">{confirmRemoveItem.name}</strong> from your cart?
+                </p>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setConfirmRemoveItem(null);
+                  }}
+                  className="flex-1 bg-gray-100 text-gray-700 hover:bg-gray-200 py-2.5 rounded-xl text-xs font-extrabold transition"
+                >
+                  Cancel (Keep 1)
+                </button>
+                <button
+                  onClick={() => {
+                    removeFromCart(confirmRemoveItem.id);
+                    setConfirmRemoveItem(null);
+                  }}
+                  className="flex-1 bg-red-600 text-white hover:bg-red-700 py-2.5 rounded-xl text-xs font-extrabold shadow-md transition"
+                >
+                  Yes, Remove
+                </button>
+              </div>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black text-gold">Shopping Cart</h1>
-            <p className="mt-1 text-xs sm:text-sm text-gray-300">
-              Review your items, apply coupon codes, and proceed to secure checkout.
-            </p>
           </div>
-        </section>
+        )}
 
-        {/* Main Content */}
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {cart && cart.items && cart.items.length > 0 ? (
-            <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+          
+          {/* Zero Quantity Error Banner */}
+          {zeroNotice && (
+            <div className="mb-6 bg-red-500/15 border-2 border-red-500 p-4 rounded-2xl text-xs font-black text-red-700 flex items-center justify-between shadow-md">
+              <span>{zeroNotice}</span>
+              <button onClick={() => setZeroNotice(null)} className="font-extrabold text-red-800 hover:text-red-950">✕</button>
+            </div>
+          )}
+
+          {/* Header & Breadcrumb */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 text-xs text-gray-500 font-bold mb-2">
+              <Link href="/" className="hover:text-gold-dark">Home</Link>
+              <span>/</span>
+              <span className="text-[#0B1B3D]">Shopping Cart</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-black text-[#0B1B3D]">Shopping Cart</h1>
+          </div>
+
+          {(!cart || !cart.items || cart.items.length === 0) ? (
+            <div className="bg-white rounded-3xl border-2 border-gold/30 p-12 text-center shadow-xl max-w-2xl mx-auto space-y-5">
+              <div className="h-24 w-24 rounded-full bg-amber-50 mx-auto flex items-center justify-center border-2 border-gold/30 text-gold-dark shadow-inner">
+                <ShoppingBag size={44} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-[#0B1B3D]">Your Shopping Cart is Empty</h2>
+                <p className="text-sm text-gray-500 font-medium mt-1">Looks like you haven't added any sweets or snacks yet!</p>
+              </div>
+              <Link
+                href="/categories/sweets"
+                className="inline-flex items-center gap-2 bg-[#0B1B3D] text-gold hover:bg-[#162C5B] px-8 py-3.5 rounded-2xl text-sm font-black transition shadow-lg border border-gold/30"
+              >
+                <span>Explore Catalog</span>
+                <ArrowRight size={16} />
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-8 lg:grid-cols-3">
               
-              {/* Left Column: Items Table & Free Shipping Banner */}
-              <div className="space-y-6">
+              {/* Left Column: Cart Items List */}
+              <div className="lg:col-span-2 space-y-6">
                 
                 {/* Free Delivery Bar */}
                 <div className="bg-white p-5 rounded-2xl border-2 border-gold/30 shadow-sm space-y-2">
-                  <div className="flex items-center justify-between text-xs font-bold text-[#0B1B3D]">
-                    <span className="flex items-center gap-2">
-                      <Truck size={18} className="text-gold-dark" />
-                      {cart.amountForFreeDelivery > 0 ? (
-                        <span>Add <strong className="text-gold-dark font-black">₹{cart.amountForFreeDelivery.toLocaleString('en-IN')}</strong> more for FREE Pan-India Shipping!</span>
+                  <div className="flex justify-between items-center text-xs font-black text-[#0B1B3D]">
+                    <span className="flex items-center gap-1.5">
+                      <Truck size={16} className="text-gold-dark" />
+                      {cart.amountForFreeDelivery <= 0 ? (
+                        <strong className="text-green-700 font-extrabold">🎉 You unlocked FREE Delivery!</strong>
                       ) : (
-                        <span className="text-green-700 font-black">🎉 Congratulations! You unlocked FREE Express Shipping!</span>
+                        <span>Add <strong className="text-gold-dark font-extrabold">₹{cart.amountForFreeDelivery.toLocaleString('en-IN')}</strong> more for FREE Delivery!</span>
                       )}
                     </span>
-                    <span className="text-xs font-extrabold text-gold-dark">{freeDeliveryPercent}%</span>
+                    <span className="text-xs font-bold text-gray-500">{freeDeliveryPercent}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden border border-gold/20">
+                  <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden border border-gold/20">
                     <div
-                      className="bg-gold h-full transition-all duration-500 rounded-full"
+                      className="bg-gradient-to-r from-amber-400 to-gold h-full transition-all duration-500 rounded-full"
                       style={{ width: `${freeDeliveryPercent}%` }}
                     />
                   </div>
                 </div>
 
-                {/* Items List Card */}
-                <div className="bg-white rounded-2xl border-2 border-gold/30 shadow-sm overflow-hidden divide-y divide-gray-100">
-                  <div className="bg-[#0B1B3D] text-gold px-6 py-3 text-xs font-black uppercase tracking-wider hidden sm:grid sm:grid-cols-[2fr_1fr_1fr_auto] gap-4">
+                {/* Items Table Card */}
+                <div className="bg-white rounded-3xl border-2 border-gold/30 shadow-xl overflow-hidden divide-y divide-gray-100">
+                  <div className="bg-[#0B1B3D] text-gold px-6 py-3.5 hidden sm:grid grid-cols-[2fr_1fr_1fr_auto] text-xs font-black uppercase tracking-wider">
                     <span>Product Details</span>
                     <span className="text-center">Quantity</span>
                     <span className="text-right">Subtotal</span>
-                    <span className="text-center">Action</span>
+                    <span className="text-right">Action</span>
                   </div>
 
                   {cart.items.map((item) => {
+                    const itemTitle = item.productVariant?.product?.name || 'Vardayini Sweets Item';
                     const itemImage = item.productVariant?.product?.imageUrls?.[0] || '/images/sweet-1.jpg';
-                    const itemTitle = item.productVariant?.product?.name || 'Vardayini Sweets';
                     const weight = item.productVariant?.weightLabel || '500g';
                     const unitPrice = Number(item.productVariant?.discountedPrice || item.productVariant?.price || 250);
                     const itemTotal = unitPrice * item.quantity;
 
+                    const maxStock = (item as any).stockQty ?? (item as any).maxStock ?? (item.productVariant as any)?.stockQty ?? 50;
+                    const isMaxReached = item.quantity >= maxStock;
+
                     return (
                       <div key={item.id} className="p-4 sm:p-6 flex flex-col sm:grid sm:grid-cols-[2fr_1fr_1fr_auto] gap-4 items-center">
-                        {/* Product info */}
                         <div className="flex gap-3 items-center w-full">
                           <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-2xl bg-gray-100 border border-gold/30">
                             <img src={itemImage} alt={itemTitle} className="h-full w-full object-cover" />
@@ -100,26 +253,40 @@ export default function CartPage() {
                             <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded mt-1 inline-block">
                               Weight: {weight}
                             </span>
-                            <p className="text-xs text-gray-500 font-semibold mt-0.5">
-                              Unit Price: ₹{unitPrice.toLocaleString('en-IN')}
-                            </p>
                           </div>
                         </div>
 
                         {/* Quantity controls */}
                         <div className="flex items-center justify-center border-2 border-gold/40 rounded-xl bg-white shadow-xs overflow-hidden shrink-0">
                           <button
-                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                            onClick={() => {
+                              if (item.quantity <= 1) {
+                                handleRequestRemove(item.id, itemTitle);
+                              } else {
+                                updateQuantity(item.id, item.quantity - 1);
+                              }
+                            }}
                             disabled={loading}
                             className="p-2 hover:bg-gold/20 text-[#0B1B3D] transition disabled:opacity-40"
+                            title={item.quantity <= 1 ? "Remove item from cart" : "Decrease quantity"}
                           >
                             <Minus size={15} />
                           </button>
-                          <span className="px-3 text-xs font-black text-[#0B1B3D]">{item.quantity}</span>
+
+                          <EditableCartPageQuantityInput
+                            itemId={item.id}
+                            itemTitle={itemTitle}
+                            currentQuantity={item.quantity}
+                            maxStock={maxStock}
+                            updateQuantity={updateQuantity}
+                            onRequestRemove={handleRequestRemove}
+                          />
+
                           <button
                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={loading}
-                            className="p-2 hover:bg-gold/20 text-[#0B1B3D] transition disabled:opacity-40"
+                            disabled={loading || isMaxReached}
+                            className="p-2 hover:bg-gold/20 text-[#0B1B3D] transition disabled:opacity-30 disabled:cursor-not-allowed"
+                            title={isMaxReached ? `Max stock limit (${maxStock}) reached` : 'Increase quantity'}
                           >
                             <Plus size={15} />
                           </button>
@@ -212,7 +379,7 @@ export default function CartPage() {
                     Order Summary
                   </h3>
 
-                  {cart.subtotal >= 5000 && (
+                  {cart.subtotal >= 4200 && (
                     <div className="bg-green-100 p-2.5 rounded-xl border border-green-300 flex items-center gap-2 text-xs text-green-900 font-bold">
                       <Gift size={16} className="text-green-700 shrink-0" />
                       <span>🎉 5% Bulk Order Discount Included!</span>
@@ -268,22 +435,6 @@ export default function CartPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div className="bg-white rounded-3xl border-2 border-dashed border-gold/40 p-16 text-center space-y-4 max-w-lg mx-auto my-12">
-              <div className="w-20 h-20 bg-gold/15 text-gold-dark rounded-full flex items-center justify-center mx-auto border border-gold/30">
-                <ShoppingBag size={40} />
-              </div>
-              <h2 className="text-2xl font-black text-[#0B1B3D]">Your Shopping Cart is Empty</h2>
-              <p className="text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
-                Looks like you haven&apos;t added any delicious sweets or savories yet. Browse our collections and place your order today!
-              </p>
-              <Link
-                href="/categories"
-                className="inline-block bg-[#0B1B3D] text-gold px-8 py-3.5 rounded-xl text-xs font-black hover:bg-[#162C5B] transition shadow-lg border border-gold/30"
-              >
-                Start Shopping Now →
-              </Link>
             </div>
           )}
         </main>

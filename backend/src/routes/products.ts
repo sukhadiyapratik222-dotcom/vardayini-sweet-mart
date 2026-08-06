@@ -148,9 +148,11 @@ router.get("/", async (req, res) => {
     const catStr = category ? String(category).trim().toLowerCase() : "";
     const targetCat = (catStr === 'corporate-gifts' || catStr === 'corporate-gift-boxes') ? 'corporate-gift-boxes' : catStr;
 
+    const includeInactive = req.query.includeInactive === 'true';
+
     products = await prisma.product.findMany({
       where: {
-        isActive: true,
+        ...(includeInactive ? {} : { isActive: true }),
         ...(targetCat
           ? {
               OR: [
@@ -179,7 +181,7 @@ router.get("/", async (req, res) => {
     dbQuerySuccess = true;
   } catch (err) {}
 
-  if (!dbQuerySuccess) {
+  if (!dbQuerySuccess || !products || products.length === 0) {
     products = defaultFallbackProducts;
     if (category) {
       const c = String(category).toLowerCase().replace(/-/g, " ");
@@ -212,6 +214,10 @@ router.get("/", async (req, res) => {
   const currentPage = Number(page);
   const skip = (currentPage - 1) * take;
   const pagedProducts = sortedProducts.slice(skip, skip + take).map(formatProduct);
+
+  if (req.query.format === 'array' || req.query.raw === 'true') {
+    return res.json(pagedProducts);
+  }
 
   res.json({
     products: pagedProducts,

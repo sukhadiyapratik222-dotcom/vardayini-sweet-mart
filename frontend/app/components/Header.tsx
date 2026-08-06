@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { categories } from '../data';
-import { ChevronDown, ShoppingCart, User, Heart, Menu, X, Globe, LogOut, Store } from 'lucide-react';
+import { ChevronDown, ShoppingCart, User, Heart, Menu, X, Globe, LogOut } from 'lucide-react';
 import ProductSearch from './ProductSearch';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -67,6 +67,14 @@ export default function Header() {
     }
 
     loadCustomCats();
+
+    window.addEventListener("admin_data_updated", loadCustomCats);
+    window.addEventListener("storage", loadCustomCats);
+
+    return () => {
+      window.removeEventListener("admin_data_updated", loadCustomCats);
+      window.removeEventListener("storage", loadCustomCats);
+    };
   }, []);
 
   const toggleMenu = (categoryKey: string) => {
@@ -77,16 +85,165 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-[#0B1B3D]/95 backdrop-blur-md shadow-xl border-b border-gold/40 text-white">
-      {/* Top bar */}
-      <div className="bg-[#07122A] px-4 py-1.5 sm:px-6 lg:px-8 border-b border-gold/30">
-        <div className="flex items-center justify-between text-xs sm:text-sm text-gold-light">
-          <div className="text-[11px] sm:text-xs font-medium tracking-wide hidden md:block">
-            🌟 <span className="text-gold-bright font-bold">Vardayini Sweet Mart</span> — Pure Desi Ghee Sweets Since 1976
+      {/* ROW 1: Logo | Search Bar (with Category Select) | Wishlist & Cart Actions */}
+      <div className="px-4 py-3 sm:px-6 lg:px-8 border-b border-gold/20">
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo & Brand Name */}
+          <Link href="/" className="flex-shrink-0 flex items-center gap-3 group">
+            <div className="relative h-11 w-11 sm:h-12 sm:w-12 overflow-hidden rounded-full border-2 border-gold shadow-lg bg-[#0B2580] ring-2 ring-gold/40 group-hover:scale-105 transition-transform">
+              <Image src="/logo.png" alt="Vardayini Sweet Mart Since 1976" fill sizes="48px" className="object-cover" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg sm:text-2xl font-black text-gold-light tracking-tight group-hover:text-gold-bright transition-colors drop-shadow">
+                {t.brandName}
+              </span>
+              <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-gold font-extrabold hidden sm:block">
+                {t.brandTagline}
+              </span>
+            </div>
+          </Link>
+
+          {/* Integrated Search Bar with Category Selector */}
+          <div className="hidden md:flex flex-1 max-w-xl mx-2">
+            <ProductSearch compact showCategorySelect />
           </div>
 
-          <div className="flex items-center gap-3 text-xs ml-auto">
-            {/* Language Selector Dropdown */}
-            <div className="flex items-center gap-1 bg-gold/20 px-2.5 py-0.5 rounded-full border border-gold/40 shadow-sm">
+          {/* Action Boxes: Wishlist & Cart & Profile */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Account Card */}
+            <Link
+              href={user ? "/account/profile" : "/login"}
+              className="hidden lg:flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold-light px-3 py-2 rounded-xl border border-gold/30 transition shadow-sm"
+              title={user ? user.name : t.signIn}
+            >
+              <User size={18} className="text-gold-bright" />
+              <span className="text-xs font-bold truncate max-w-[100px]">
+                {user ? user.name : t.signIn}
+              </span>
+            </Link>
+
+            {/* Wishlist Card */}
+            <Link
+              href="/account/profile"
+              className="flex items-center gap-2 bg-gold/10 hover:bg-gold/20 text-gold-light px-3 py-2 rounded-xl border border-gold/30 transition shadow-sm group"
+              title="Wishlist"
+            >
+              <div className="relative">
+                <Heart size={18} className="text-gold-bright group-hover:scale-110 transition-transform" />
+                <span className="absolute -top-2 -right-2 bg-gold text-[#0B1B3D] font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center shadow">
+                  0
+                </span>
+              </div>
+              <span className="text-xs font-bold hidden sm:inline text-gray-100 group-hover:text-gold-bright">
+                Wishlist
+              </span>
+            </Link>
+
+            {/* Cart Card */}
+            <Link
+              href="/cart"
+              className="flex items-center gap-2 bg-gradient-to-r from-gold/20 to-gold/10 hover:from-gold/30 hover:to-gold/20 text-gold px-3.5 py-2 rounded-xl border border-gold/50 transition shadow-md group"
+              title="View Cart"
+            >
+              <div className="relative">
+                <ShoppingCart size={18} className="text-gold-bright group-hover:scale-110 transition-transform" />
+                <span className="absolute -top-2 -right-2 bg-gold text-[#0B1B3D] font-black text-[9px] rounded-full w-4 h-4 flex items-center justify-center shadow">
+                  {cart?.itemCount || 0}
+                </span>
+              </div>
+              <span className="text-xs font-extrabold hidden sm:inline text-gold-bright tracking-tight">
+                Cart {cart?.total ? `(₹${cart.total.toLocaleString('en-IN')})` : ''}
+              </span>
+            </Link>
+
+            {/* Mobile Menu Toggle Button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden text-gold-light hover:text-gold-bright transition p-2 rounded-xl bg-gold/10 border border-gold/30"
+              aria-label="Toggle Navigation Menu"
+            >
+              {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Search */}
+        <div className="md:hidden mt-3">
+          <ProductSearch compact showCategorySelect={false} />
+        </div>
+      </div>
+
+      {/* ROW 2: Navigation Links (Left) | Language & Register (Right) */}
+      <div className="px-4 py-2 sm:px-6 lg:px-8 bg-[#07122A]/90 border-t border-gold/10">
+        <div className="flex items-center justify-between">
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-4 lg:gap-6 font-semibold text-xs sm:text-sm text-gray-200">
+            <Link href="/" className="hover:text-gold-bright transition py-1 font-bold">
+              Home
+            </Link>
+
+            <Link href="/categories" className="hover:text-gold-bright transition py-1 font-bold">
+              Products
+            </Link>
+
+            {/* Categories Dropdown */}
+            <div
+              className="relative group py-1"
+              onMouseEnter={() => setActiveMenu('categories')}
+              onMouseLeave={() => setActiveMenu(null)}
+            >
+              <Link
+                href="/categories"
+                className="hover:text-gold-bright transition flex items-center gap-1 font-bold"
+              >
+                <span>Categories</span>
+                <ChevronDown size={14} className="text-gray-400 group-hover:text-gold-bright transition-transform group-hover:rotate-180" />
+              </Link>
+
+              {/* Categories Mega Dropdown */}
+              <div className="absolute left-0 mt-1 w-56 bg-[#0B1B3D] border-2 border-gold/50 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                {Object.keys(categories).map((key) => {
+                  const cat = categories[key as keyof typeof categories];
+                  if (!cat) return null;
+                  return (
+                    <Link
+                      key={key}
+                      href={`/categories/${cat.slug}`}
+                      className="block px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5 last:border-none"
+                    >
+                      {cat.name}
+                    </Link>
+                  );
+                })}
+                {customCategories.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/categories/${c.slug}`}
+                    className="block px-4 py-2 text-xs font-semibold text-gold-bright hover:bg-gold/20 hover:text-white transition border-b border-white/5 last:border-none"
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            <Link href="/stores" className="hover:text-gold-bright transition py-1">
+              About us
+            </Link>
+
+            <Link href="/contact" className="hover:text-gold-bright transition py-1">
+              Contact Us
+            </Link>
+
+            <Link href="/account/profile" className="hover:text-gold-bright transition py-1">
+              Track Order
+            </Link>
+          </nav>
+
+          {/* Right Section: Language Selector & Auth */}
+          <div className="flex items-center gap-4 ml-auto text-xs sm:text-sm">
+            {/* Language Dropdown Selector */}
+            <div className="flex items-center gap-1.5 bg-gold/15 px-2.5 py-1 rounded-full border border-gold/40 shadow-sm">
               <Globe size={13} className="text-gold-bright" />
               <select
                 value={language}
@@ -100,219 +257,107 @@ export default function Header() {
               </select>
             </div>
 
+            {/* Auth Link / Account Status */}
             {user ? (
-              <>
-                <span className="text-gold-light font-medium truncate max-w-[120px]">{t.hello}, {user.name}</span>
-                <Link href="/account/profile" className="hover:text-gold-bright transition font-semibold px-1">{t.dashboard}</Link>
-                <button onClick={logout} className="hover:text-gold-bright transition flex items-center gap-1">
+              <div className="flex items-center gap-3">
+                <Link href="/account/profile" className="text-gold-light font-semibold hover:text-gold-bright transition hidden lg:inline">
+                  {user.name}
+                </Link>
+                <button onClick={logout} className="hover:text-gold-bright transition flex items-center gap-1 font-bold text-gold">
                   <LogOut size={13} /> {t.logout}
                 </button>
-              </>
+              </div>
             ) : (
-              <>
-                <Link href="/login" className="hover:text-gold-bright transition font-semibold px-1">{t.signIn}</Link>
-                <span className="text-gold-light/40">|</span>
-                <Link href="/signup" className="hover:text-gold-bright transition font-semibold px-1">{t.signUp}</Link>
-              </>
+              <div className="flex items-center gap-2 font-bold">
+                <Link href="/signup" className="hover:text-gold-bright transition text-gold-light">
+                  Register
+                </Link>
+                <span className="text-gold-light/40">/</span>
+                <Link href="/login" className="hover:text-gold-bright transition text-gold-light">
+                  {t.signIn}
+                </Link>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Main header */}
-      <div className="px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link href="/" className="flex-shrink-0 flex items-center gap-3 group">
-            <div className="relative h-12 w-12 overflow-hidden rounded-full border-2 border-gold shadow-lg bg-[#0B2580] ring-2 ring-gold/40 group-hover:scale-105 transition-transform">
-              <Image src="/logo.png" alt="Vardayini Sweet Mart Since 1976" fill sizes="48px" className="object-cover" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl font-black text-gold-light tracking-tight group-hover:text-gold-bright transition-colors drop-shadow">
-                {t.brandName}
-              </span>
-              <span className="text-[10px] uppercase tracking-widest text-gold font-extrabold">
-                {t.brandTagline}
-              </span>
-            </div>
-          </Link>
-
-          {/* Top mega-menu navigation */}
-          <nav className="hidden lg:flex items-center gap-1 shrink-0">
-            {/* Primary Main Categories: Sweets, Namkeen, Bakery */}
-            {["sweets", "namkeen", "bakery"].map((key) => {
-              const cat = categories[key as keyof typeof categories];
-              if (!cat) return null;
-              const hasSubcategories = cat.subcategories && cat.subcategories.length > 0;
-
-              return (
-                <div
-                  key={key}
-                  className="relative group"
-                  onMouseEnter={() => setActiveMenu(key)}
-                  onMouseLeave={() => setActiveMenu(null)}
-                >
-                  <Link
-                    href={`/categories/${cat.slug}`}
-                    className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition flex items-center gap-0.5 whitespace-nowrap"
-                  >
-                    <span>{cat.name}</span>
-                    {hasSubcategories && <ChevronDown size={12} className="text-gray-400 group-hover:text-gold-bright" />}
-                  </Link>
-
-                  {/* Mega Menu Dropdown */}
-                  {hasSubcategories && (
-                    <div className="absolute left-0 mt-0 w-52 bg-[#0B1B3D] border-2 border-gold/50 rounded-xl shadow-2xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                      {cat.subcategories.map((sub) => (
-                        <Link
-                          key={sub.slug}
-                          href={`/categories/${cat.slug}/${sub.slug}`}
-                          className="block px-4 py-2 text-xs font-semibold text-gray-200 hover:bg-gold/20 hover:text-gold-bright transition border-b border-white/5 last:border-none"
-                        >
-                          {sub.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            <Link href="/categories/mukhwas" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
-              Mukhwas
-            </Link>
-            <Link href="/categories/dry-fruits-nuts" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
-              Dried Fruits & Nuts
-            </Link>
-            <Link href="/categories/premium-baklava" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
-              Premium Baklava
-            </Link>
-            <Link href="/categories/corporate-gift-boxes" className="px-2 py-1.5 text-xs font-bold text-gray-100 hover:text-gold-bright transition whitespace-nowrap">
-              Corporate Gifts
-            </Link>
-            {customCategories.map((c) => (
-              <Link
-                key={c.slug}
-                href={`/categories/${c.slug}`}
-                className="px-2 py-1.5 text-xs font-bold text-gold-bright hover:text-white transition whitespace-nowrap"
-              >
-                {c.name}
-              </Link>
-            ))}
-            <Link href="/stores" className="px-2 py-1.5 text-xs font-extrabold text-gold-bright hover:text-white transition whitespace-nowrap">
-              ⚡ Instant Delivery
-            </Link>
-          </nav>
-
-          {/* Search bar */}
-          <div className="hidden md:flex flex-1 max-w-md mx-2">
-            <ProductSearch compact />
-          </div>
-
-          {/* Right Icons: Account, Wishlist, Cart (Live count + ₹ total) */}
-          <div className="flex items-center gap-3">
-            {/* Account Icon */}
+      {/* Mobile Drawer Menu */}
+      {isMobileMenuOpen && (
+        <div className="md:hidden border-t border-gold/30 bg-[#07122A] text-white">
+          <nav className="px-4 py-4 space-y-3 max-h-[80vh] overflow-y-auto">
             <Link
-              href={user ? "/account/profile" : "/login"}
-              className="text-gold-light hover:text-gold-bright p-2 rounded-lg hover:bg-gold/20 transition hidden sm:flex items-center justify-center"
-              title={user ? user.name : t.signIn}
+              href="/"
+              className="block px-2 py-1.5 text-sm font-bold text-gray-200 hover:text-gold-bright border-b border-gold/10"
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              <User size={22} />
+              Home
             </Link>
 
-            {/* Wishlist Icon */}
+            <Link
+              href="/categories"
+              className="block px-2 py-1.5 text-sm font-bold text-gray-200 hover:text-gold-bright border-b border-gold/10"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Products
+            </Link>
+
+            {/* Categories section in mobile */}
+            <div className="border-b border-gold/10 pb-2">
+              <button
+                onClick={() => toggleMenu('mobile-categories')}
+                className="flex items-center justify-between w-full px-2 py-1.5 text-sm font-bold text-gold-bright"
+              >
+                <span>Categories</span>
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform ${activeMenu === 'mobile-categories' ? 'rotate-180' : ''}`}
+                />
+              </button>
+
+              {activeMenu === 'mobile-categories' && (
+                <div className="bg-[#0B1B3D] rounded-xl p-2 mt-1 space-y-1 border border-gold/20">
+                  {categoryKeys.map((key) => {
+                    const cat = categories[key as keyof typeof categories];
+                    if (!cat) return null;
+                    return (
+                      <Link
+                        key={key}
+                        href={`/categories/${cat.slug}`}
+                        className="block px-3 py-1.5 text-xs text-gray-200 font-semibold hover:text-gold-bright transition"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {cat.name}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <Link
+              href="/stores"
+              className="block px-2 py-1.5 text-sm font-bold text-gray-200 hover:text-gold-bright border-b border-gold/10"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              About us
+            </Link>
+
+            <Link
+              href="/stores"
+              className="block px-2 py-1.5 text-sm font-bold text-gray-200 hover:text-gold-bright border-b border-gold/10"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Contact Us
+            </Link>
+
             <Link
               href="/account/profile"
-              className="text-gold-light hover:text-gold-bright p-2 rounded-lg hover:bg-gold/20 transition hidden sm:flex items-center justify-center relative"
-              title="Wishlist"
+              className="block px-2 py-1.5 text-sm font-bold text-gray-200 hover:text-gold-bright border-b border-gold/10"
+              onClick={() => setIsMobileMenuOpen(false)}
             >
-              <Heart size={22} />
+              Track Order
             </Link>
-
-            {/* Cart Icon (Live count + ₹ total) */}
-            <Link
-              href="/cart"
-              className="flex items-center gap-2.5 bg-gradient-to-r from-[#0B1B3D] to-[#162C5B] text-gold px-3.5 py-2 rounded-xl hover:brightness-110 transition shadow-md border border-gold/50 group"
-              title="View Cart"
-            >
-              <div className="relative">
-                <ShoppingCart size={20} className="text-gold-bright group-hover:scale-110 transition-transform" />
-                <span className="absolute -top-2.5 -right-2.5 bg-gold text-[#0B1B3D] font-black text-[10px] rounded-full w-4 h-4 flex items-center justify-center shadow">
-                  {cart?.itemCount || 0}
-                </span>
-              </div>
-              <span className="font-extrabold text-xs sm:text-sm text-gold-bright tracking-tight whitespace-nowrap">
-                ₹{(cart?.total || 0).toLocaleString('en-IN')}
-              </span>
-            </Link>
-
-            {/* Mobile Hamburger Menu Toggle */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="xl:hidden text-gold-light hover:text-gold-bright transition p-1.5 rounded-lg bg-gold/10 border border-gold/30"
-              aria-label="Toggle Navigation Menu"
-            >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Search */}
-        <div className="md:hidden mt-3">
-          <ProductSearch compact />
-        </div>
-      </div>
-
-      {/* Mobile Mega Menu */}
-      {isMobileMenuOpen && (
-        <div className="xl:hidden border-t border-gray-200 bg-white">
-          <nav className="px-4 py-4 space-y-2 max-h-[75vh] overflow-y-auto">
-            {categoryKeys.map((key) => {
-              const cat = categories[key as keyof typeof categories];
-              const hasSubcategories = cat.subcategories && cat.subcategories.length > 0;
-              const isOpen = activeMenu === key;
-
-              return (
-                <div key={key} className="border-b border-gray-100 pb-2">
-                  <div className="flex items-center justify-between">
-                    <Link
-                      href={`/categories/${cat.slug}`}
-                      className="px-2 py-1 text-sm font-bold text-[#0B1B3D]"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      {cat.name}
-                    </Link>
-                    {hasSubcategories && (
-                      <button
-                        onClick={() => toggleMenu(key)}
-                        className="p-2 text-gray-600 hover:text-[#0B1B3D]"
-                      >
-                        <ChevronDown
-                          size={16}
-                          className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                        />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Mobile Submenu */}
-                  {hasSubcategories && isOpen && (
-                    <div className="bg-amber-50/60 rounded-lg p-2 mt-1 space-y-1">
-                      {cat.subcategories.map((sub) => (
-                        <Link
-                          key={sub.slug}
-                          href={`/categories/${cat.slug}/${sub.slug}`}
-                          className="block px-3 py-1.5 text-xs text-gray-700 font-medium hover:text-[#0B1B3D] hover:font-bold transition"
-                          onClick={() => setIsMobileMenuOpen(false)}
-                        >
-                          {sub.name}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </nav>
         </div>
       )}

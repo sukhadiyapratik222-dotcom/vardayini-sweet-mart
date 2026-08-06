@@ -37,8 +37,45 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'CARD' | 'NETBANKING' | 'COD'>('UPI');
   const [upiApp, setUpiApp] = useState('GPay');
 
-  // Order processing state
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
   const [isPlacing, setIsPlacing] = useState(false);
+
+  const handleApplyCoupon = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCouponError('');
+    setCouponSuccess('');
+    if (!couponCode.trim()) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: couponCode.trim(),
+          subtotal: cart?.subtotal || 850
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAppliedCoupon(data);
+        setCouponSuccess(`✓ Coupon "${data.code}" applied! You save ₹${data.discountAmount}`);
+      } else {
+        setAppliedCoupon(null);
+        setCouponError(data.errors?.code || 'Invalid or expired coupon code');
+      }
+    } catch (err) {
+      setCouponError('Failed to validate coupon server-side.');
+    }
+  };
+
+  const currentSubtotal = cart?.subtotal || 850;
+  const currentDiscount = appliedCoupon ? appliedCoupon.discountAmount : (cart?.discountAmount || 0);
+  const currentTotal = Math.max(0, currentSubtotal - currentDiscount);
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,8 +93,9 @@ export default function CheckoutPage() {
       deliveryDate,
       timeSlot,
       paymentMethod,
-      subtotal: cart?.subtotal || 1250,
-      total: cart?.total || 1250,
+      subtotal: currentSubtotal,
+      discount: currentDiscount,
+      total: currentTotal,
       items: cart?.items || []
     };
 
@@ -351,16 +389,38 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
+                {/* Server-Validated Promo Coupon Box */}
+                <div className="border-t border-gold/20 pt-3">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="PROMO CODE (e.g. SWEET10)"
+                      className="flex-1 border border-gray-300 px-3 py-1.5 rounded-xl text-xs font-bold uppercase outline-none focus:ring-2 focus:ring-gold"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      className="bg-[#0B1B3D] text-gold hover:bg-[#162C5B] px-3 py-1.5 rounded-xl text-xs font-black transition border border-gold/40"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {couponError && <p className="text-[10px] font-bold text-red-600 mt-1">{couponError}</p>}
+                  {couponSuccess && <p className="text-[10px] font-bold text-green-700 mt-1">{couponSuccess}</p>}
+                </div>
+
                 <div className="border-t border-gold/20 pt-3 space-y-2 text-xs text-gray-700">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span className="font-bold text-[#0B1B3D]">₹{(cart?.subtotal || 850).toLocaleString('en-IN')}</span>
+                    <span className="font-bold text-[#0B1B3D]">₹{currentSubtotal.toLocaleString('en-IN')}</span>
                   </div>
 
-                  {cart && cart.discountAmount > 0 && (
+                  {currentDiscount > 0 && (
                     <div className="flex justify-between text-green-700 font-bold">
-                      <span>Discount</span>
-                      <span>-₹{cart.discountAmount.toLocaleString('en-IN')}</span>
+                      <span>Coupon Discount</span>
+                      <span>-₹{currentDiscount.toLocaleString('en-IN')}</span>
                     </div>
                   )}
 
@@ -373,7 +433,7 @@ export default function CheckoutPage() {
 
                   <div className="border-t border-gold/30 pt-3 flex justify-between text-base font-black text-[#0B1B3D]">
                     <span>Total Payable</span>
-                    <span className="text-xl text-[#0B1B3D]">₹{(cart?.total || 850).toLocaleString('en-IN')}</span>
+                    <span className="text-xl text-[#0B1B3D]">₹{currentTotal.toLocaleString('en-IN')}</span>
                   </div>
                 </div>
 
@@ -387,7 +447,7 @@ export default function CheckoutPage() {
                   ) : (
                     <>
                       <Lock size={16} />
-                      <span>Place Order (₹{(cart?.total || 850).toLocaleString('en-IN')})</span>
+                      <span>Place Order (₹{currentTotal.toLocaleString('en-IN')})</span>
                     </>
                   )}
                 </button>

@@ -44,7 +44,7 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
   useEffect(() => {
     let active = true;
 
-    const fetchProducts = async () => {
+    const loadCatalog = async () => {
       setLoading(true);
       let apiProductsList: any[] = [];
       let apiTotalCount = 0;
@@ -84,7 +84,7 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
         }
       }
 
-      const poolSource = apiFetchedSuccess ? [...apiProductsList, ...adminProducts] : [...adminProducts, ...localProducts];
+      const poolSource = apiProductsList.length > 0 ? [...apiProductsList, ...adminProducts, ...localProducts] : [...adminProducts, ...localProducts];
 
       // Remove duplicates by normalized name and slug
       const uniqueMap = new Map();
@@ -108,75 +108,70 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
         const normalizeCat = (slug: string) => {
           if (slug === 'corporate-gifts' || slug === 'corporate-gift-boxes') return 'corporate-gift-boxes';
           if (slug === 'dry-fruits-nuts' || slug === 'dry-fruits' || slug === 'dry-fruits-and-nuts') return 'dry-fruits-nuts';
-          if (slug === 'premium-baklava' || slug === 'baklava') return 'premium-baklava';
           return slug;
         };
 
         const targetCat = normalizeCat(catLower);
 
         filtered = filtered.filter((p: any) => {
-          const pCatSlug = normalizeCat(p.categorySlug || p.category?.slug || (typeof p.category === 'string' ? p.category : '') || '');
-          const pSubCat = normalizeCat(p.subcategory || '');
+          const pCat = normalizeCat((p.category || p.categorySlug || '').toLowerCase().trim());
+          const pSub = (p.subcategory || '').toLowerCase().trim();
 
-          // 1. Direct match on subcategory or category slug
-          if (pSubCat === targetCat || pCatSlug === targetCat) return true;
-
-          // 2. Parent category match
-          const parentCategoryObj = categories[catLower as keyof typeof categories] || categories[targetCat as keyof typeof categories];
-          if (parentCategoryObj && parentCategoryObj.subcategories) {
-            const subSlugs = parentCategoryObj.subcategories.map((s: any) => normalizeCat(s.slug));
-            if (subSlugs.includes(pSubCat) || pCatSlug === targetCat) return true;
-          }
-
-          // 3. Fallback match
-          return pCatSlug === targetCat || pSubCat === targetCat || pCatSlug === catLower || pSubCat === catLower;
+          return pCat === targetCat || pSub === targetCat || pCat.includes(targetCat) || targetCat.includes(pCat);
         });
       }
 
-      // Filter by Search Term
-      if (initialSearch) {
-        const q = initialSearch.toLowerCase();
+      // Filter by search text
+      if (initialSearch && initialSearch.trim()) {
+        const query = initialSearch.toLowerCase().trim();
         filtered = filtered.filter(
-          (p: any) => p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q)
+          (p: any) =>
+            p.name.toLowerCase().includes(query) ||
+            (p.description || '').toLowerCase().includes(query) ||
+            (p.category || '').toLowerCase().includes(query)
         );
       }
 
       // Filter by Price Range
       if (selectedRange) {
         filtered = filtered.filter((p: any) => {
-          const minP = p.variants?.[0]?.discountedPrice || p.variants?.[0]?.price || p.price || 0;
-          return minP >= selectedRange.min && minP <= selectedRange.max;
+          const price = p.variants?.[0]?.discountedPrice || p.variants?.[0]?.price || 0;
+          return price >= selectedRange.min && price <= selectedRange.max;
         });
       }
 
       // Filter by Weight
       if (selectedWeights.length > 0) {
         filtered = filtered.filter((p: any) =>
-          p.variants?.some((v: any) => selectedWeights.includes(v.weightLabel || v.weight))
+          p.variants?.some((v: any) => selectedWeights.includes(v.weight || v.weightLabel))
         );
       }
 
-      // Sort
+      // Sorting
       if (sort === 'price_low') {
         filtered.sort((a: any, b: any) => (a.variants?.[0]?.price || 0) - (b.variants?.[0]?.price || 0));
       } else if (sort === 'price_high') {
         filtered.sort((a: any, b: any) => (b.variants?.[0]?.price || 0) - (a.variants?.[0]?.price || 0));
+      } else if (sort === 'rating') {
+        filtered.sort((a: any, b: any) => (b.rating || b.ratingAvg || 0) - (a.rating || a.ratingAvg || 0));
       } else if (sort === 'newest') {
-        filtered.sort((a: any, b: any) => (b.isNew ? 1 : -1));
-      } else {
-        filtered.sort((a: any, b: any) => (b.rating || b.ratingAvg || 4.8) - (a.rating || a.ratingAvg || 4.8));
+        filtered.sort((a: any, b: any) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
       }
 
-      setTotal(filtered.length);
-      const start = (page - 1) * pageSize;
-      setProducts(filtered.slice(start, start + pageSize));
+      setProducts(filtered);
+      setTotal(apiFetchedSuccess ? apiTotalCount : filtered.length);
       setLoading(false);
-    };
+    }
 
-    fetchProducts();
+    loadCatalog();
+
+    window.addEventListener('admin_data_updated', loadCatalog);
+    window.addEventListener('storage', loadCatalog);
 
     return () => {
       active = false;
+      window.removeEventListener('admin_data_updated', loadCatalog);
+      window.removeEventListener('storage', loadCatalog);
     };
   }, [category, initialSearch, page, selectedRange, selectedWeights, sort]);
 

@@ -4,6 +4,19 @@ import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
+router.get("/", async (_req, res) => {
+  try {
+    const reviews = await prisma.review.findMany({
+      take: 20,
+      orderBy: { createdAt: "desc" },
+      include: { user: { select: { id: true, name: true } } }
+    });
+    res.json(reviews);
+  } catch (err) {
+    res.json([]);
+  }
+});
+
 router.post("/", authenticate, async (req, res) => {
   const { productId, rating, comment } = req.body;
   const userId = req.userId;

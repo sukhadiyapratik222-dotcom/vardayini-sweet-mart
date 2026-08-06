@@ -10,6 +10,7 @@ import { products as localProducts, Product as LocalProduct } from '../data';
 
 type ProductSearchProps = {
   compact?: boolean;
+  showCategorySelect?: boolean;
 };
 
 type SearchItem = {
@@ -21,9 +22,10 @@ type SearchItem = {
   price: number;
 };
 
-export default function ProductSearch({ compact = false }: ProductSearchProps) {
+export default function ProductSearch({ compact = false, showCategorySelect = true }: ProductSearchProps) {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [items, setItems] = useState<SearchItem[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -74,7 +76,11 @@ export default function ProductSearch({ compact = false }: ProductSearchProps) {
 
       if (found.length === 0) {
         found = localProducts
-          .filter((p) => p.name.toLowerCase().includes(trimmed) || p.description.toLowerCase().includes(trimmed) || p.category.toLowerCase().includes(trimmed))
+          .filter((p) => {
+            const matchQuery = p.name.toLowerCase().includes(trimmed) || p.description.toLowerCase().includes(trimmed) || p.category.toLowerCase().includes(trimmed);
+            const matchCat = selectedCategory ? p.category === selectedCategory : true;
+            return matchQuery && matchCat;
+          })
           .map((p) => {
             const minPrice = p.variants[0]?.discountedPrice || p.variants[0]?.price || 0;
             return {
@@ -94,34 +100,66 @@ export default function ProductSearch({ compact = false }: ProductSearchProps) {
     }, 200);
 
     return () => window.clearTimeout(timeout);
-  }, [query]);
+  }, [query, selectedCategory]);
 
   const results = useMemo(() => items.slice(0, compact ? 5 : 7), [compact, items]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const trimmed = query.trim();
-    if (!trimmed) return;
     setOpen(false);
-    router.push(`/categories?search=${encodeURIComponent(trimmed)}`);
+    if (selectedCategory && trimmed) {
+      router.push(`/categories/${selectedCategory}?search=${encodeURIComponent(trimmed)}`);
+    } else if (selectedCategory) {
+      router.push(`/categories/${selectedCategory}`);
+    } else if (trimmed) {
+      router.push(`/categories?search=${encodeURIComponent(trimmed)}`);
+    } else {
+      router.push('/categories');
+    }
   };
 
   return (
     <div ref={wrapperRef} className="relative w-full">
-      <form onSubmit={handleSubmit} className="relative">
+      <form onSubmit={handleSubmit} className="flex items-center w-full rounded-xl sm:rounded-2xl border-2 border-gold/40 bg-white shadow-sm overflow-hidden focus-within:border-gold focus-within:ring-2 focus-within:ring-gold/30 transition-all">
+        {/* Search Input */}
         <input
           type="search"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
-          placeholder="Search Kaju Katli, Namkeen, Baklava, Gifts..."
-          className={`w-full rounded-2xl border-2 border-gold/40 bg-white px-4 ${
-            compact ? 'py-2 text-xs sm:text-sm' : 'py-3 text-sm'
-          } pr-11 outline-none transition-all focus:border-gold focus:ring-4 focus:ring-gold/20 shadow-sm`}
+          placeholder="Search for Products..."
+          className={`w-full bg-transparent px-3.5 ${
+            compact ? 'py-2 text-xs sm:text-sm' : 'py-2.5 text-sm'
+          } text-gray-800 outline-none placeholder-gray-400 font-medium`}
         />
+
+        {/* Category Dropdown */}
+        {showCategorySelect && (
+          <div className="hidden sm:flex items-center border-l border-gray-200 px-2 shrink-0 bg-gray-50/50 hover:bg-gray-100/50 transition">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="bg-transparent text-xs text-gray-700 font-semibold outline-none cursor-pointer pr-1 py-2"
+              aria-label="Filter by Category"
+            >
+              <option value="">All Categories</option>
+              <option value="sweets">Sweets</option>
+              <option value="namkeen">Namkeen</option>
+              <option value="bakery">Bakery</option>
+              <option value="mukhwas">Mukhwas</option>
+              <option value="dry-fruits-nuts">Dried Fruits & Nuts</option>
+              <option value="premium-baklava">Baklava</option>
+              <option value="corporate-gift-boxes">Corporate Gifts</option>
+            </select>
+          </div>
+        )}
+
+        {/* Search Button */}
         <button
           type="submit"
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-xl text-[#0B1B3D] hover:text-gold-dark transition"
+          className="bg-[#0B1B3D] hover:bg-[#162C5B] text-gold-bright p-2.5 sm:px-4 shrink-0 transition flex items-center justify-center font-bold"
+          aria-label="Submit Search"
         >
           <Search size={18} />
         </button>
@@ -147,7 +185,7 @@ export default function ProductSearch({ compact = false }: ProductSearchProps) {
           <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
             {results.length === 0 && !loading ? (
               <div className="px-4 py-6 text-center text-xs text-gray-500 font-medium">
-                No matching sweets or namkeen found for &quot;{query}&quot;.
+                No matching products found for &quot;{query}&quot;.
               </div>
             ) : (
               results.map((item) => (
