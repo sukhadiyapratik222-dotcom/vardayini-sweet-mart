@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -16,7 +16,7 @@ enum ProductTag {
 }
 
 model User {
-  id           String     @id @default(uuid())
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   email        String     @unique
   phone        String?    @unique
@@ -34,7 +34,7 @@ model User {
 }
 
 model Admin {
-  id           String   @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   email        String   @unique
   phone        String?  @unique
@@ -46,9 +46,9 @@ model Admin {
 }
 
 model Address {
-  id        String  @id @default(uuid())
-  user      User    @relation(fields: [userId], references: [id])
-  userId    String
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  user      User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId    String  @db.ObjectId
   line1     String
   line2     String?
   city      String
@@ -58,9 +58,9 @@ model Address {
 }
 
 model Category {
-  id        Int        @id @default(autoincrement())
-  parent    Category?  @relation("CategoryChildren", fields: [parentId], references: [id])
-  parentId  Int?       @map("parent_id")
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  parent    Category?  @relation("CategoryChildren", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  parentId  String?    @map("parent_id") @db.ObjectId
   name      String
   slug      String     @unique
   sortOrder Int        @default(0) @map("sort_order")
@@ -71,9 +71,9 @@ model Category {
 }
 
 model Product {
-  id            Int              @id @default(autoincrement())
-  category      Category         @relation(fields: [categoryId], references: [id])
-  categoryId    Int              @map("category_id")
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId
+  category      Category         @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categoryId    String           @map("category_id") @db.ObjectId
   name          String
   slug          String           @unique
   description   String?
@@ -91,9 +91,9 @@ model Product {
 }
 
 model ProductImage {
-  id        Int     @id @default(autoincrement())
-  product   Product @relation(fields: [productId], references: [id])
-  productId Int     @map("product_id")
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productId String  @map("product_id") @db.ObjectId
   imageUrl  String  @map("image_url")
   altText   String? @map("alt_text")
   sortOrder Int     @default(0) @map("sort_order")
@@ -102,12 +102,12 @@ model ProductImage {
 }
 
 model ProductVariant {
-  id              Int         @id @default(autoincrement())
-  product         Product     @relation(fields: [productId], references: [id])
-  productId       Int         @map("product_id")
+  id              String      @id @default(auto()) @map("_id") @db.ObjectId
+  product         Product     @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productId       String      @map("product_id") @db.ObjectId
   weightLabel     String      @map("weight_label")
-  price           Decimal     @db.Decimal(10,2)
-  discountedPrice Decimal?    @map("discounted_price") @db.Decimal(10,2)
+  price           Float
+  discountedPrice Float?      @map("discounted_price")
   stockQty        Int         @default(0) @map("stock_qty")
   sku             String      @unique
   cartItems       CartItem[]
@@ -117,9 +117,9 @@ model ProductVariant {
 }
 
 model Cart {
-  id        String     @id @default(uuid())
-  user      User?      @relation(fields: [userId], references: [id])
-  userId    String?    @map("user_id")
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  user      User?      @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId    String?    @map("user_id") @db.ObjectId
   sessionId String?    @map("session_id")
   createdAt DateTime   @default(now()) @map("created_at")
   items     CartItem[]
@@ -128,26 +128,26 @@ model Cart {
 }
 
 model CartItem {
-  id               String         @id @default(uuid())
-  cart             Cart           @relation(fields: [cartId], references: [id])
-  cartId           String         @map("cart_id")
-  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
-  productVariantId Int            @map("product_variant_id")
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  cart             Cart           @relation(fields: [cartId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  cartId           String         @map("cart_id") @db.ObjectId
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productVariantId String         @map("product_variant_id") @db.ObjectId
   quantity         Int            @default(1)
 
   @@map("cart_items")
 }
 
 model Order {
-  id            String        @id @default(uuid())
-  user          User?         @relation(fields: [userId], references: [id])
-  userId        String?       @map("user_id")
+  id            String        @id @default(auto()) @map("_id") @db.ObjectId
+  user          User?         @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId        String?       @map("user_id") @db.ObjectId
   orderNumber   String        @unique @map("order_number")
   status        String        @default("pending")
-  subtotal      Decimal       @db.Decimal(10,2)
-  discount      Decimal       @db.Decimal(10,2) @default(0)
-  deliveryFee   Decimal       @map("delivery_fee") @db.Decimal(10,2) @default(0)
-  total         Decimal       @db.Decimal(10,2)
+  subtotal      Float
+  discount      Float         @default(0)
+  deliveryFee   Float         @map("delivery_fee") @default(0)
+  total         Float
   paymentStatus String        @default("pending") @map("payment_status")
   createdAt     DateTime      @default(now()) @map("created_at")
   items         OrderItem[]
@@ -158,21 +158,21 @@ model Order {
 }
 
 model OrderItem {
-  id               String         @id @default(uuid())
-  order            Order          @relation(fields: [orderId], references: [id])
-  orderId          String         @map("order_id")
-  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
-  productVariantId Int            @map("product_variant_id")
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderId          String         @map("order_id") @db.ObjectId
+  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productVariantId String         @map("product_variant_id") @db.ObjectId
   quantity         Int
-  priceAtPurchase  Decimal        @map("price_at_purchase") @db.Decimal(10,2)
+  priceAtPurchase  Float          @map("price_at_purchase")
 
   @@map("order_items")
 }
 
 model OrderAddress {
-  id      String  @id @default(uuid())
-  order   Order   @relation(fields: [orderId], references: [id])
-  orderId String  @unique @map("order_id")
+  id      String  @id @default(auto()) @map("_id") @db.ObjectId
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderId String  @unique @map("order_id") @db.ObjectId
   line1   String
   line2   String?
   city    String
@@ -183,12 +183,12 @@ model OrderAddress {
 }
 
 model Payment {
-  id            String   @id @default(uuid())
-  order         Order    @relation(fields: [orderId], references: [id])
-  orderId       String   @unique @map("order_id")
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  orderId       String   @unique @map("order_id") @db.ObjectId
   gateway       String
   transactionId String   @unique @map("transaction_id")
-  amount        Decimal  @db.Decimal(10,2)
+  amount        Float
   status        String
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -196,7 +196,7 @@ model Payment {
 }
 
 model Coupon {
-  id                   String    @id @default(uuid())
+  id                   String    @id @default(auto()) @map("_id") @db.ObjectId
   name                 String?
   code                 String    @unique
   discountType         String    @map("discount_type")
@@ -218,11 +218,11 @@ model Coupon {
 }
 
 model Review {
-  id        String   @id @default(uuid())
-  product   Product  @relation(fields: [productId], references: [id])
-  productId Int      @map("product_id")
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @map("user_id")
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  product   Product  @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productId String   @map("product_id") @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId    String   @map("user_id") @db.ObjectId
   rating    Int
   comment   String
   createdAt DateTime @default(now()) @map("created_at")
@@ -231,18 +231,18 @@ model Review {
 }
 
 model Wishlist {
-  id        String  @id @default(uuid())
-  user      User    @relation(fields: [userId], references: [id])
-  userId    String  @map("user_id")
-  product   Product @relation(fields: [productId], references: [id])
-  productId Int     @map("product_id")
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  user      User    @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  userId    String  @map("user_id") @db.ObjectId
+  product   Product @relation(fields: [productId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  productId String  @map("product_id") @db.ObjectId
 
   @@unique([userId, productId])
   @@map("wishlists")
 }
 
 model Store {
-  id        String @id @default(uuid())
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
   name      String
   address   String
   city      String
@@ -255,7 +255,7 @@ model Store {
 }
 
 model BlogPost {
-  id          String    @id @default(uuid())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   title       String
   slug        String    @unique
   content     String

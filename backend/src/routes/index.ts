@@ -17,7 +17,7 @@ export const router = Router();
 
 router.get("/health", async (_req, res) => {
 	try {
-		await prisma.$queryRaw`SELECT 1`;
+		await prisma.$runCommandRaw({ ping: 1 });
 		res.json({
 			status: "ok",
 			database: "connected",

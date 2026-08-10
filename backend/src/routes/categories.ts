@@ -113,7 +113,7 @@ router.post("/", async (req, res) => {
       data: {
         name: cleanName,
         slug: finalSlug,
-        ...(parentId ? { parentId: Number(parentId) } : {}),
+        ...(parentId ? { parentId: String(parentId) } : {}),
       },
       include: { children: true },
     });
@@ -150,11 +150,9 @@ router.get("/:slug", async (req, res) => {
 // DELETE /api/categories/:id - Block deletion if category has products
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
-  const targetId = Number(id);
-
   try {
     const productsCount = await prisma.product.count({
-      where: { categoryId: Number.isNaN(targetId) ? -1 : targetId }
+      where: { categoryId: id }
     });
 
     if (productsCount > 0) {
@@ -163,7 +161,7 @@ router.delete("/:id", async (req, res) => {
       });
     }
 
-    await prisma.category.delete({ where: { id: Number.isNaN(targetId) ? -1 : targetId } });
+    await prisma.category.delete({ where: { id } });
     res.json({ message: "Category deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete category" });

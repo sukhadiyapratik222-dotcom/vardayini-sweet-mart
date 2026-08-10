@@ -297,7 +297,7 @@ router.get("/:slug", async (req, res) => {
   const { slug } = req.params;
   try {
     const product = await prisma.product.findFirst({
-      where: { OR: [{ slug }, { id: Number(slug) || -1 }] },
+      where: { OR: [{ slug }, { id: slug }] },
       include: {
         category: true,
         variants: true,
@@ -322,7 +322,7 @@ router.get("/:id/reviews", async (req, res) => {
   const productId = req.params.id;
   try {
     const reviews = await prisma.review.findMany({
-      where: { OR: [{ productId: Number(productId) || -1 }] },
+      where: { OR: [{ productId: productId }] },
       include: { user: { select: { id: true, name: true } } },
       orderBy: { createdAt: "desc" }
     });
@@ -334,22 +334,22 @@ router.get("/:id/reviews", async (req, res) => {
 
 // POST /api/products/:id/reviews
 router.post("/:id/reviews", authenticate, async (req, res) => {
-  const productId = Number(req.params.id);
-  const { rating, comment } = req.body;
-  const userId = req.userId;
+    const productId = String(req.params.id);
+    const { rating, comment } = req.body;
+    const userId = req.userId;
 
-  if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
 
-  try {
-    const review = await prisma.review.create({
-      data: {
-        productId,
-        userId,
-        rating: Number(rating),
-        comment: String(comment || "")
-      },
+    try {
+      const review = await prisma.review.create({
+        data: {
+          productId,
+          userId,
+          rating: Number(rating),
+          comment: String(comment || "")
+        },
       include: { user: { select: { id: true, name: true } } }
     });
 

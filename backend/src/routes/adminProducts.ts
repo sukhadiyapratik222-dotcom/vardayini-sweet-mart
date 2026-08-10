@@ -41,11 +41,10 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const targetId = Number(id);
 
     const product = await prisma.product.findFirst({
       where: {
-        OR: [{ id: Number.isNaN(targetId) ? -1 : targetId }, { slug: id }],
+        OR: [{ id }, { slug: id }],
       },
       include: {
         category: true,
@@ -181,12 +180,11 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const targetId = Number(id);
     const { name, slug, description, categorySlug, tag, isActive, variants, imageUrls } = req.body;
 
     const existing = await prisma.product.findFirst({
       where: {
-        OR: [{ id: Number.isNaN(targetId) ? -1 : targetId }, { slug: id }],
+        OR: [{ id }, { slug: id }],
       },
     });
 
@@ -274,7 +272,7 @@ router.put("/:id", async (req, res) => {
         where: { productId: product.id }
       });
 
-      const processedVariantIds = new Set<number>();
+      const processedVariantIds = new Set<string>();
 
       for (let idx = 0; idx < variants.length; idx++) {
         const v = variants[idx];
@@ -284,8 +282,8 @@ router.put("/:id", async (req, res) => {
         const stockQty = Number(v.stockQty ?? 50);
 
         let matched = null;
-        if (v.id && !Number.isNaN(Number(v.id))) {
-          matched = existingVariants.find(ev => ev.id === Number(v.id));
+        if (v.id) {
+          matched = existingVariants.find(ev => ev.id === String(v.id));
         }
         if (!matched && weightLabel) {
           matched = existingVariants.find(ev => ev.weightLabel.toLowerCase() === weightLabel.toLowerCase());
@@ -353,11 +351,10 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const targetId = Number(id);
 
     const existing = await prisma.product.findFirst({
       where: {
-        OR: [{ id: Number.isNaN(targetId) ? -1 : targetId }, { slug: id }],
+        OR: [{ id }, { slug: id }],
       },
     });
 
@@ -388,18 +385,17 @@ router.delete("/:id", async (req, res) => {
 router.put("/:id/stock", async (req, res) => {
   try {
     const { id } = req.params;
-    const targetId = Number(id);
     const { variantId, stockQty } = req.body;
 
     if (variantId) {
       const variant = await prisma.productVariant.update({
-        where: { id: Number(variantId) },
+        where: { id: String(variantId) },
         data: { stockQty: Number(stockQty) },
       });
       return res.json({ success: true, variant });
     }
 
-    res.json({ success: true, message: "Stock updated", id: targetId, stockQty });
+    res.json({ success: true, message: "Stock updated", id, stockQty });
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Failed to update stock." });
   }

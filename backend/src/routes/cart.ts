@@ -139,19 +139,16 @@ router.get("/", async (req, res) => {
 // POST /api/cart/add OR /api/cart/items - Add item to cart
 const handleAddToCart = async (req: any, res: any) => {
   try {
-    const { variant_id, variantId, productVariantId, qty, quantity = 1, cartId, sessionId, userId } = req.body;
-    const targetVariantId = variant_id || variantId || productVariantId;
+    const { variant_id, variantId: variantIdBody, productVariantId, qty, quantity = 1, cartId, sessionId, userId } = req.body;
+    const targetVariantId = variant_id || variantIdBody || productVariantId;
     const targetQty = Math.max(1, Number(qty || quantity));
 
     if (!targetVariantId) {
       return res.status(400).json({ error: "variant_id is required." });
     }
 
-    const vId = Number(targetVariantId);
-    let variant = null;
-    if (!Number.isNaN(vId) && vId > 0) {
-      variant = await prisma.productVariant.findUnique({ where: { id: vId } });
-    }
+    const variantId = String(targetVariantId);
+    const variant = await prisma.productVariant.findUnique({ where: { id: variantId } });
 
     const maxStock = variant ? Math.max(1, variant.stockQty) : 50;
 
@@ -173,7 +170,7 @@ const handleAddToCart = async (req: any, res: any) => {
     }
 
     const existingItem = await prisma.cartItem.findFirst({
-      where: { cartId: cart.id, productVariantId: vId || Number(targetVariantId) }
+      where: { cartId: cart.id, productVariantId: variantId }
     });
 
     if (existingItem) {
@@ -190,7 +187,7 @@ const handleAddToCart = async (req: any, res: any) => {
       await prisma.cartItem.create({
         data: {
           cartId: cart.id,
-          productVariantId: vId || Number(targetVariantId),
+          productVariantId: variantId,
           quantity: nextQty
         }
       });

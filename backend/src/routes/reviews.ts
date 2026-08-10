@@ -29,10 +29,7 @@ router.post("/", authenticate, async (req, res) => {
 });
 
 router.get("/product/:productId", async (req, res) => {
-  const productId = Number(req.params.productId);
-  if (!Number.isInteger(productId)) {
-    return res.status(400).json({ error: "Invalid product id" });
-  }
+  const productId = req.params.productId;
 
   const reviews = await prisma.review.findMany({
     where: { productId },

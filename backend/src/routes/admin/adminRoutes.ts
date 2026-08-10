@@ -5,7 +5,9 @@ import { requireAdmin } from "../../middleware/adminAuth";
 const router = Router();
 
 import { getUnifiedDashboardStats } from "../../services/statsService";
+import { getAllAnalytics } from "../../services/analyticsService";
 import { CouponSchema, CustomerSchema, OrderStatusSchema, ALLOWED_STATUS_TRANSITIONS, formatZodError } from "../../validators/schemaValidators";
+
 
 // Protect all /api/admin routes with requireAdmin middleware
 router.use(requireAdmin);
@@ -41,6 +43,75 @@ router.get("/recalculate-stats", async (_req, res) => {
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message || "Failed to recalculate stats" });
+  }
+});
+
+// Analytics Dashboard Endpoint — GET /api/admin/analytics
+router.get("/analytics", async (req, res) => {
+  try {
+    const { period = "last30days", from, to } = req.query as Record<string, string>;
+
+    const now = new Date();
+    let dateFrom: Date;
+    let dateTo: Date = new Date(now);
+    dateTo.setHours(23, 59, 59, 999);
+
+    switch (period) {
+      case "today":
+        dateFrom = new Date(now);
+        dateFrom.setHours(0, 0, 0, 0);
+        break;
+      case "yesterday":
+        dateFrom = new Date(now);
+        dateFrom.setDate(now.getDate() - 1);
+        dateFrom.setHours(0, 0, 0, 0);
+        dateTo = new Date(dateFrom);
+        dateTo.setHours(23, 59, 59, 999);
+        break;
+      case "last7days":
+        dateFrom = new Date(now);
+        dateFrom.setDate(now.getDate() - 6);
+        dateFrom.setHours(0, 0, 0, 0);
+        break;
+      case "last30days":
+        dateFrom = new Date(now);
+        dateFrom.setDate(now.getDate() - 29);
+        dateFrom.setHours(0, 0, 0, 0);
+        break;
+      case "thismonth":
+        dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+        break;
+      case "lastmonth":
+        dateFrom = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        dateTo = new Date(now.getFullYear(), now.getMonth(), 0);
+        dateTo.setHours(23, 59, 59, 999);
+        break;
+      case "thisyear":
+        dateFrom = new Date(now.getFullYear(), 0, 1);
+        break;
+      case "custom":
+        if (!from || !to) {
+          return res.status(400).json({ error: "from and to are required for custom period" });
+        }
+        dateFrom = new Date(from);
+        dateTo = new Date(to);
+        dateTo.setHours(23, 59, 59, 999);
+        break;
+      default:
+        dateFrom = new Date(now);
+        dateFrom.setDate(now.getDate() - 29);
+        dateFrom.setHours(0, 0, 0, 0);
+    }
+
+    const diffMs = dateTo.getTime() - dateFrom.getTime();
+    const prevTo = new Date(dateFrom.getTime() - 1);
+    const prevFrom = new Date(prevTo.getTime() - diffMs);
+
+    const analytics = await getAllAnalytics(dateFrom, dateTo, prevFrom, prevTo);
+    res.json(analytics);
+  } catch (error: any) {
+    console.error("Analytics Error:", error);
+    res.status(500).json({ error: "Failed to compute analytics", detail: error.message });
   }
 });
 

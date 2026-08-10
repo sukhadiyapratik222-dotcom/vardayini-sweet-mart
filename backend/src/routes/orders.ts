@@ -66,15 +66,13 @@ router.post("/", async (req, res) => {
 
       for (const item of rawItems) {
         let variant = null;
-        const vId = Number(item.variantId || item.variant_id);
-        if (!Number.isNaN(vId) && vId > 0) {
+        const vId = String(item.variantId || item.variant_id || "");
+        if (vId) {
           variant = await tx.productVariant.findUnique({ where: { id: vId } });
         }
         if (!variant && item.productId) {
-          const pId = Number(item.productId);
-          if (!Number.isNaN(pId) && pId > 0) {
-            variant = await tx.productVariant.findFirst({ where: { productId: pId } });
-          }
+          const pId = String(item.productId);
+          variant = await tx.productVariant.findFirst({ where: { productId: pId } });
         }
         if (!variant && item.name) {
           const matchedProd = await tx.product.findFirst({
