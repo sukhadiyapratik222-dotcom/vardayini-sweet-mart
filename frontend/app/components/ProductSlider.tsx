@@ -2,15 +2,18 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Heart, ShoppingCart, Star, Check } from 'lucide-react';
-import { Product } from '../data';
+import { ChevronLeft, ChevronRight, Heart, Star, Check } from 'lucide-react';
+import { ApiProduct, productService } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
 
 interface ProductSliderProps {
   title: string;
   subtitle?: string;
-  products: Product[];
+  // Either provide products directly, or specify a type to fetch them
+  products?: ApiProduct[]; // Optional, for direct product passing
+  fetchType?: 'best_seller' | 'new_arrival' | 'premium'; // For fetching internally
+  tag?: string; // For fetching by tag, if fetchType is 'tag'
   categoryLink?: string;
 }
 
@@ -18,9 +21,12 @@ export default function ProductSlider({
   title,
   subtitle,
   products,
+  fetchType,
+  tag,
   categoryLink,
 }: ProductSliderProps) {
-  const [scrollPosition, setScrollPosition] = useState(0);
+  const [fetchedProducts, setFetchedProducts] = useState<ApiProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
   const [wishlist, setWishlist] = useState<Set<string>>(new Set());
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
@@ -28,6 +34,43 @@ export default function ProductSlider({
   const sliderRef = useRef<HTMLDivElement>(null);
   const { t } = useLanguage();
   const { addToCart, setIsOpen } = useCart();
+  
+  // Fetch products if fetchType is provided
+  useEffect(() => {
+    let isMounted = true;
+    const loadProducts = async () => {
+      if (!fetchType && !tag) {
+        // If no fetchType or tag, assume products are passed directly or it's an empty slider
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        let data: ApiProduct[] = [];
+        if (fetchType === 'best_seller' || fetchType === 'new_arrival' || fetchType === 'premium') {
+          data = await productService.getFeatured(fetchType);
+        } else if (tag) {
+          data = await productService.getByTag(tag);
+        }
+        
+        if (isMounted) {
+          setFetchedProducts(data);
+        }
+      } catch (error) {
+        console.error(`Failed to fetch products for slider type ${fetchType || tag}:`, error);
+        if (isMounted) {
+          setFetchedProducts([]); // Show empty or error state
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+    loadProducts();
+    return () => { isMounted = false; };
+  }, [fetchType, tag]);
 
   // Deduplicate input products by normalized name/slug
   const uniqueProducts = useMemo(() => {
@@ -40,25 +83,19 @@ export default function ProductSlider({
     });
     return Array.from(map.values());
   }, [products]);
+  
+  const displayProducts = uniqueProducts;
 
-  // Only duplicate for infinite carousel loop if there are 4+ unique products
-  const displayProducts = uniqueProducts.length >= 4 ? [...uniqueProducts, ...uniqueProducts] : uniqueProducts;
-
-  // True infinite loop: auto-scroll every 5s, silently reset at halfway point
+  // Auto-scroll logic: scroll right, return to start when at end
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
       const container = sliderRef.current;
       if (!container) return;
-      const half = container.scrollWidth / 2;
-      // If we've scrolled past the first copy, silently jump back to start
-      if (container.scrollLeft >= half - 10) {
-        container.style.scrollBehavior = 'auto';
-        container.scrollLeft = 0;
-        // Re-enable smooth scroll after reset
-        requestAnimationFrame(() => {
-          container.style.scrollBehavior = 'smooth';
-        });
+      
+      const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 10;
+      if (isAtEnd) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
       } else {
         container.scrollBy({ left: 270, behavior: 'smooth' });
       }
@@ -83,7 +120,7 @@ export default function ProductSlider({
     setWishlist(newWishlist);
   };
 
-  const handleAddToCart = async (product: Product, selectedWeight: string) => {
+  const handleAddToCart = async (product: ApiProduct, selectedWeight: string) => {
     const variant = product.variants.find((v) => v.weight === selectedWeight) || product.variants[0];
     const targetVariantId = variant.id || `${product.id}-${variant.weight}`;
 
@@ -128,7 +165,7 @@ export default function ProductSlider({
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
         >
-          {products.length === 0 && (
+          {(isLoading || displayProducts.length === 0) && (
             // Skeleton loader for empty state
             [...Array(4)].map((_, i) => (
               <div key={i} className="flex-shrink-0 w-52 sm:w-64 md:w-72">
@@ -144,7 +181,7 @@ export default function ProductSlider({
             ))
           )}
           {/* Render unique products (only duplicate for infinite loop when 4+ items exist) */}
-          {displayProducts.length > 0 && displayProducts.map((product, loopIndex) => {
+          {!isLoading && displayProducts.length > 0 && displayProducts.map((product, loopIndex) => {
             const selectedWeight = selectedVariants[product.id];
             const variant = selectedWeight ? product.variants.find((v: any) => v.weight === selectedWeight) : undefined;
             const totalStock = product.variants.reduce((sum: number, v: any) => sum + Number(v.stockQty ?? v.stock ?? 0), 0);
@@ -164,16 +201,16 @@ export default function ProductSlider({
                   {/* Image Container */}
                   <div className="relative w-full rounded-lg overflow-hidden bg-gray-100 aspect-square flex items-center justify-center">
                     <img
-                      src={(product as any).image || (product as any).primaryImage || (product as any).imageUrls?.[0] || (product as any).productImages?.[0]?.imageUrl || '/images/sweet-1.jpg'}
+                      src={product.primaryImage || product.image || product.imageUrls?.[0] || product.productImages?.[0]?.imageUrl || '/images/sweet-1.jpg'}
                       alt={product.name}
                       onError={(e) => { (e.target as HTMLImageElement).src = '/images/sweet-1.jpg'; }}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     {/* Badges */}
-                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end z-10">
+                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end z-10 text-nowrap">
                       {isOutOfStock && <span className="bg-red-600 text-white px-2 py-0.5 rounded text-[10px] font-bold">Out of Stock</span>}
-                      {!isOutOfStock && product.isBestSeller && <span className="bg-[#1a3a6b] text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold">Best Seller</span>}
-                      {!isOutOfStock && product.isNew && <span className="bg-amber-400 text-[#1a3a6b] px-2 py-0.5 rounded text-[10px] font-black">NEW</span>}
+                      {!isOutOfStock && product.tag === 'best_seller' && <span className="bg-[#1a3a6b] text-amber-400 px-2 py-0.5 rounded text-[10px] font-bold">Best Seller</span>}
+                      {!isOutOfStock && product.tag === 'new_arrival' && <span className="bg-amber-400 text-[#1a3a6b] px-2 py-0.5 rounded text-[10px] font-black">NEW</span>}
                     </div>
                     {/* Wishlist */}
                     <button onClick={() => toggleWishlist(product.id)} className="absolute top-2 left-2 bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow hover:bg-white transition z-10" aria-label="Wishlist">
@@ -256,4 +293,3 @@ export default function ProductSlider({
     </section>
   );
 }
-

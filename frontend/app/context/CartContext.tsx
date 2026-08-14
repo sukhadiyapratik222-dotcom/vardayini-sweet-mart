@@ -43,10 +43,12 @@ export interface CartTotals {
 interface CartContextType {
   cart: CartTotals | null;
   loading: boolean;
+  couponLoading: boolean;
+  couponError: string | null;
   addToCart: (productVariantId: string, quantity: number) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
-  applyCoupon: (code: string) => { success: boolean; message: string };
+  applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
   getCartCount: () => number;
   isOpen: boolean;
@@ -62,17 +64,17 @@ const FREE_DELIVERY_THRESHOLD = 1000;
 const BULK_DISCOUNT_THRESHOLD = 4200;
 const BULK_DISCOUNT_PERCENT = 5;
 
-const VALID_COUPONS: Record<string, number> = {
-  SWEET10: 10,
-  FESTIVE5: 5,
-  GIFT15: 15,
-};
+const validatedCouponsCache: Record<string, { type: string, value: number, minOrder: number }> = {};
+
+
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartTotals | null>(null);
   const [localItems, setLocalItems] = useState<CartItem[]>([]);
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [sessionId] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -99,24 +101,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount += item.quantity;
     });
 
-    let couponPercent = 0;
+    let couponDiscountAmount = 0;
     let validCouponCode = couponCode;
 
     if (couponCode) {
       const cleanCode = couponCode.toUpperCase();
-      if (cleanCode.startsWith('BULK') || cleanCode.includes('BULK')) {
-        if (subtotal < BULK_DISCOUNT_THRESHOLD) {
+      const cached = validatedCouponsCache[cleanCode];
+      
+      if (cached) {
+        if (cached.minOrder > 0 && subtotal < cached.minOrder) {
           validCouponCode = null;
-          couponPercent = 0;
         } else {
-          couponPercent = 5;
+          if (cached.type === 'PERCENTAGE' || cached.type === 'percentage') {
+            couponDiscountAmount = Math.round((subtotal * cached.value) / 100);
+          } else {
+            couponDiscountAmount = cached.value;
+          }
         }
-      } else if (VALID_COUPONS[cleanCode]) {
-        couponPercent = VALID_COUPONS[cleanCode];
       }
     }
-
-    const couponDiscountAmount = (subtotal * couponPercent) / 100;
     const bulkDiscountAmount = subtotal >= BULK_DISCOUNT_THRESHOLD ? (subtotal * BULK_DISCOUNT_PERCENT) / 100 : 0;
     
     // Avoid double counting bulk discount if BULK coupon is applied
@@ -390,54 +393,70 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   };
 
-  const applyCoupon = (code: string) => {
+  const applyCoupon = async (code: string) => {
     const cleanCode = code.trim().toUpperCase();
     const currentSubtotal = cart?.subtotal || 0;
 
-    if (cleanCode.startsWith('BULK') || cleanCode.includes('BULK')) {
-      if (currentSubtotal < BULK_DISCOUNT_THRESHOLD) {
-        const remaining = Math.max(0, BULK_DISCOUNT_THRESHOLD - currentSubtotal);
-        return {
-          success: false,
-          message: `Minimum order subtotal of ₹${BULK_DISCOUNT_THRESHOLD.toLocaleString('en-IN')} required for 5% Bulk Offer. Add ₹${remaining.toLocaleString('en-IN')} more to unlock!`
-        };
+    if (!cleanCode) {
+      const errorMsg = "Invalid coupon code.";
+      setCouponError(errorMsg);
+      return { success: false, message: errorMsg };
+    }
+
+    setCouponLoading(true);
+    setCouponError(null);
+
+    // Validate with backend API first to fetch exact rules & minOrderValue from MongoDB
+    try {
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+      const res = await fetch(`${API_BASE_URL}/coupons/validate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: cleanCode, subtotal: currentSubtotal, cartItems: localItems }),
+      });
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        const errorMsg = data.errors?.code || data.error || "Invalid coupon code.";
+        setCouponError(errorMsg);
+        setCouponLoading(false);
+        return { success: false, message: errorMsg };
       }
-      VALID_COUPONS[cleanCode] = 5;
+
+      const discVal = Number(data.discountValue ?? data.coupon?.discountValue ?? 10);
+      const minOrderVal = Number(data.minOrderValue ?? data.coupon?.minOrderValue ?? 0);
+
+      if (minOrderVal > 0 && currentSubtotal < minOrderVal) {
+        const remaining = minOrderVal - currentSubtotal;
+        const errorMsg = `Add ₹${remaining.toLocaleString('en-IN')} more to use this coupon.`;
+        setCouponError(errorMsg);
+        setCouponLoading(false);
+        return { success: false, message: errorMsg };
+      }
+
+      const discType = data.discountType || data.coupon?.discountType || 'PERCENTAGE';
+      
+      validatedCouponsCache[cleanCode] = {
+        type: discType,
+        value: discVal,
+        minOrder: minOrderVal
+      };
+
       setAppliedCoupon(cleanCode);
       setCart(calculateCart(localItems, cleanCode));
-      return { success: true, message: `🎉 Bulk Offer Coupon '${cleanCode}' applied! You get 5% OFF on your order.` };
+      setCouponLoading(false);
+      return { success: true, message: `✓ Coupon ${cleanCode} applied` };
+    } catch (err) {
+      const errorMsg = "Unable to validate coupon. Please check your connection or try again later.";
+      setCouponError(errorMsg);
+      setCouponLoading(false);
+      return { success: false, message: errorMsg };
     }
-
-    if (VALID_COUPONS[cleanCode]) {
-      const discount = VALID_COUPONS[cleanCode];
-      setAppliedCoupon(cleanCode);
-      setCart(calculateCart(localItems, cleanCode));
-      return { success: true, message: `🎉 Coupon '${cleanCode}' applied! You get ${discount}% OFF.` };
-    }
-
-    if (
-      cleanCode.startsWith('SPIN') ||
-      cleanCode.startsWith('WIN') ||
-      cleanCode.startsWith('SWEET') ||
-      cleanCode.startsWith('FESTIVE') ||
-      cleanCode.startsWith('GIFT')
-    ) {
-      let discountPercent = 10;
-      if (cleanCode.includes('15')) discountPercent = 15;
-      else if (cleanCode.includes('5')) discountPercent = 5;
-      else if (cleanCode.includes('20')) discountPercent = 20;
-
-      VALID_COUPONS[cleanCode] = discountPercent;
-      setAppliedCoupon(cleanCode);
-      setCart(calculateCart(localItems, cleanCode));
-      return { success: true, message: `🎉 Spin & Win Coupon '${cleanCode}' validated & applied! You get ${discountPercent}% OFF.` };
-    }
-
-    return { success: false, message: `❌ Invalid coupon code '${cleanCode}'. Please check and try again.` };
   };
 
   const removeCoupon = () => {
     setAppliedCoupon(null);
+    setCouponError(null);
     if (typeof window !== 'undefined') {
       localStorage.removeItem('vardayini_applied_coupon');
     }
@@ -453,6 +472,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{
         cart,
         loading,
+        couponLoading,
+        couponError,
         addToCart,
         updateQuantity,
         removeFromCart,

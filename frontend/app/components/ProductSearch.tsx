@@ -200,7 +200,7 @@ export default function ProductSearch({ compact = false, showCategorySelect = tr
                 >
                   <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-gray-100 border border-gold/30">
                     <img
-                      src={(item as any).image || (item as any).primaryImage || (item as any).imageUrls?.[0] || (item as any).productImages?.[0]?.imageUrl || '/images/sweet-1.jpg'}
+                      src={(item as any).productImages?.[0]?.imageUrl || (item as any).imageUrls?.[0] || (item as any).primaryImage || (item as any).image || '/images/sweet-1.jpg'}
                       alt={item.name}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/images/sweet-1.jpg';

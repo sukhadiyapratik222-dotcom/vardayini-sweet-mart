@@ -90,7 +90,7 @@ function EditableCartPageQuantityInput({
 }
 
 export default function CartPage() {
-  const { cart, updateQuantity, removeFromCart, applyCoupon, removeCoupon, loading } = useCart();
+  const { cart, updateQuantity, removeFromCart, applyCoupon, removeCoupon, loading, couponLoading } = useCart();
   const [couponCode, setCouponCode] = useState('');
   const [couponFeedback, setCouponFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [zeroNotice, setZeroNotice] = useState<string | null>(null);
@@ -106,10 +106,10 @@ export default function CartPage() {
     setConfirmRemoveItem({ id, name });
   };
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!couponCode.trim()) return;
-    const res = applyCoupon(couponCode);
+    const res = await applyCoupon(couponCode);
     setCouponFeedback(res);
     if (res.success) setCouponCode('');
     setTimeout(() => setCouponFeedback(null), 4000);
@@ -326,9 +326,15 @@ export default function CartPage() {
                   </h3>
 
                   {cart.appliedCoupon ? (
-                    <div className="flex items-center justify-between bg-green-50 border border-green-300 px-3.5 py-2 rounded-xl text-xs font-bold text-green-900">
-                      <span>Coupon <strong>{cart.appliedCoupon}</strong> Applied</span>
-                      <button onClick={removeCoupon} className="text-red-600 hover:underline text-[11px] font-extrabold">
+                    <div className="flex items-center justify-between bg-green-50 border border-green-300 px-3.5 py-2.5 rounded-xl text-xs font-bold text-green-900 shadow-2xs">
+                      <span className="flex items-center gap-2 font-extrabold">
+                        <span className="bg-green-600 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center font-black">✓</span>
+                        <span>{cart.appliedCoupon}</span>
+                      </span>
+                      <button
+                        onClick={removeCoupon}
+                        className="text-red-600 hover:text-red-800 hover:underline text-[11px] font-black cursor-pointer"
+                      >
                         Remove
                       </button>
                     </div>
@@ -338,13 +344,15 @@ export default function CartPage() {
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value)}
                         placeholder="Enter coupon code..."
-                        className="flex-1 border border-gray-300 px-3 py-2 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold bg-white"
+                        disabled={loading || couponLoading}
+                        className="flex-1 border border-gray-300 px-3 py-2 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold bg-white disabled:bg-gray-100 uppercase font-bold"
                       />
                       <button
                         type="submit"
-                        className="bg-[#0B1B3D] text-gold px-4 py-2 rounded-xl text-xs font-extrabold hover:bg-[#162C5B] transition shadow"
+                        disabled={loading || couponLoading || !couponCode.trim()}
+                        className="bg-[#0B1B3D] text-gold px-4 py-2 rounded-xl text-xs font-extrabold hover:bg-[#162C5B] transition shadow disabled:opacity-50 disabled:cursor-not-allowed min-w-[75px]"
                       >
-                        Apply
+                        {couponLoading ? 'Applying...' : 'Apply'}
                       </button>
                     </form>
                   )}
@@ -363,6 +371,7 @@ export default function CartPage() {
                         <button
                           key={code}
                           type="button"
+                          disabled={couponLoading}
                           onClick={() => setCouponCode(code)}
                           className="bg-amber-50 hover:bg-gold/20 text-[#0B1B3D] border border-gold/40 px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition"
                         >
@@ -379,35 +388,48 @@ export default function CartPage() {
                     Order Summary
                   </h3>
 
-                  {cart.subtotal >= 4200 && (
-                    <div className="bg-green-100 p-2.5 rounded-xl border border-green-300 flex items-center gap-2 text-xs text-green-900 font-bold">
-                      <Gift size={16} className="text-green-700 shrink-0" />
-                      <span>🎉 5% Bulk Order Discount Included!</span>
-                    </div>
+                  {/* Bulk Offer Progress Message */}
+                  {cart.subtotal < 4200 ? (
+                    <p className="text-xs font-bold text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-gold-dark shrink-0" />
+                      <span>Add <strong>₹{(4200 - cart.subtotal).toLocaleString('en-IN')}</strong> more to get <strong>5% OFF</strong> on orders above ₹4,200!</span>
+                    </p>
+                  ) : (
+                    <p className="text-xs font-bold text-green-800 bg-green-50 p-2.5 rounded-xl border border-green-200 flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-green-600 shrink-0" />
+                      <span>🎉 You unlocked 5% OFF!</span>
+                    </p>
                   )}
 
-                  <div className="space-y-2 text-xs text-gray-700">
+                  <div className="space-y-2.5 text-xs text-gray-700">
                     <div className="flex justify-between">
-                      <span>Items Subtotal</span>
+                      <span>Subtotal</span>
                       <span className="font-bold text-[#0B1B3D]">₹{cart.subtotal.toLocaleString('en-IN')}</span>
                     </div>
 
-                    {cart.discountAmount > 0 && (
+                    {cart.appliedCoupon && cart.couponDiscountAmount > 0 && (
                       <div className="flex justify-between text-green-700 font-bold">
-                        <span>Total Discounts</span>
-                        <span>-₹{cart.discountAmount.toLocaleString('en-IN')}</span>
+                        <span>Coupon Discount</span>
+                        <span>-₹{cart.couponDiscountAmount.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+
+                    {cart.bulkDiscountAmount > 0 && !cart.appliedCoupon?.includes('BULK') && (
+                      <div className="flex justify-between text-green-700 font-bold">
+                        <span>Bulk Offer Discount (5%)</span>
+                        <span>-₹{cart.bulkDiscountAmount.toLocaleString('en-IN')}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between">
-                      <span>Delivery Charges</span>
+                      <span>Delivery Charge</span>
                       <span className="font-bold">
                         {cart.deliveryFee === 0 ? <strong className="text-green-700 font-black">FREE</strong> : `₹${cart.deliveryFee}`}
                       </span>
                     </div>
 
                     <div className="border-t border-gold/20 pt-3 flex justify-between text-base font-black text-[#0B1B3D]">
-                      <span>Grand Total</span>
+                      <span>Total Amount</span>
                       <span className="text-xl text-[#0B1B3D]">₹{cart.total.toLocaleString('en-IN')}</span>
                     </div>
                   </div>

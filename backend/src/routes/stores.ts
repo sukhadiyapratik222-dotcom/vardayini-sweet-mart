@@ -94,11 +94,11 @@ router.get("/", async (req, res) => {
       // Auto-seed default stores into database so Admin & Storefront share same DB table
       for (const s of defaultStoresList) {
         try {
-          await prisma.store.upsert({
-            where: { id: s.id },
-            create: s,
-            update: s,
-          });
+          const { id, ...storeFields } = s;
+          const existing = await prisma.store.findFirst({ where: { name: s.name } });
+          if (!existing) {
+            await prisma.store.create({ data: storeFields });
+          }
         } catch (e) {}
       }
 
@@ -125,6 +125,8 @@ router.get("/", async (req, res) => {
 
 import { StoreSchema, formatZodError } from "../validators/schemaValidators";
 
+const isValidObjectId = (str: string) => /^[0-9a-fA-F]{24}$/.test(str);
+
 // POST add a new store outlet
 router.post("/", async (req, res) => {
   const result = StoreSchema.safeParse(req.body);
@@ -138,7 +140,6 @@ router.post("/", async (req, res) => {
 
     const store = await prisma.store.create({
       data: {
-        id: `store-${Date.now()}`,
         name,
         address,
         city,
@@ -167,20 +168,34 @@ router.put("/:id", async (req, res) => {
     const { name, address, city, pincode, phone } = result.data;
     const { latitude, longitude } = req.body;
 
-    const store = await prisma.store.update({
-      where: { id },
-      data: {
-        ...(name ? { name } : {}),
-        ...(address ? { address } : {}),
-        ...(city ? { city } : {}),
-        ...(pincode ? { pincode } : {}),
-        ...(phone ? { phone } : {}),
-        ...(latitude !== undefined ? { latitude: Number(latitude) } : {}),
-        ...(longitude !== undefined ? { longitude: Number(longitude) } : {}),
-      },
-    });
+    const updateFields: any = {
+      ...(name ? { name } : {}),
+      ...(address ? { address } : {}),
+      ...(city ? { city } : {}),
+      ...(pincode ? { pincode } : {}),
+      ...(phone ? { phone } : {}),
+      ...(latitude !== undefined ? { latitude: Number(latitude) } : {}),
+      ...(longitude !== undefined ? { longitude: Number(longitude) } : {}),
+    };
 
-    res.json({ success: true, store });
+    if (isValidObjectId(id)) {
+      const store = await prisma.store.update({
+        where: { id },
+        data: updateFields,
+      });
+      return res.json({ success: true, store });
+    }
+
+    const existing = await prisma.store.findFirst({ where: { name } });
+    if (existing) {
+      const store = await prisma.store.update({
+        where: { id: existing.id },
+        data: updateFields,
+      });
+      return res.json({ success: true, store });
+    }
+
+    res.status(404).json({ success: false, errors: { name: "Store outlet not found" } });
   } catch (err: any) {
     res.status(500).json({ success: false, errors: { name: err.message || "Failed to update store outlet" } });
   }
@@ -192,8 +207,8 @@ router.delete("/:id", async (req, res) => {
     const { id } = req.params;
     await prisma.store.delete({ where: { id } });
     res.json({ message: "Store outlet deleted successfully", id });
-  } catch (err) {
-    res.status(500).json({ error: "Failed to delete store outlet" });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || "Failed to delete store outlet." });
   }
 });
 

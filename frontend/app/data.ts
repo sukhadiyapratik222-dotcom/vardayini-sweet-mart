@@ -1,7 +1,7 @@
 // Category structure with nested subcategories
 export const categories = {
   sweets: {
-    name: "Sweets",
+    name: "Sweets (Mithai)",
     slug: "sweets",
     subcategories: [
       { name: "Kaju Sweets", slug: "kaju-sweets" },
@@ -40,9 +40,14 @@ export const categories = {
     subcategories: []
   },
   dryFruits: {
-    name: "Dried Fruits & Nuts",
+    name: "Dry Fruits & Nuts",
     slug: "dry-fruits-nuts",
-    subcategories: []
+    subcategories: [
+      { name: "Cashews", slug: "cashews" },
+      { name: "Almonds", slug: "almonds" },
+      { name: "Pistachios", slug: "pistachios" },
+      { name: "Trail Mix", slug: "trail-mix" }
+    ]
   },
   baklava: {
     name: "Premium Baklava",
@@ -50,10 +55,23 @@ export const categories = {
     subcategories: []
   },
   corporateGifts: {
-    name: "Corporate Gifts",
+    name: "Festive Gift Boxes",
     slug: "corporate-gift-boxes",
-    subcategories: []
+    subcategories: [
+      { name: "Diwali Hampers", slug: "diwali-hampers" },
+      { name: "Corporate Gifts", slug: "corporate-gifts" },
+      { name: "Wedding Favours", slug: "wedding-favours" }
+    ]
   }
+};
+
+// ─── CATEGORY PAGE HERO CONFIG ──────────────────────────────────────────────
+export const CATEGORY_PAGE_META: Record<string, { displayName: string; emoji: string }> = {
+  sweets: { displayName: 'Sweets (Mithai)', emoji: '🍮' },
+  namkeen: { displayName: 'Namkeen & Savories', emoji: '🥨' },
+  'dry-fruits-nuts': { displayName: 'Dry Fruits & Nuts', emoji: '🫘' },
+  'corporate-gift-boxes': { displayName: 'Festive Gift Boxes', emoji: '🎁' },
+  bakery: { displayName: 'Bakery & Baked Goods', emoji: '🥐' },
 };
 
 export interface ProductVariant {
@@ -307,4 +325,246 @@ export const sortOptions = [
   { value: "rating", label: "Top Rated" },
   { value: "newest", label: "Newest Arrivals" }
 ];
+
+// ─── PLACEHOLDER PRODUCTS — TODO: Replace images & prices with real data ─────
+// Each item marked _isTodo: true shows a "TODO: Replace" badge on the card.
+// Steps: swap image paths → update prices → set _isTodo to false (or remove).
+export const placeholderProducts: Product[] = [
+
+  // ── SWEETS (Mithai) ────────────────────────────────────────────────────────
+  {
+    id: 'todo-sw-001',
+    name: 'Motichoor Ladoo',
+    slug: 'motichoor-ladoo-todo',
+    category: 'sweets',
+    subcategory: 'indian-ghee',
+    image: '/images/sweet-2.jpg', // TODO: replace with actual product image
+    rating: 4.8, reviews: 0,
+    description: 'Soft, melt-in-mouth besan pearls fried in pure desi ghee, soaked in saffron syrup. A classic for every celebration.',
+    variants: [
+      { id: 'todo-sw-001-v1', weight: '250g', price: 180, discountedPrice: 160, stock: 50, sku: 'ML-250-TODO' },
+      { id: 'todo-sw-001-v2', weight: '500g', price: 340, discountedPrice: 299, stock: 50, sku: 'ML-500-TODO' },
+      { id: 'todo-sw-001-v3', weight: '1kg',  price: 640, discountedPrice: 570, stock: 30, sku: 'ML-1000-TODO' },
+    ],
+    isBestSeller: true,
+  } as any,
+  {
+    id: 'todo-sw-002',
+    name: 'Anjeer Barfi',
+    slug: 'anjeer-barfi-todo',
+    category: 'sweets',
+    subcategory: 'mawa-sweets',
+    image: '/images/sweet-6.jpg', // TODO: replace with actual product image
+    rating: 4.7, reviews: 0,
+    description: 'Rich and dense fig barfi made with dried figs, mawa, cardamom & topped with pistachio slivers.',
+    variants: [
+      { id: 'todo-sw-002-v1', weight: '250g', price: 280, stock: 40, sku: 'AB-250-TODO' },
+      { id: 'todo-sw-002-v2', weight: '500g', price: 520, discountedPrice: 480, stock: 35, sku: 'AB-500-TODO' },
+    ],
+    isPremium: true,
+  } as any,
+  {
+    id: 'todo-sw-003',
+    name: 'Gajar Halwa (Carrot Halwa)',
+    slug: 'gajar-halwa-todo',
+    category: 'sweets',
+    subcategory: 'indian-ghee',
+    image: '/images/sweet-7.jpg', // TODO: replace with actual product image
+    rating: 4.9, reviews: 0,
+    description: 'Traditional slow-cooked carrot halwa with fresh milk, sugar, pure ghee & dry fruits. Available in season.',
+    variants: [
+      { id: 'todo-sw-003-v1', weight: '250g', price: 200, stock: 30, sku: 'GH-250-TODO' },
+      { id: 'todo-sw-003-v2', weight: '500g', price: 380, discountedPrice: 340, stock: 25, sku: 'GH-500-TODO' },
+    ],
+    isNew: true,
+  } as any,
+  {
+    id: 'todo-sw-004',
+    name: 'Kesar Gulab Jamun',
+    slug: 'kesar-gulab-jamun-todo',
+    category: 'sweets',
+    subcategory: 'mawa-sweets',
+    image: '/images/sweet-5.jpg', // TODO: replace with actual product image
+    rating: 4.8, reviews: 0,
+    description: 'Soft khoya balls fried golden and soaked in rose-cardamom-saffron syrup. Best served warm.',
+    variants: [
+      { id: 'todo-sw-004-v1', weight: '500g (12 pcs)', price: 220, stock: 40, sku: 'GJ-500-TODO' },
+      { id: 'todo-sw-004-v2', weight: '1kg (25 pcs)',  price: 420, discountedPrice: 380, stock: 30, sku: 'GJ-1000-TODO' },
+    ],
+  } as any,
+
+  // ── NAMKEEN ────────────────────────────────────────────────────────────────
+  {
+    id: 'todo-nk-001',
+    name: 'Farali Chevdo',
+    slug: 'farali-chevdo-todo',
+    category: 'namkeen',
+    subcategory: 'farali',
+    image: '/images/sweet-3.jpg', // TODO: replace with actual product image
+    rating: 4.7, reviews: 0,
+    description: 'Traditional Gujarati fasting snack made with samo (barnyard millet), peanuts, potato chips & light spices.',
+    variants: [
+      { id: 'todo-nk-001-v1', weight: '200g', price: 130, stock: 60, sku: 'FC-200-TODO' },
+      { id: 'todo-nk-001-v2', weight: '400g', price: 240, discountedPrice: 220, stock: 55, sku: 'FC-400-TODO' },
+    ],
+    isBestSeller: true,
+  } as any,
+  {
+    id: 'todo-nk-002',
+    name: 'Millet Puff Namkeen',
+    slug: 'millet-puff-namkeen-todo',
+    category: 'namkeen',
+    subcategory: 'millet',
+    image: '/images/sweet-8.jpg', // TODO: replace with actual product image
+    rating: 4.6, reviews: 0,
+    description: 'Air-puffed bajra & jowar namkeen with no maida — nutritious, crunchy, low-oil & lightly spiced.',
+    variants: [
+      { id: 'todo-nk-002-v1', weight: '150g', price: 90, stock: 80, sku: 'MP-150-TODO' },
+      { id: 'todo-nk-002-v2', weight: '300g', price: 165, discountedPrice: 149, stock: 70, sku: 'MP-300-TODO' },
+    ],
+    isNew: true,
+  } as any,
+  {
+    id: 'todo-nk-003',
+    name: 'Spicy Masala Puri',
+    slug: 'spicy-masala-puri-todo',
+    category: 'namkeen',
+    subcategory: 'chips-puris',
+    image: '/images/sweet-4.jpg', // TODO: replace with actual product image
+    rating: 4.5, reviews: 0,
+    description: 'Crispy fried wheat puris coated in tangy chaat masala — ideal with tea or as a travel snack.',
+    variants: [
+      { id: 'todo-nk-003-v1', weight: '250g', price: 110, stock: 90, sku: 'SP-250-TODO' },
+      { id: 'todo-nk-003-v2', weight: '500g', price: 200, discountedPrice: 180, stock: 80, sku: 'SP-500-TODO' },
+    ],
+  } as any,
+
+  // ── DRY FRUITS & NUTS ──────────────────────────────────────────────────────
+  {
+    id: 'todo-df-001',
+    name: 'California Almonds (Badaam)',
+    slug: 'california-almonds-todo',
+    category: 'dry-fruits-nuts',
+    subcategory: 'almonds',
+    image: '/images/sweet-4.jpg', // TODO: replace with actual product image
+    rating: 4.9, reviews: 0,
+    description: 'Premium grade California almonds — high in protein, vitamin E & healthy fats. Ideal for gifting & daily snacking.',
+    variants: [
+      { id: 'todo-df-001-v1', weight: '250g', price: 320, stock: 50, sku: 'CA-250-TODO' },
+      { id: 'todo-df-001-v2', weight: '500g', price: 600, discountedPrice: 550, stock: 40, sku: 'CA-500-TODO' },
+      { id: 'todo-df-001-v3', weight: '1kg',  price: 1150, discountedPrice: 1050, stock: 30, sku: 'CA-1000-TODO' },
+    ],
+    isPremium: true,
+  } as any,
+  {
+    id: 'todo-df-002',
+    name: 'Premium Cashews (Kaju W240)',
+    slug: 'premium-cashews-w240-todo',
+    category: 'dry-fruits-nuts',
+    subcategory: 'cashews',
+    image: '/images/sweet-1.jpg', // TODO: replace with actual product image
+    rating: 5.0, reviews: 0,
+    description: 'Jumbo W240 grade whole cashews — creamy, buttery & perfect for cooking, gifting or snacking.',
+    variants: [
+      { id: 'todo-df-002-v1', weight: '250g', price: 420, stock: 40, sku: 'KJ-250-TODO' },
+      { id: 'todo-df-002-v2', weight: '500g', price: 800, discountedPrice: 750, stock: 35, sku: 'KJ-500-TODO' },
+    ],
+    isPremium: true,
+  } as any,
+  {
+    id: 'todo-df-003',
+    name: 'Mixed Dry Fruit Trail Pack',
+    slug: 'mixed-trail-pack-todo',
+    category: 'dry-fruits-nuts',
+    subcategory: 'trail-mix',
+    image: '/images/sweet-9.jpg', // TODO: replace with actual product image
+    rating: 4.8, reviews: 0,
+    description: 'A blend of cashews, almonds, raisins, cranberries & pistachios. Pre-portioned for daily wellness.',
+    variants: [
+      { id: 'todo-df-003-v1', weight: '200g', price: 280, stock: 60, sku: 'TM-200-TODO' },
+      { id: 'todo-df-003-v2', weight: '500g', price: 650, discountedPrice: 599, stock: 50, sku: 'TM-500-TODO' },
+    ],
+    isBestSeller: true,
+  } as any,
+
+  // ── FESTIVE GIFT BOXES ─────────────────────────────────────────────────────
+  {
+    id: 'todo-gb-001',
+    name: 'Diwali Premium Sweet Hamper',
+    slug: 'diwali-sweet-hamper-todo',
+    category: 'corporate-gift-boxes',
+    subcategory: 'diwali-hampers',
+    image: '/images/sweet-10.jpg', // TODO: replace with actual product image
+    rating: 5.0, reviews: 0,
+    description: 'Handpicked Diwali gift hamper with Kaju Katli, Motichoor Ladoo, Soan Papdi, Dry Fruits & premium packaging.',
+    variants: [
+      { id: 'todo-gb-001-v1', weight: '1kg Box', price: 1299, stock: 25, sku: 'DH-1K-TODO' },
+      { id: 'todo-gb-001-v2', weight: '2kg Box', price: 2499, discountedPrice: 2199, stock: 20, sku: 'DH-2K-TODO' },
+      { id: 'todo-gb-001-v3', weight: '3kg Box', price: 3699, discountedPrice: 3299, stock: 10, sku: 'DH-3K-TODO' },
+    ],
+    isBestSeller: true, isPremium: true, isCombo: true,
+  } as any,
+  {
+    id: 'todo-gb-002',
+    name: 'Corporate Sweet & Namkeen Box',
+    slug: 'corporate-sweet-namkeen-box-todo',
+    category: 'corporate-gift-boxes',
+    subcategory: 'corporate-gifts',
+    image: '/images/sweet-5.jpg', // TODO: replace with actual product image
+    rating: 4.9, reviews: 0,
+    description: 'Elegant branded corporate gift box with Kaju Katli, Sev, Khakhra & Dry Fruits. Minimum 20 boxes for bulk orders.',
+    variants: [
+      { id: 'todo-gb-002-v1', weight: '500g Box', price: 699, stock: 50, sku: 'CG-500-TODO' },
+      { id: 'todo-gb-002-v2', weight: '1kg Box',  price: 1299, discountedPrice: 1199, stock: 40, sku: 'CG-1K-TODO' },
+    ],
+    isPremium: true, isCombo: true,
+  } as any,
+  {
+    id: 'todo-gb-003',
+    name: 'Wedding Favour Sweet Boxes',
+    slug: 'wedding-favour-boxes-todo',
+    category: 'corporate-gift-boxes',
+    subcategory: 'wedding-favours',
+    image: '/images/sweet-2.jpg', // TODO: replace with actual product image
+    rating: 4.9, reviews: 0,
+    description: 'Custom-decorated small gift boxes with assorted premium sweets for wedding guests. Min. order 50 boxes.',
+    variants: [
+      { id: 'todo-gb-003-v1', weight: '100g Box', price: 150, stock: 100, sku: 'WF-100-TODO' },
+      { id: 'todo-gb-003-v2', weight: '250g Box', price: 320, discountedPrice: 280, stock: 80, sku: 'WF-250-TODO' },
+    ],
+    isNew: true,
+  } as any,
+
+  // ── BAKERY ─────────────────────────────────────────────────────────────────
+  {
+    id: 'todo-bk-001',
+    name: 'Butter Jeera Khari',
+    slug: 'butter-jeera-khari-todo',
+    category: 'bakery',
+    subcategory: 'toast-khari',
+    image: '/images/sweet-3.jpg', // TODO: replace with actual product image
+    rating: 4.6, reviews: 0,
+    description: 'Flaky, buttery khari biscuits flavoured with whole cumin seeds — freshly baked every morning.',
+    variants: [
+      { id: 'todo-bk-001-v1', weight: '200g', price: 80,  stock: 100, sku: 'BK-200-TODO' },
+      { id: 'todo-bk-001-v2', weight: '400g', price: 150, discountedPrice: 135, stock: 90, sku: 'BK-400-TODO' },
+    ],
+    isBestSeller: true,
+  } as any,
+  {
+    id: 'todo-bk-002',
+    name: 'Ghee Nan Khatai',
+    slug: 'ghee-nan-khatai-todo',
+    category: 'bakery',
+    subcategory: 'biscuits-cookies',
+    image: '/images/sweet-6.jpg', // TODO: replace with actual product image
+    rating: 4.8, reviews: 0,
+    description: 'Traditional melt-in-mouth Nan Khatai biscuits made with pure ghee, maida & cardamom. No artificial flavours.',
+    variants: [
+      { id: 'todo-bk-002-v1', weight: '250g', price: 110, stock: 80, sku: 'NK-250-TODO' },
+      { id: 'todo-bk-002-v2', weight: '500g', price: 200, discountedPrice: 179, stock: 70, sku: 'NK-500-TODO' },
+    ],
+  } as any,
+];
+
 

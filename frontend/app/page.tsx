@@ -68,7 +68,8 @@ export default function HomePage() {
         }
       }
 
-      const combinedPool = apiProducts.length > 0 ? [...apiProducts, ...adminProducts, ...localProducts] : [...adminProducts, ...localProducts];
+      const dbProducts = [...apiProducts, ...adminProducts];
+      const combinedPool = dbProducts.length > 0 ? dbProducts : localProducts;
       const uniqueMap = new Map();
       const seenNames = new Set();
 

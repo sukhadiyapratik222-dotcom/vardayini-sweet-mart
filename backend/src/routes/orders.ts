@@ -20,11 +20,15 @@ function getOptionalUserId(req: any): string | null {
 // POST /api/orders (Creates real order in database with transaction safety)
 router.post("/", async (req, res) => {
   let userId = getOptionalUserId(req);
-  const { fullName, email, phone, address, deliveryDate, timeSlot, paymentMethod, items, total, subtotal } = req.body;
+  const { fullName, email, phone, address, deliveryDate, timeSlot, paymentMethod, items, couponCode } = req.body;
 
   const rawItems = (items && Array.isArray(items) && items.length > 0) 
     ? items 
-    : [{ productId: 1, name: "Kaju Katli Premium Pure Ghee", quantity: 1, price: Number(total || subtotal || 450) }];
+    : [];
+
+  if (rawItems.length === 0) {
+    return res.status(400).json({ success: false, errors: { items: "Cart is empty. Please add items before checking out." } });
+  }
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -60,19 +64,25 @@ router.post("/", async (req, res) => {
 
       const orderId = req.body.orderId || `VSM-${Math.floor(100000 + Math.random() * 900000)}`;
 
-      // Calculate server-side total from database prices
       let calculatedSubtotal = 0;
       const processedItems = [];
 
       for (const item of rawItems) {
         let variant = null;
-        const vId = String(item.variantId || item.variant_id || "");
+        let product = null;
+        const vId = String(item.productVariantId || item.variantId || item.variant_id || "");
         if (vId) {
-          variant = await tx.productVariant.findUnique({ where: { id: vId } });
+          variant = await tx.productVariant.findUnique({
+            where: { id: vId },
+            include: { product: true }
+          });
         }
         if (!variant && item.productId) {
           const pId = String(item.productId);
-          variant = await tx.productVariant.findFirst({ where: { productId: pId } });
+          variant = await tx.productVariant.findFirst({
+            where: { productId: pId },
+            include: { product: true }
+          });
         }
         if (!variant && item.name) {
           const matchedProd = await tx.product.findFirst({
@@ -81,17 +91,28 @@ router.post("/", async (req, res) => {
           });
           if (matchedProd && matchedProd.variants?.length > 0) {
             variant = matchedProd.variants[0];
+            product = matchedProd;
           }
         }
-        if (!variant) {
-          variant = await tx.productVariant.findFirst();
+
+        if (variant && !product) {
+          product = await tx.product.findUnique({ where: { id: variant.productId } });
         }
 
-        const unitPrice = variant ? Number(variant.price) : Number(item.price || item.variantPrice || 350);
+        if (product && product.isActive === false) {
+          throw new Error(`Product "${product.name}" is no longer available for purchase.`);
+        }
+
         const qty = Math.max(1, Number(item.quantity || item.qty || 1));
+        if (variant) {
+          if (variant.stockQty < qty) {
+            throw new Error(`Only ${variant.stockQty} items are available for "${product?.name || 'this item'}".`);
+          }
+        }
+
+        const unitPrice = variant ? Number(variant.discountedPrice || variant.price) : Number(item.price || 250);
         calculatedSubtotal += unitPrice * qty;
 
-        // Decrement stock in database if variant exists
         if (variant) {
           await tx.productVariant.update({
             where: { id: variant.id },
@@ -106,15 +127,40 @@ router.post("/", async (req, res) => {
         });
       }
 
-      const finalTotal = calculatedSubtotal > 0 ? calculatedSubtotal : Number(total || subtotal || 0);
+      // Calculate coupon discount server-side
+      let couponDiscount = 0;
+      const cleanCoupon = couponCode ? String(couponCode).trim().toUpperCase() : null;
+      if (cleanCoupon) {
+        const dbCoupon = await tx.coupon.findUnique({ where: { code: cleanCoupon } });
+        if (dbCoupon && dbCoupon.isActive !== false) {
+          const minVal = dbCoupon.minOrderValue ?? 0;
+          if (calculatedSubtotal >= minVal) {
+            if (dbCoupon.discountType === "FIXED") {
+              couponDiscount = dbCoupon.discountValue;
+            } else {
+              couponDiscount = Math.round((calculatedSubtotal * dbCoupon.discountValue) / 100);
+            }
+          }
+        }
+      }
+
+      // Calculate bulk discount (5% if subtotal >= 4200)
+      let bulkDiscount = 0;
+      if (calculatedSubtotal >= 4200 && (!cleanCoupon || !cleanCoupon.includes("BULK"))) {
+        bulkDiscount = Math.round((calculatedSubtotal * 5) / 100);
+      }
+
+      const totalDiscount = Math.min(calculatedSubtotal, couponDiscount + bulkDiscount);
+      const deliveryFee = calculatedSubtotal >= 1000 || calculatedSubtotal === 0 ? 0 : 100;
+      const finalTotal = Math.max(0, calculatedSubtotal - totalDiscount + deliveryFee);
 
       const order = await tx.order.create({
         data: {
           userId: targetUserId!,
           orderNumber: orderId,
           subtotal: calculatedSubtotal,
-          discount: 0,
-          deliveryFee: 0,
+          discount: totalDiscount,
+          deliveryFee,
           total: finalTotal,
           status: "Placed",
           paymentStatus: paymentMethod === "COD" ? "PAID" : "PAID",
@@ -133,7 +179,7 @@ router.post("/", async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Real order stored in database successfully via transaction",
+      message: "Order placed successfully",
       order: {
         ...result,
         orderId: result.orderNumber,
@@ -149,7 +195,7 @@ router.post("/", async (req, res) => {
     });
   } catch (error: any) {
     console.error("Create Order Error:", error);
-    res.status(500).json({ success: false, errors: { server: error.message || "Failed to save order to database." } });
+    res.status(400).json({ success: false, errors: { server: error.message || "Failed to place order." } });
   }
 });
 
@@ -161,7 +207,16 @@ router.get("/", async (req, res) => {
     const orders = await prisma.order.findMany({
       where: userId ? { userId } : {},
       orderBy: { createdAt: "desc" },
-      include: { user: true }
+      include: {
+        user: true,
+        items: {
+          include: {
+            productVariant: {
+              include: { product: true }
+            }
+          }
+        }
+      }
     });
     res.json(orders);
   } catch (error) {
@@ -169,25 +224,37 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/orders/:id (get order by ID or orderNumber)
+// GET /api/orders/:id (get order by ID or orderNumber, with authorization)
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
+  const userId = getOptionalUserId(req);
+  const isValidObjectId = (str: string) => /^[0-9a-fA-F]{24}$/.test(str);
 
   try {
     const order = await prisma.order.findFirst({
       where: {
-        OR: [{ id }, { orderNumber: id }],
+        OR: isValidObjectId(id) ? [{ id }, { orderNumber: id }] : [{ orderNumber: id }],
+        ...(userId ? { userId } : {}),
       },
-      include: { user: true },
+      include: {
+        user: true,
+        items: {
+          include: {
+            productVariant: {
+              include: { product: true }
+            }
+          }
+        }
+      },
     });
 
     if (!order) {
-      return res.status(404).json({ error: "Order not found in database." });
+      return res.status(404).json({ error: "Order not found in database or unauthorized access." });
     }
 
     res.json(order);
-  } catch (error) {
-    res.status(500).json({ error: "Database error fetching order." });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || "Database error fetching order." });
   }
 });
 

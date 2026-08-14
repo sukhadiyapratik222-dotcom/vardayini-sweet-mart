@@ -477,7 +477,7 @@ export default function ProductDetailClient({ product, initialReviews }: Product
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
               {relatedProducts.map((rel: any) => {
-                const relImg = rel.primaryImage || rel.imageUrl || rel.image || rel.productImages?.[0]?.imageUrl || '/images/sweet-1.jpg';
+                const relImg = rel.productImages?.[0]?.imageUrl || rel.imageUrls?.[0] || rel.primaryImage || rel.imageUrl || rel.image || '/images/sweet-1.jpg';
                 const relPrice = Number(rel.price || rel.variants?.[0]?.price || 350);
                 const relWeight = rel.weightLabel || rel.variants?.[0]?.weightLabel || '500g';
                 return (

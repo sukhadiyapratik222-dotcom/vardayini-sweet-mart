@@ -88,7 +88,7 @@ function EditableCartQuantityInput({
 }
 
 export default function CartDrawer() {
-  const { cart, isOpen, setIsOpen, updateQuantity, removeFromCart, applyCoupon, removeCoupon, loading } = useCart();
+  const { cart, isOpen, setIsOpen, updateQuantity, removeFromCart, applyCoupon, removeCoupon, loading, couponLoading } = useCart();
   const [couponCode, setCouponCode] = useState('');
   const [couponFeedback, setCouponFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [zeroNotice, setZeroNotice] = useState<string | null>(null);
@@ -106,10 +106,10 @@ export default function CartDrawer() {
 
   if (!isOpen) return null;
 
-  const handleApplyCoupon = (e: React.FormEvent) => {
+  const handleApplyCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!couponCode.trim()) return;
-    const res = applyCoupon(couponCode);
+    const res = await applyCoupon(couponCode);
     setCouponFeedback(res);
     if (res.success) setCouponCode('');
     setTimeout(() => setCouponFeedback(null), 4000);
@@ -318,8 +318,8 @@ export default function CartDrawer() {
             {cart.subtotal < 4200 ? (
               <button
                 type="button"
-                onClick={() => {
-                  const res = applyCoupon('BULK5');
+                onClick={async () => {
+                  const res = await applyCoupon('BULK5');
                   setCouponFeedback(res);
                   setTimeout(() => setCouponFeedback(null), 5000);
                 }}
@@ -327,24 +327,24 @@ export default function CartDrawer() {
                 title="Click to apply 5% Bulk Offer"
               >
                 <Sparkles size={16} className="text-gold-dark shrink-0" />
-                <span>Bulk Offer: Add <strong>₹{(4200 - cart.subtotal).toLocaleString('en-IN')}</strong> more to get <strong>5% OFF</strong> on orders above ₹4,200!</span>
+                <span>Add <strong>₹{(4200 - cart.subtotal).toLocaleString('en-IN')}</strong> more to get <strong>5% OFF</strong> on orders above ₹4,200!</span>
               </button>
             ) : (
               <div className="bg-green-100 p-2.5 rounded-xl border border-green-300 flex items-center gap-2 text-xs text-green-900 font-bold">
                 <Gift size={16} className="text-green-700 shrink-0" />
-                <span>🎉 Bulk Special Unlocked: 5% Bulk Discount applied!</span>
+                <span>🎉 You unlocked 5% OFF!</span>
               </div>
             )}
 
             {/* Coupon Code Input */}
             <div>
               {cart.appliedCoupon ? (
-                <div className="flex items-center justify-between bg-green-50 border border-green-300 px-3 py-1.5 rounded-xl text-xs font-bold text-green-800">
-                  <span className="flex items-center gap-1.5">
-                    <Tag size={14} />
-                    <span>Coupon <strong>{cart.appliedCoupon}</strong> Applied</span>
+                <div className="flex items-center justify-between bg-green-50 border border-green-300 px-3 py-2 rounded-xl text-xs font-bold text-green-900 shadow-2xs">
+                  <span className="flex items-center gap-2 font-extrabold">
+                    <span className="bg-green-600 text-white rounded-full w-4 h-4 text-[10px] flex items-center justify-center font-black">✓</span>
+                    <span>{cart.appliedCoupon}</span>
                   </span>
-                  <button onClick={removeCoupon} className="text-red-600 hover:underline font-extrabold text-[10px]">
+                  <button onClick={removeCoupon} className="text-red-600 hover:text-red-800 hover:underline font-black text-[11px] cursor-pointer">
                     Remove
                   </button>
                 </div>
@@ -354,13 +354,15 @@ export default function CartDrawer() {
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
                     placeholder="Coupon code (e.g. SWEET10)"
-                    className="flex-1 border border-gray-300 px-3 py-1.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold bg-white"
+                    disabled={loading || couponLoading}
+                    className="flex-1 border border-gray-300 px-3 py-1.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-gold bg-white disabled:bg-gray-100 uppercase font-bold"
                   />
                   <button
                     type="submit"
-                    className="bg-[#0B1B3D] text-gold px-4 py-1.5 rounded-xl text-xs font-extrabold hover:bg-[#162C5B] transition shadow"
+                    disabled={loading || couponLoading || !couponCode.trim()}
+                    className="bg-[#0B1B3D] text-gold px-4 py-1.5 rounded-xl text-xs font-extrabold hover:bg-[#162C5B] transition shadow disabled:opacity-50 disabled:cursor-not-allowed min-w-[70px]"
                   >
-                    Apply
+                    {couponLoading ? 'Applying...' : 'Apply'}
                   </button>
                 </form>
               )}
@@ -379,10 +381,17 @@ export default function CartDrawer() {
                 <span className="font-bold text-[#0B1B3D]">₹{cart.subtotal.toLocaleString('en-IN')}</span>
               </div>
 
-              {cart.discountAmount > 0 && (
+              {cart.appliedCoupon && cart.couponDiscountAmount > 0 && (
                 <div className="flex justify-between text-green-700 font-bold">
-                  <span>Discounts Savings</span>
-                  <span>-₹{cart.discountAmount.toLocaleString('en-IN')}</span>
+                  <span>Coupon Discount</span>
+                  <span>-₹{cart.couponDiscountAmount.toLocaleString('en-IN')}</span>
+                </div>
+              )}
+
+              {cart.bulkDiscountAmount > 0 && !cart.appliedCoupon?.includes('BULK') && (
+                <div className="flex justify-between text-green-700 font-bold">
+                  <span>Bulk Offer Discount (5%)</span>
+                  <span>-₹{cart.bulkDiscountAmount.toLocaleString('en-IN')}</span>
                 </div>
               )}
 

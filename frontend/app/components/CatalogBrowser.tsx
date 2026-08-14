@@ -71,96 +71,13 @@ export default function CatalogBrowser({ initialCategory = '', initialSearch = '
         // Fallback to local dataset
       }
 
-      if (!active) return;
-
-      // 1. Get products from admin localStorage catalog
-      let adminProducts: any[] = [];
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('admin_products_catalog');
-        if (stored) {
-          try {
-            adminProducts = JSON.parse(stored);
-          } catch (e) {}
-        }
+      if (active) {
+        // The API response already contains filtered, sorted, and paginated products.
+        // We directly use the results from the API without any client-side fallback or re-filtering.
+        setProducts(apiProductsList);
+        setTotal(apiTotalCount);
+        setLoading(false);
       }
-
-      const poolSource = apiProductsList.length > 0 ? [...apiProductsList, ...adminProducts, ...localProducts] : [...adminProducts, ...localProducts];
-
-      // Remove duplicates by normalized name and slug
-      const uniqueMap = new Map();
-      const seenNames = new Set();
-
-      poolSource.forEach((p) => {
-        const nameKey = (p.name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "");
-        const slugKey = (p.slug || String(p.id)).toLowerCase().trim();
-
-        if (nameKey && !seenNames.has(nameKey) && !uniqueMap.has(slugKey)) {
-          seenNames.add(nameKey);
-          uniqueMap.set(slugKey, p);
-        }
-      });
-
-      let filtered = Array.from(uniqueMap.values()).filter((p: any) => p.isActive !== false);
-
-      // Filter by Category
-      if (category) {
-        const catLower = category.toLowerCase().trim();
-        const normalizeCat = (slug: string) => {
-          if (slug === 'corporate-gifts' || slug === 'corporate-gift-boxes') return 'corporate-gift-boxes';
-          if (slug === 'dry-fruits-nuts' || slug === 'dry-fruits' || slug === 'dry-fruits-and-nuts') return 'dry-fruits-nuts';
-          return slug;
-        };
-
-        const targetCat = normalizeCat(catLower);
-
-        filtered = filtered.filter((p: any) => {
-          const pCat = normalizeCat((p.category || p.categorySlug || '').toLowerCase().trim());
-          const pSub = (p.subcategory || '').toLowerCase().trim();
-
-          return pCat === targetCat || pSub === targetCat || pCat.includes(targetCat) || targetCat.includes(pCat);
-        });
-      }
-
-      // Filter by search text
-      if (initialSearch && initialSearch.trim()) {
-        const query = initialSearch.toLowerCase().trim();
-        filtered = filtered.filter(
-          (p: any) =>
-            p.name.toLowerCase().includes(query) ||
-            (p.description || '').toLowerCase().includes(query) ||
-            (p.category || '').toLowerCase().includes(query)
-        );
-      }
-
-      // Filter by Price Range
-      if (selectedRange) {
-        filtered = filtered.filter((p: any) => {
-          const price = p.variants?.[0]?.discountedPrice || p.variants?.[0]?.price || 0;
-          return price >= selectedRange.min && price <= selectedRange.max;
-        });
-      }
-
-      // Filter by Weight
-      if (selectedWeights.length > 0) {
-        filtered = filtered.filter((p: any) =>
-          p.variants?.some((v: any) => selectedWeights.includes(v.weight || v.weightLabel))
-        );
-      }
-
-      // Sorting
-      if (sort === 'price_low') {
-        filtered.sort((a: any, b: any) => (a.variants?.[0]?.price || 0) - (b.variants?.[0]?.price || 0));
-      } else if (sort === 'price_high') {
-        filtered.sort((a: any, b: any) => (b.variants?.[0]?.price || 0) - (a.variants?.[0]?.price || 0));
-      } else if (sort === 'rating') {
-        filtered.sort((a: any, b: any) => (b.rating || b.ratingAvg || 0) - (a.rating || a.ratingAvg || 0));
-      } else if (sort === 'newest') {
-        filtered.sort((a: any, b: any) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
-      }
-
-      setProducts(filtered);
-      setTotal(apiFetchedSuccess ? apiTotalCount : filtered.length);
-      setLoading(false);
     }
 
     loadCatalog();

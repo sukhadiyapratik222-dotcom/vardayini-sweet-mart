@@ -120,7 +120,7 @@ export default function ProductGrid({ products }: { products: Product[] }) {
             {/* Image Container */}
             <div className="relative w-full rounded-lg overflow-hidden bg-gray-100 aspect-square flex items-center justify-center">
               <img
-                src={(product as any).image || (product as any).primaryImage || (product as any).imageUrls?.[0] || (product as any).productImages?.[0]?.imageUrl || '/images/sweet-1.jpg'}
+                src={(product as any).productImages?.[0]?.imageUrl || (product as any).imageUrls?.[0] || (product as any).primaryImage || (product as any).image || '/images/sweet-1.jpg'}
                 alt={product.name}
                 onError={(e) => { (e.target as HTMLImageElement).src = '/images/sweet-1.jpg'; }}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

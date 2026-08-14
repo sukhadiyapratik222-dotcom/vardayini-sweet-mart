@@ -4,60 +4,6 @@ import { authenticate } from "../middleware/auth";
 
 const router = Router();
 
-const defaultFallbackProducts = [
-  {
-    id: "prod-kjuuuu",
-    name: "kaju katri 1111",
-    slug: "kjuuuu",
-    description: "Special Kaju Katri 1111 prepared with premium cashew nuts and pure ghee.",
-    tag: "best_seller",
-    isActive: true,
-    ratingAvg: 4.9,
-    ratingCount: 186,
-    category: { id: "c1", name: "Kaju Sweets", slug: "kaju-sweets" },
-    categorySlug: "kaju-sweets",
-    productImages: [{ id: "img-1", imageUrl: "/images/sweet-1.jpg", altText: "kaju katri 1111", sortOrder: 0 }],
-    variants: [
-      { id: "vkj-1", weightLabel: "250g", price: 400, discountedPrice: 200, stockQty: 500, sku: "SKU-250G" }
-    ]
-  },
-  {
-    id: "1",
-    name: "Kaju Katli Premium Pure Ghee",
-    slug: "kaju-katli-premium",
-    description: "Pure cashew sweets made with finest cashews and silver foil",
-    tag: "best_seller",
-    isActive: true,
-    ratingAvg: 4.9,
-    ratingCount: 186,
-    category: { id: "c1", name: "Kaju Sweets", slug: "kaju-sweets" },
-    categorySlug: "kaju-sweets",
-    productImages: [{ id: "img-2", imageUrl: "/images/sweet-1.jpg", altText: "Kaju Katli", sortOrder: 0 }],
-    variants: [
-      { id: "v1-1", weightLabel: "250g", price: 450, discountedPrice: 399, stockQty: 50, sku: "KK-250" },
-      { id: "v1-2", weightLabel: "500g", price: 850, discountedPrice: 799, stockQty: 45, sku: "KK-500" },
-      { id: "v1-3", weightLabel: "1kg", price: 1600, discountedPrice: 1450, stockQty: 30, sku: "KK-1000" }
-    ]
-  },
-  {
-    id: "2",
-    name: "Mysore Pak Deluxe Pure Desi Ghee",
-    slug: "mysore-pak-deluxe",
-    description: "Melt-in-mouth traditional Mysore Pak crafted with pure desi ghee",
-    tag: "best_seller",
-    isActive: true,
-    ratingAvg: 4.8,
-    ratingCount: 112,
-    category: { id: "c2", name: "Indian Ghee", slug: "indian-ghee" },
-    categorySlug: "indian-ghee",
-    productImages: [{ id: "img-3", imageUrl: "/images/sweet-2.jpg", altText: "Mysore Pak", sortOrder: 0 }],
-    variants: [
-      { id: "v2-1", weightLabel: "250g", price: 320, stockQty: 60, sku: "MP-250" },
-      { id: "v2-2", weightLabel: "500g", price: 600, discountedPrice: 560, stockQty: 50, sku: "MP-500" }
-    ]
-  }
-];
-
 const parseList = (value: unknown) => {
   if (!value) return [] as string[];
   return String(value)
@@ -73,10 +19,10 @@ const getProductMaxPrice = (product: any) =>
   Math.max(...(product.variants || [{ price: 200 }]).map((variant: any) => Number(variant.price)));
 
 const getPrimaryImage = (product: any) =>
-  product.image ||
-  product.primaryImage ||
   product.productImages?.[0]?.imageUrl ||
-  product.imageUrls?.[0] ||
+  (Array.isArray(product.imageUrls) && product.imageUrls[0]) ||
+  product.primaryImage ||
+  product.image ||
   "/images/sweet-1.jpg";
 
 const formatProduct = (product: any) => {
@@ -142,8 +88,6 @@ router.get("/", async (req, res) => {
   } = req.query;
 
   let products: any[] = [];
-  let dbQuerySuccess = false;
-
   try {
     const catStr = category ? String(category).trim().toLowerCase() : "";
     const targetCat = (catStr === 'corporate-gifts' || catStr === 'corporate-gift-boxes') ? 'corporate-gift-boxes' : catStr;
@@ -178,21 +122,9 @@ router.get("/", async (req, res) => {
         productImages: true
       }
     });
-    dbQuerySuccess = true;
-  } catch (err) {}
-
-  if (!dbQuerySuccess || !products || products.length === 0) {
-    products = defaultFallbackProducts;
-    if (category) {
-      const c = String(category).toLowerCase().replace(/-/g, " ");
-      products = products.filter(
-        (p) =>
-          p.categorySlug === category ||
-          p.category?.slug === category ||
-          p.category?.name.toLowerCase().includes(c) ||
-          c.includes(p.categorySlug)
-      );
-    }
+  } catch (err: any) {
+    console.error("Error fetching products from DB:", err.message);
+    return res.status(500).json({ error: "Failed to fetch products." });
   }
 
   const requestedWeights = parseList(weight);
@@ -243,12 +175,11 @@ router.get("/search", async (req, res) => {
       include: { category: true, variants: true, productImages: true }
     });
     return res.json({ suggestions: products.map(formatProduct) });
-  } catch (e) {}
-
-  const matches = defaultFallbackProducts.filter(
-    (p) => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query)
-  );
-  res.json({ suggestions: matches.map(formatProduct) });
+  } catch (e: any) {
+    console.error("Error searching products:", e.message);
+    // Return empty suggestions on error, rather than falling back to static data
+    return res.json({ suggestions: [] });
+  }
 });
 
 // GET /api/products/tag/:tag - Filter active products by tag (best_seller, new_arrival, premium, combo)
@@ -262,10 +193,10 @@ router.get("/tag/:tag", async (req, res) => {
     if (products && products.length > 0) {
       return res.json(products.map(formatProduct));
     }
-  } catch (e) {}
-
-  const matches = defaultFallbackProducts.filter((p) => p.tag === tag);
-  res.json(matches.map(formatProduct));
+  } catch (e: any) {
+    console.error(`Error fetching products by tag ${tag}:`, e.message);
+    return res.status(500).json({ error: "Failed to fetch products by tag." });
+  }
 });
 
 // GET /api/products/featured - Featured products
@@ -287,17 +218,21 @@ router.get("/featured", async (req, res) => {
     if (products && products.length > 0) {
       return res.json(products.map(formatProduct));
     }
-  } catch (e) {}
-
-  res.json(defaultFallbackProducts.map(formatProduct));
+  } catch (e: any) {
+    console.error("Error fetching featured products:", e.message);
+    return res.status(500).json({ error: "Failed to fetch featured products." });
+  }
 });
 
-// GET /api/products/:slug - Single product with variants & images
+// GET /api/products/:slug - Single product with variants & images (ACTIVE only)
 router.get("/:slug", async (req, res) => {
   const { slug } = req.params;
+  const isValidObjectId = (str: string) => /^[0-9a-fA-F]{24}$/.test(str);
   try {
     const product = await prisma.product.findFirst({
-      where: { OR: [{ slug }, { id: slug }] },
+      where: isValidObjectId(slug)
+        ? { OR: [{ slug }, { id: slug }], isActive: true }
+        : { slug, isActive: true },
       include: {
         category: true,
         variants: true,
@@ -308,13 +243,13 @@ router.get("/:slug", async (req, res) => {
         productImages: true
       }
     });
-    if (product) return res.json(formatProduct(product));
-  } catch (e) {}
+    if (product) return res.json(formatProduct(product)); // If product found, return it
+  } catch (e: any) {
+    console.error(`Error fetching product by slug ${slug}:`, e.message);
+    // Fall through to 404 if DB error or product not found
+  }
 
-  const match = defaultFallbackProducts.find((p) => p.slug === slug || p.id === slug);
-  if (match) return res.json(formatProduct(match));
-
-  res.status(404).json({ error: "Product not found" });
+  res.status(404).json({ error: "Product not found or is no longer available." });
 });
 
 // GET /api/products/:id/reviews

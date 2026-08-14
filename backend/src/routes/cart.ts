@@ -57,12 +57,31 @@ async function calculateCartTotals(cartId: string, appliedCouponCode?: string) {
   // 3. Coupon Discount Calculation
   let couponDiscountAmount = 0;
   const code = (appliedCouponCode || "").toUpperCase();
-  if (code === "SWEET10") {
-    couponDiscountAmount = Math.round((subtotal * 10) / 100);
-  } else if (code === "FESTIVE5") {
-    couponDiscountAmount = Math.round((subtotal * 5) / 100);
-  } else if (code === "GIFT15") {
-    couponDiscountAmount = Math.round((subtotal * 15) / 100);
+  if (code) {
+    try {
+      const dbCoupon = await prisma.coupon.findUnique({ where: { code } });
+      if (dbCoupon && dbCoupon.isActive !== false) {
+        const minVal = dbCoupon.minOrderValue ?? 0;
+        const maxVal = dbCoupon.maxOrderValue ?? Infinity;
+        if (subtotal >= minVal && (maxVal === 0 || subtotal <= maxVal)) {
+          if (dbCoupon.discountType === "FIXED") {
+            couponDiscountAmount = dbCoupon.discountValue;
+          } else {
+            couponDiscountAmount = Math.round((subtotal * dbCoupon.discountValue) / 100);
+          }
+        }
+      } else {
+        let fallbackPct = 0;
+        let fallbackMin = 0;
+        if (code === "SWEET10") { fallbackPct = 10; fallbackMin = 500; }
+        else if (code === "FESTIVE5") { fallbackPct = 5; fallbackMin = 500; }
+        else if (code === "GIFT15") { fallbackPct = 15; fallbackMin = 1000; }
+
+        if (subtotal >= fallbackMin && fallbackPct > 0) {
+          couponDiscountAmount = Math.round((subtotal * fallbackPct) / 100);
+        }
+      }
+    } catch (e) {}
   }
 
   const totalDiscount = bulkDiscountAmount + couponDiscountAmount;
@@ -276,9 +295,41 @@ router.post("/apply-coupon", async (req, res) => {
       return res.status(400).json({ error: "Coupon code is required." });
     }
 
-    const validCoupons = ["SWEET10", "FESTIVE5", "GIFT15"];
-    if (!validCoupons.includes(targetCode)) {
-      return res.status(400).json({ error: `Invalid coupon code please try agin latter` });
+    let dbCoupon = await prisma.coupon.findUnique({ where: { code: targetCode } });
+
+    if (!dbCoupon && (
+      targetCode.startsWith("SPIN") ||
+      targetCode.startsWith("WIN") ||
+      targetCode.startsWith("SWEET") ||
+      targetCode.startsWith("FESTIVE") ||
+      targetCode.startsWith("GIFT") ||
+      targetCode.startsWith("BULK")
+    )) {
+      let discountVal = 10;
+      if (targetCode.includes("15")) discountVal = 15;
+      else if (targetCode.includes("5")) discountVal = 5;
+      else if (targetCode.includes("20")) discountVal = 20;
+
+      try {
+        dbCoupon = await prisma.coupon.upsert({
+          where: { code: targetCode },
+          create: {
+            name: `Spin & Win Reward (${targetCode})`,
+            code: targetCode,
+            discountType: "PERCENTAGE",
+            discountValue: discountVal,
+            minOrderValue: targetCode.includes("BULK") ? 4200 : 0,
+            usageLimit: 1,
+            maxUsesPerUser: 1,
+            isActive: true,
+          },
+          update: { isActive: true },
+        });
+      } catch (e) {}
+    }
+
+    if (!dbCoupon && !["SWEET10", "FESTIVE5", "GIFT15", "BULK5"].includes(targetCode) && !targetCode.startsWith("SPIN")) {
+      return res.status(400).json({ error: `Invalid coupon code "${targetCode}". Please try again.` });
     }
 
     let cart = cartId
@@ -291,6 +342,14 @@ router.post("/apply-coupon", async (req, res) => {
 
     if (!cart) {
       return res.status(404).json({ error: "Cart not found." });
+    }
+
+    const currentTotals = await calculateCartTotals(cart.id);
+    if (dbCoupon && dbCoupon.minOrderValue && currentTotals.subtotal < dbCoupon.minOrderValue) {
+      const remaining = dbCoupon.minOrderValue - currentTotals.subtotal;
+      return res.status(400).json({
+        error: `Minimum order subtotal of ₹${dbCoupon.minOrderValue.toLocaleString("en-IN")} required for coupon "${targetCode}". Add ₹${remaining.toLocaleString("en-IN")} more to unlock!`
+      });
     }
 
     const cartData = await calculateCartTotals(cart.id, targetCode);

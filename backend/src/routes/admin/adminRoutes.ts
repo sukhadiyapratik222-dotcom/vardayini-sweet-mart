@@ -3,6 +3,7 @@ import { prisma } from "../../prisma";
 import { requireAdmin } from "../../middleware/adminAuth";
 
 const router = Router();
+const isValidObjectId = (str: string) => Boolean(str && typeof str === "string" && /^[0-9a-fA-F]{24}$/.test(str));
 
 import { getUnifiedDashboardStats } from "../../services/statsService";
 import { getAllAnalytics } from "../../services/analyticsService";
@@ -207,65 +208,8 @@ router.post("/orders/:id/refund", async (req, res) => {
   }
 });
 
-// 3. Coupon Management Endpoints
-router.get("/coupons", async (req, res) => {
-  try {
-    const dbCoupons = await prisma.coupon.findMany();
-    const formatted = dbCoupons.map((c) => ({
-      id: c.id,
-      code: c.code,
-      discountPercent: Number(c.discountValue || 10),
-      minPurchase: Number(c.minOrderValue || 0),
-      isActive: true,
-      expiryDate: c.expiryDate ? c.expiryDate.toISOString().slice(0, 10) : "2026-12-31",
-    }));
-    res.json(formatted);
-  } catch (error) {
-    res.json([
-      { id: 'c1', code: 'SWEET10', discountPercent: 10, minPurchase: 500, isActive: true },
-      { id: 'c2', code: 'FESTIVE5', discountPercent: 5, minPurchase: 1000, isActive: true },
-    ]);
-  }
-});
+// 3. Coupon Management Endpoints Handled Below in Section 8
 
-router.post("/coupons", async (req, res) => {
-  const result = CouponSchema.safeParse(req.body);
-  if (!result.success) {
-    return res.status(400).json(formatZodError(result.error));
-  }
-
-  const { code, discountPercent, minPurchase } = result.data;
-  const cleanCode = code.toUpperCase();
-
-  try {
-    const coupon = await prisma.coupon.upsert({
-      where: { code: cleanCode },
-      create: {
-        code: cleanCode,
-        discountType: "PERCENTAGE",
-        discountValue: Number(discountPercent),
-        minOrderValue: Number(minPurchase),
-        usageLimit: 100,
-      },
-      update: {
-        discountValue: Number(discountPercent),
-        minOrderValue: Number(minPurchase),
-      },
-    });
-
-    res.status(201).json({
-      success: true,
-      id: coupon.id,
-      code: coupon.code,
-      discountPercent: Number(coupon.discountValue),
-      minPurchase: Number(coupon.minOrderValue),
-      isActive: true,
-      expiryDate: "2026-12-31",
-    });
-  } catch (error: any) {
-    res.status(500).json({ success: false, errors: { code: error.message || "Failed to save coupon" } });
-  }
-});
 
 // 4. Combos / Offers Management Endpoints
 router.get("/combos", async (req, res) => {
@@ -327,12 +271,30 @@ router.delete("/orders/:id", async (req, res) => {
   }
 });
 
-// 8. Coupon Endpoints with Validation
 router.get("/coupons", async (_req, res) => {
   try {
-    const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
-    res.json(coupons);
-  } catch (error) {
+    const docs = await prisma.coupon.findMany({
+      orderBy: { createdAt: "desc" }
+    });
+    const formatted = docs.map((doc: any) => ({
+      id: doc.id,
+      code: doc.code,
+      name: doc.name || doc.code,
+      discountType: doc.discountType || "PERCENTAGE",
+      discountValue: doc.discountValue ?? 10,
+      minOrderValue: doc.minOrderValue ?? 0,
+      maxOrderValue: doc.maxOrderValue ?? null,
+      applicableCategories: doc.applicableCategories ?? null,
+      festivalName: doc.festivalName ?? null,
+      startDate: doc.startDate || null,
+      endDate: doc.endDate || null,
+      usageLimit: doc.usageLimit ?? null,
+      maxUsesPerUser: doc.maxUsesPerUser ?? 1,
+      isActive: doc.isActive !== false,
+    }));
+    res.json(formatted);
+  } catch (error: any) {
+    console.error("GET /admin/coupons error:", error);
     res.json([]);
   }
 });
@@ -363,11 +325,6 @@ router.post("/coupons", async (req, res) => {
     }
 
     const cleanCode = String(code).trim().toUpperCase();
-    const existing = await prisma.coupon.findUnique({ where: { code: cleanCode } });
-    if (existing) {
-      return res.status(400).json({ success: false, errors: { code: `Coupon code "${cleanCode}" already exists` } });
-    }
-
     const dType = discountType?.toUpperCase() === "FIXED" ? "FIXED" : "PERCENTAGE";
     const discVal = Number(discountValue ?? discountPercent ?? 10);
     if (Number.isNaN(discVal) || discVal <= 0) {
@@ -390,26 +347,30 @@ router.post("/coupons", async (req, res) => {
     let parsedStart: Date | null = startDate ? new Date(startDate) : null;
     let parsedEnd: Date | null = endDate || expiryDate ? new Date(endDate || expiryDate) : null;
 
-    const newCoupon = await prisma.coupon.create({
-      data: {
-        name: name ? String(name).trim() : null,
-        code: cleanCode,
-        discountType: dType,
-        discountValue: discVal,
-        minOrderValue: minOrd,
-        maxOrderValue: maxOrd,
-        applicableCategories: categoriesStr,
-        festivalName: festivalName ? String(festivalName).trim() : null,
-        startDate: parsedStart,
-        endDate: parsedEnd,
-        expiryDate: parsedEnd,
-        usageLimit: usageLimit ? Number(usageLimit) : null,
-        maxUsesPerUser: maxUsesPerUser ? Number(maxUsesPerUser) : 1,
-        isActive: isActive !== false,
-      }
+    const couponData = {
+      name: name ? String(name).trim() : null,
+      code: cleanCode,
+      discountType: dType,
+      discountValue: discVal,
+      minOrderValue: minOrd,
+      maxOrderValue: maxOrd,
+      applicableCategories: categoriesStr,
+      festivalName: festivalName ? String(festivalName).trim() : null,
+      startDate: parsedStart,
+      endDate: parsedEnd,
+      expiryDate: parsedEnd,
+      usageLimit: usageLimit ? Number(usageLimit) : null,
+      maxUsesPerUser: maxUsesPerUser ? Number(maxUsesPerUser) : 1,
+      isActive: isActive !== false,
+    };
+
+    const savedCoupon = await prisma.coupon.upsert({
+      where: { code: cleanCode },
+      create: couponData,
+      update: couponData,
     });
 
-    res.status(201).json(newCoupon);
+    res.status(201).json(savedCoupon);
   } catch (error: any) {
     res.status(500).json({ success: false, errors: { code: error.message || "Failed to create coupon" } });
   }
@@ -452,7 +413,12 @@ router.put("/coupons/:id", async (req, res) => {
       isActive,
     } = req.body;
     
-    const existingCoupon = await prisma.coupon.findUnique({ where: { id } });
+const isValidObjectId = (str: string) => /^[0-9a-fA-F]{24}$/.test(str);
+
+    const existingCoupon = isValidObjectId(id)
+      ? await prisma.coupon.findUnique({ where: { id } })
+      : await prisma.coupon.findFirst({ where: { code: id } });
+
     if (!existingCoupon) {
       return res.status(404).json({ success: false, errors: { id: "Coupon not found or has been deleted." } });
     }
@@ -461,7 +427,9 @@ router.put("/coupons/:id", async (req, res) => {
     if (name !== undefined) updateData.name = name ? String(name).trim() : null;
     if (code) {
       const cleanCode = String(code).trim().toUpperCase();
-      const duplicateCode = await prisma.coupon.findFirst({ where: { code: cleanCode, NOT: { id } } });
+      const duplicateCode = await prisma.coupon.findFirst({
+        where: { code: cleanCode, NOT: { id: existingCoupon.id } }
+      });
       if (duplicateCode) {
         return res.status(400).json({ success: false, errors: { code: `Coupon code "${cleanCode}" is already taken by another coupon.` } });
       }
@@ -506,7 +474,7 @@ router.put("/coupons/:id", async (req, res) => {
     if (isActive !== undefined) updateData.isActive = Boolean(isActive);
 
     const coupon = await prisma.coupon.update({
-      where: { id },
+      where: { id: existingCoupon.id },
       data: updateData,
     });
     res.json(coupon);
@@ -518,11 +486,13 @@ router.put("/coupons/:id", async (req, res) => {
 router.put("/coupons/:id/toggle", async (req, res) => {
   try {
     const { id } = req.params;
-    const existing = await prisma.coupon.findUnique({ where: { id } });
+    const existing = isValidObjectId(id)
+      ? await prisma.coupon.findUnique({ where: { id } })
+      : await prisma.coupon.findFirst({ where: { code: id } });
     if (!existing) return res.status(404).json({ success: false, errors: { id: "Coupon not found" } });
 
     const updated = await prisma.coupon.update({
-      where: { id },
+      where: { id: existing.id },
       data: { isActive: !existing.isActive },
     });
     res.json(updated);
@@ -537,7 +507,7 @@ router.delete("/coupons/:id", async (req, res) => {
     await prisma.coupon.delete({ where: { id } });
     res.json({ message: "Coupon deleted successfully", id });
   } catch (error) {
-    res.status(500).json({ success: false, errors: { id: "Failed to delete coupon" } });
+    res.status(500).json({ error: "Failed to delete coupon." });
   }
 });
 
@@ -548,7 +518,7 @@ router.delete("/stores/:id", async (req, res) => {
     await prisma.store.delete({ where: { id } });
     res.json({ message: "Store deleted successfully", id });
   } catch (error) {
-    res.json({ message: "Store deleted", id: req.params.id });
+    res.status(500).json({ error: "Failed to delete store." });
   }
 });
 
@@ -570,7 +540,7 @@ router.put("/customers/:id", async (req, res) => {
         ...(phone !== undefined ? { phone } : {}),
       },
     });
-    res.json({ success: true, user });
+    return res.json({ success: true, user });
   } catch (error: any) {
     res.status(500).json({ success: false, errors: { email: error.message || "Failed to update customer" } });
   }
@@ -582,15 +552,27 @@ router.delete("/customers/:id", async (req, res) => {
     await prisma.user.delete({ where: { id } });
     res.json({ message: "Customer account deleted successfully", id });
   } catch (error) {
-    res.json({ message: "Customer deleted", id: req.params.id });
+    res.status(500).json({ error: "Failed to delete customer." });
   }
 });
 
-// 11. Blog Management Endpoints (Persisted in MySQL Database)
+// 11. Blog Management Endpoints (Persisted in Database)
 router.get("/blogs", async (_req, res) => {
   try {
     const blogs = await prisma.blogPost.findMany({ orderBy: { createdAt: "desc" } });
-    res.json(blogs);
+    const formatted = blogs.map((b: any) => ({
+      id: b.id,
+      title: b.title,
+      slug: b.slug,
+      author: b.author || "Admin Team",
+      category: b.category || "General",
+      status: b.status || "published",
+      imageUrl: b.imageUrl || "/images/sweet-1.jpg",
+      content: b.content || "",
+      publishedAt: b.publishedAt || b.createdAt,
+      createdAt: b.createdAt,
+    }));
+    res.json(formatted);
   } catch (error) {
     res.json([]);
   }
@@ -648,7 +630,7 @@ router.get("/blogs/:id", async (req, res) => {
   try {
     const { id } = req.params;
     const blog = await prisma.blogPost.findFirst({
-      where: { OR: [{ id }, { slug: id }] },
+      where: isValidObjectId(id) ? { OR: [{ id }, { slug: id }] } : { slug: id },
     });
     if (!blog) {
       return res.status(404).json({ success: false, errors: { id: "Blog article not found or has been deleted." } });
@@ -664,7 +646,9 @@ router.put("/blogs/:id", async (req, res) => {
     const { id } = req.params;
     const { title, slug, author, category, content, imageUrl, status, publishedAt } = req.body;
 
-    const existingBlog = await prisma.blogPost.findUnique({ where: { id } });
+    const existingBlog = await prisma.blogPost.findFirst({
+      where: isValidObjectId(id) ? { OR: [{ id }, { slug: id }] } : { slug: id },
+    });
     if (!existingBlog) {
       return res.status(404).json({ success: false, errors: { id: "Blog article not found or has been deleted." } });
     }
@@ -679,7 +663,9 @@ router.put("/blogs/:id", async (req, res) => {
 
     if (slug) {
       const cleanSlug = String(slug).trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-      const duplicateSlug = await prisma.blogPost.findFirst({ where: { slug: cleanSlug, NOT: { id } } });
+      const duplicateSlug = await prisma.blogPost.findFirst({
+        where: { slug: cleanSlug, NOT: { id: existingBlog.id } }
+      });
       if (duplicateSlug) {
         return res.status(400).json({ success: false, errors: { slug: `Blog slug "${cleanSlug}" is already taken by another article.` } });
       }
@@ -713,7 +699,7 @@ router.put("/blogs/:id", async (req, res) => {
     }
 
     const updatedBlog = await prisma.blogPost.update({
-      where: { id },
+      where: { id: existingBlog.id },
       data: updateData
     });
 
@@ -729,7 +715,7 @@ router.delete("/blogs/:id", async (req, res) => {
     await prisma.blogPost.delete({ where: { id } });
     res.json({ message: "Blog article deleted successfully", id });
   } catch (error) {
-    res.json({ message: "Blog article deleted", id: req.params.id });
+    res.status(500).json({ error: "Failed to delete blog article." });
   }
 });
 

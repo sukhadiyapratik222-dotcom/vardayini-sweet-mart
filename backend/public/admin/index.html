@@ -560,6 +560,7 @@
       justify-content: center;
       z-index: 1000;
       padding: 20px;
+      -webkit-backdrop-filter: blur(4px);
       backdrop-filter: blur(4px);
     }
 
@@ -1091,7 +1092,7 @@
             CHOOSE FILE / PHOTO</label>
           <div style="display:flex; gap:10px; align-items:center;">
             <input id="p-img" class="input-field" value="/images/sweet-1.jpg" style="flex:1;" />
-            <button type="button" onclick="openMediaPicker('p-img')"
+            <button type="button" onclick="openMediaPicker('p-img', 'p-img-preview')"
               style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:9px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap;">
               🖼️ Pick from Gallery
             </button>
@@ -1099,8 +1100,15 @@
               style="background:rgba(234,179,8,0.2); color:#FFD700; border:1px solid #EAB308; padding:9px 12px; border-radius:10px; font-size:11px; font-weight:800; cursor:pointer; white-space:nowrap; display:flex; align-items:center; gap:4px;">
               📁 Choose Photo
               <input type="file" accept="image/*" style="display:none;"
-                onchange="handleImageFileSelect(event, 'p-img')" />
+                onchange="handleImageFileSelect(event, 'p-img', 'p-img-preview')" />
             </label>
+          </div>
+          <div
+            style="display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.2); padding:8px; border-radius:10px; border:1px dashed rgba(234,179,8,0.3); margin-top:8px;">
+            <img id="p-img-preview" src="/images/sweet-1.jpg" onerror="this.src='/images/sweet-1.jpg'"
+              style="width:50px; height:50px; object-fit:cover; border-radius:8px; border:1px solid #EAB308;"
+              alt="Current Image Preview" />
+            <div style="font-size:10px; color:#94A3B8;">Selected Image Preview</div>
           </div>
         </div>
         <button type="submit" class="btn-hero-gold" style="width:100%; justify-content:center; margin-top:10px;">Save
@@ -1286,7 +1294,7 @@
     <div class="modal-card">
       <div class="modal-title">
         <span>✏️ Edit Customer Profile</span>
-        <span style="cursor:pointer;" onclick="closeModal('edit-customer-modal')">✕</span>
+        <span class="modal-close" onclick="closeModal('edit-customer-modal')">✕</span>
       </div>
       <form onsubmit="handleUpdateCustomer(event)">
         <input type="hidden" id="edit-cust-id" />
@@ -1791,7 +1799,7 @@
                   alert('✓ Photo uploaded to Media Gallery successfully!');
                   await loadMediaGallery();
                 } else {
-                  alert('❌ Failed to upload photo.');
+                  alert('❌ Failed to upload photo. Please try again.');
                 }
               } catch (err) {
                 alert('❌ Upload error: ' + err.message);
@@ -1855,13 +1863,20 @@
             });
           }
 
-          async function handleImageFileSelect(event, targetInputId) {
+          async function handleImageFileSelect(event, targetInputId, previewImgId) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
 
             const reader = new FileReader();
             reader.onload = async function (e) {
               const base64Data = e.target.result;
+              
+              // Optimistically update preview immediately
+              if (previewImgId) {
+                const previewImg = document.getElementById(previewImgId);
+                if (previewImg) previewImg.src = base64Data;
+              }
+
               try {
                 const res = await fetch(`${API_BASE}/upload`, {
                   method: 'POST',
@@ -1872,14 +1887,18 @@
                   const data = await res.json();
                   const input = document.getElementById(targetInputId);
                   if (input) input.value = data.url;
+                  
+                  if (previewImgId) {
+                    const previewImg = document.getElementById(previewImgId);
+                    if (previewImg) previewImg.src = data.url;
+                  }
+                  
                   alert('✓ Photo uploaded successfully!');
                 } else {
-                  const input = document.getElementById(targetInputId);
-                  if (input) input.value = base64Data;
+                  alert('❌ Failed to upload photo. Please try again.');
                 }
               } catch (err) {
-                const input = document.getElementById(targetInputId);
-                if (input) input.value = base64Data;
+                alert('❌ Upload error: ' + err.message);
               }
             };
             reader.readAsDataURL(file);
@@ -2170,9 +2189,9 @@
             body.innerHTML = (coupons || []).map(c => `
         <tr>
           <td style="font-weight:900; color:#FFD700;">${c.code}</td>
-          <td>${c.discountPercent}% OFF</td>
-          <td>₹${c.minPurchase}</td>
-          <td><span class="status-pill">ACTIVE</span></td>
+          <td>${c.discountValue ?? c.discountPercent ?? 10}${c.discountType === 'FIXED' ? ' ₹' : '%'} OFF</td>
+          <td>₹${(c.minOrderValue ?? c.minPurchase ?? 0).toLocaleString('en-IN')}</td>
+          <td><span class="status-pill">${c.isActive !== false ? 'ACTIVE' : 'INACTIVE'}</span></td>
           <td>
             <div style="display:flex; gap:6px;">
               <button onclick="openEditCouponModal('${c.id}')" style="background:rgba(59,130,246,0.2); color:#93C5FD; border:1px solid #3B82F6; padding:5px 10px; border-radius:8px; font-size:11px; font-weight:800; cursor:pointer;">Edit</button>
@@ -2674,6 +2693,7 @@
 
             closeModal('edit-product-modal');
             loadDashboardData();
+            window.localStorage.setItem('admin_data_updated', Date.now());
           }
 
           async function handleUpdateCustomer(e) {
@@ -2803,6 +2823,7 @@
                 headers: { 'Authorization': 'Bearer admin_token_demo' },
               });
               loadDashboardData();
+              window.localStorage.setItem('admin_data_updated', Date.now());
             } catch (e) { }
           }
 
@@ -2882,6 +2903,7 @@
 
             closeModal('add-product-modal');
             loadDashboardData();
+            window.localStorage.setItem('admin_data_updated', Date.now());
           }
 
           async function handleCreateCoupon(e) {

@@ -12,30 +12,80 @@ router.use(requireAdmin);
 // GET /api/admin/products - List full inventory (active + inactive) for admin table
 router.get("/", async (req, res) => {
   try {
-    const products = await prisma.product.findMany({
+    const rawProducts = await prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
       include: {
         category: true,
         variants: true,
         productImages: true,
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    const formatted = products.map((p) => ({
-      ...p,
-      isActive: p.isActive !== false,
-      categorySlug: p.category?.slug || "",
-      subcategory: p.category?.slug || "",
-      images: (p.productImages ?? []).map((img: any) => img.imageUrl),
-      primaryImage: p.productImages?.[0]?.imageUrl || "/images/sweet-1.jpg",
-      totalStock: (p.variants ?? []).reduce((sum: number, v: any) => sum + (v.stockQty ?? 0), 0),
-    }));
+    const formatted = rawProducts.map((p: any) => {
+      const variants = (p.variants || []).map((v: any) => ({
+        id: v.id,
+        weightLabel: v.weightLabel ?? "500g",
+        price: Number(v.price ?? 0),
+        discountedPrice: v.discountedPrice ?? null,
+        stockQty: Number(v.stockQty ?? 0),
+        sku: v.sku ?? "",
+      }));
+
+      const images = (p.productImages || []).map((img: any) => img.imageUrl).filter(Boolean);
+      if (images.length === 0) {
+        images.push("/images/sweet-1.jpg");
+      }
+
+      const totalStock = variants.reduce((sum: number, v: any) => sum + (v.stockQty ?? 0), 0);
+
+      const tagMap: Record<string, string> = {
+        bestseller: "best_seller",
+        best_seller: "best_seller",
+        trending: "best_seller",
+        popular: "best_seller",
+        new_arrival: "new_arrival",
+        new: "new_arrival",
+        premium: "premium",
+        combo: "combo",
+        gift: "combo",
+        healthy: "premium",
+        none: "none",
+      };
+      const rawTag = String(p.tag ?? "none").toLowerCase();
+      const tag = tagMap[rawTag] ?? "none";
+
+      const catSlug = p.category?.slug ?? "";
+
+      return {
+        id: p.id,
+        name: p.name ?? "",
+        slug: p.slug ?? "",
+        description: p.description ?? "",
+        tag,
+        isActive: p.isActive ?? true,
+        createdAt: p.createdAt ?? new Date().toISOString(),
+        ratingAvg: p.ratingAvg ?? 5.0,
+        ratingCount: p.ratingCount ?? 0,
+        categoryId: p.categoryId ?? null,
+        category: p.category ? { id: p.category.id, name: p.category.name, slug: p.category.slug } : null,
+        categorySlug: catSlug,
+        subcategory: catSlug,
+        variants,
+        productImages: images.map((url: string) => ({ imageUrl: url })),
+        images,
+        primaryImage: images[0] ?? "/images/sweet-1.jpg",
+        totalStock,
+      };
+    });
 
     res.json(formatted);
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Admin products fetch error:", error?.message ?? error);
     res.status(500).json({ error: "Failed to fetch admin product inventory." });
   }
 });
+
+const isValidObjectId = (str: string) => /^[0-9a-fA-F]{24}$/.test(str);
 
 // GET /api/admin/products/:id - Fetch single product for admin edit modal
 router.get("/:id", async (req, res) => {
@@ -44,26 +94,54 @@ router.get("/:id", async (req, res) => {
 
     const product = await prisma.product.findFirst({
       where: {
-        OR: [{ id }, { slug: id }],
+        OR: [
+          { id },
+          { slug: id }
+        ]
       },
       include: {
         category: true,
         variants: true,
         productImages: true,
-      },
+      }
     });
 
     if (!product) {
       return res.status(404).json({ error: "Product not found or has been deleted." });
     }
 
+    const variants = (product.variants || []).map((v: any) => ({
+      id: v.id,
+      weightLabel: v.weightLabel ?? "500g",
+      price: Number(v.price ?? 0),
+      discountedPrice: v.discountedPrice ?? null,
+      stockQty: Number(v.stockQty ?? 0),
+      sku: v.sku ?? "",
+    }));
+
+    const images = (product.productImages || []).map((img: any) => img.imageUrl).filter(Boolean);
+
+    const rawTag = String(product.tag ?? "none").toLowerCase();
+    const tagMap: Record<string, string> = {
+      bestseller: "best_seller", best_seller: "best_seller", trending: "best_seller", popular: "best_seller",
+      new_arrival: "new_arrival", new: "new_arrival",
+      premium: "premium", combo: "combo", gift: "combo", healthy: "premium", none: "none",
+    };
+    const tag = tagMap[rawTag] ?? "none";
+
     const formatted = {
-      ...product,
-      categorySlug: product.category?.slug || "",
-      subcategory: product.category?.slug || "",
-      images: (product.productImages ?? []).map((img: any) => img.imageUrl),
-      primaryImage: product.productImages?.[0]?.imageUrl || "/images/sweet-1.jpg",
-      totalStock: (product.variants ?? []).reduce((sum: number, v: any) => sum + (v.stockQty ?? 0), 0),
+      id: product.id,
+      name: product.name ?? "",
+      slug: product.slug ?? "",
+      description: product.description ?? "",
+      tag,
+      isActive: product.isActive ?? true,
+      categorySlug: product.category?.slug ?? "",
+      subcategory: product.category?.slug ?? "",
+      images,
+      primaryImage: images[0] || "/images/sweet-1.jpg",
+      totalStock: variants.reduce((sum: number, v: any) => sum + (v.stockQty ?? 0), 0),
+      variants,
     };
 
     res.json(formatted);
@@ -183,9 +261,9 @@ router.put("/:id", async (req, res) => {
     const { name, slug, description, categorySlug, tag, isActive, variants, imageUrls } = req.body;
 
     const existing = await prisma.product.findFirst({
-      where: {
-        OR: [{ id }, { slug: id }],
-      },
+      where: isValidObjectId(id)
+        ? { OR: [{ id }, { slug: id }] }
+        : { slug: id },
     });
 
     if (!existing) {
@@ -254,17 +332,18 @@ router.put("/:id", async (req, res) => {
     });
 
     if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+      const validUrls = imageUrls.filter((imageUrl: string) => Boolean(imageUrl));
       await prisma.productImage.deleteMany({ where: { productId: product.id } });
       await prisma.productImage.createMany({
-        data: imageUrls
-          .filter((imageUrl: string) => Boolean(imageUrl))
-          .map((imageUrl: string, index: number) => ({
-            productId: product.id,
-            imageUrl,
-            altText: `${name ?? existing.name} ${index + 1}`,
-            sortOrder: index,
-          })),
+        data: validUrls.map((imageUrl: string, index: number) => ({
+          productId: product.id,
+          imageUrl,
+          altText: `${name ?? existing.name} ${index + 1}`,
+          sortOrder: index,
+        })),
       });
+
+
     }
 
     if (Array.isArray(variants) && variants.length > 0) {
@@ -353,9 +432,9 @@ router.delete("/:id", async (req, res) => {
     const { id } = req.params;
 
     const existing = await prisma.product.findFirst({
-      where: {
-        OR: [{ id }, { slug: id }],
-      },
+      where: isValidObjectId(id)
+        ? { OR: [{ id }, { slug: id }] }
+        : { slug: id },
     });
 
     if (!existing) {

@@ -80,59 +80,16 @@ router.post("/validate", async (req, res) => {
     });
 
     if (!coupon) {
-      if (
-        cleanCode.startsWith("SPIN") ||
-        cleanCode.startsWith("WIN") ||
-        cleanCode.startsWith("SWEET") ||
-        cleanCode.startsWith("FESTIVE") ||
-        cleanCode.startsWith("GIFT") ||
-        cleanCode.startsWith("BULK")
-      ) {
-        const orderSubtotal = Number(subtotal || 0);
-        if (cleanCode.startsWith("BULK") || cleanCode.includes("BULK")) {
-          if (orderSubtotal < 4200) {
-            const remaining = Math.max(0, 4200 - orderSubtotal);
-            return res.status(400).json({
-              success: false,
-              errors: { code: `Minimum order subtotal of ₹4,200 required for 5% Bulk Offer. Add ₹${remaining.toLocaleString("en-IN")} more to unlock!` },
-            });
-          }
-        }
-
-        let discountValue = 10;
-        if (cleanCode.includes("15")) discountValue = 15;
-        else if (cleanCode.includes("5")) discountValue = 5;
-        else if (cleanCode.includes("20")) discountValue = 20;
-
-        const discountAmount = Math.round((orderSubtotal * discountValue) / 100);
-
-        return res.json({
-          success: true,
-          code: cleanCode,
-          name: `${cleanCode} Special Discount`,
-          discountType: "PERCENTAGE",
-          discountValue,
-          discountAmount,
-          minOrderValue: cleanCode.includes("BULK") ? 4200 : 0,
-          coupon: {
-            code: cleanCode,
-            discountType: "PERCENTAGE",
-            discountValue,
-            minOrderValue: cleanCode.includes("BULK") ? 4200 : 0,
-          },
-        });
-      }
-
       return res.status(400).json({
         success: false,
-        errors: { code: `Invalid coupon code "${cleanCode}". Please check and try again.` },
+        errors: { code: "Invalid coupon code." },
       });
     }
 
     if (coupon.isActive === false) {
       return res.status(400).json({
         success: false,
-        errors: { code: `Coupon "${cleanCode}" is currently deactivated.` },
+        errors: { code: "This coupon is currently inactive." },
       });
     }
 
@@ -140,7 +97,7 @@ router.post("/validate", async (req, res) => {
     if (coupon.startDate && new Date(coupon.startDate) > now) {
       return res.status(400).json({
         success: false,
-        errors: { code: `Coupon "${cleanCode}" ${coupon.festivalName ? `for ${coupon.festivalName} ` : ""}starts on ${new Date(coupon.startDate).toLocaleDateString()}.` },
+        errors: { code: `This coupon is not active until ${new Date(coupon.startDate).toLocaleDateString()}.` },
       });
     }
 
@@ -148,24 +105,42 @@ router.post("/validate", async (req, res) => {
     if (endDate && new Date(endDate) < now) {
       return res.status(400).json({
         success: false,
-        errors: { code: `Coupon "${cleanCode}" expired on ${new Date(endDate).toLocaleDateString()}.` },
+        errors: { code: "This coupon has expired." },
       });
     }
 
     if (coupon.usageLimit && coupon.timesUsed >= coupon.usageLimit) {
       return res.status(400).json({
         success: false,
-        errors: { code: `Coupon "${cleanCode}" has reached its maximum usage limit.` },
+        errors: { code: "This coupon has reached its maximum usage limit." },
       });
     }
 
     const orderSubtotal = Number(subtotal || 0);
-    if (coupon.minOrderValue && orderSubtotal > 0 && orderSubtotal < coupon.minOrderValue) {
+    if (coupon.minOrderValue && orderSubtotal < coupon.minOrderValue) {
       const remaining = coupon.minOrderValue - orderSubtotal;
       return res.status(400).json({
         success: false,
-        errors: { code: `Minimum order subtotal of ₹${coupon.minOrderValue.toLocaleString("en-IN")} required for "${cleanCode}". Add ₹${remaining.toLocaleString("en-IN")} more to unlock!` },
+        errors: { code: `Add ₹${remaining.toLocaleString("en-IN")} more to use this coupon.` },
       });
+    }
+
+    if (coupon.applicableCategories && Array.isArray(req.body.cartItems) && req.body.cartItems.length > 0) {
+      try {
+        const allowed = typeof coupon.applicableCategories === "string" ? JSON.parse(coupon.applicableCategories) : coupon.applicableCategories;
+        if (Array.isArray(allowed) && !allowed.includes("all") && allowed.length > 0) {
+          const hasMatchingItem = req.body.cartItems.some((item: any) => {
+            const cat = (item.productVariant?.product?.categorySlug || item.categorySlug || "").toLowerCase();
+            return allowed.some((a: string) => a.toLowerCase() === cat || cat.includes(a.toLowerCase()));
+          });
+          if (!hasMatchingItem) {
+            return res.status(400).json({
+              success: false,
+              errors: { code: "This coupon is not applicable to the items in your cart." },
+            });
+          }
+        }
+      } catch (e) {}
     }
 
     if (coupon.maxOrderValue && orderSubtotal > coupon.maxOrderValue) {
